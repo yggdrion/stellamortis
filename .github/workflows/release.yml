@@ -1,0 +1,119 @@
+name: Release
+
+# Every push to main: run the checks (lint, gdUnit4, headless network test), export each
+# platform on its own runner (macOS: universal, ad-hoc signed), keep the exports as workflow
+# artifacts for ARTIFACT_DAYS days, and publish them as a GitHub Release v<VERSION>.<run number>.
+# Releases stay; artifacts expire. Bump VERSION (e.g. at a milestone) to start a new minor.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Queue releases in push order, never cancel one half-way.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  # Tools inside the checkout, where the caches below look for them.
+  STELLAMORTIS_TOOLS: .tools
+  ARTIFACT_DAYS: 3
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Cache tools
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .tools/godot
+            .tools/venv
+          key: tools-${{ runner.os }}-${{ hashFiles('.godot-version', 'tools/godot-*.sha512', 'tools/requirements.txt') }}
+      - name: Check
+        run: python tools/check.py
+
+  export:
+    name: export (${{ matrix.platform }})
+    needs: check
+    strategy:
+      matrix:
+        include:
+          - platform: linux
+            os: ubuntu-latest
+            templates: ~/.local/share/godot/export_templates
+          - platform: windows
+            os: windows-latest
+            templates: ~\AppData\Roaming\Godot\export_templates
+          - platform: macos
+            os: macos-latest
+            templates: ~/Library/Application Support/Godot/export_templates
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Cache Godot
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .tools/godot
+          key: godot-${{ runner.os }}-${{ hashFiles('.godot-version', 'tools/godot-*.sha512') }}
+      - name: Cache export templates
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ matrix.templates }}
+          # install.py holds the list of templates we extract.
+          key: godot-templates-${{ runner.os }}-${{ hashFiles('.godot-version', 'tools/godot-*.sha512', 'tools/install.py') }}
+      # No platform: export.py exports the one it runs on.
+      - name: Export
+        run: python tools/export.py
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: stellamortis-${{ matrix.platform }}
+          path: build/${{ matrix.platform }}/
+          retention-days: ${{ env.ARTIFACT_DAYS }}
+          if-no-files-found: error
+
+  # Publishes only once all three exported, so a release never misses a platform.
+  release:
+    needs: export
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: artifacts
+      - name: Package
+        run: |
+          mkdir dist
+          # Linux and Windows: the executable plus the webrtc library next to it.
+          for p in linux windows; do
+            (cd "artifacts/stellamortis-$p" && zip -qr "../../dist/stellamortis-$p.zip" .)
+          done
+          # macOS: Godot already zipped the app bundle.
+          cp artifacts/stellamortis-macos/stellamortis.zip dist/stellamortis-macos.zip
+          ls -l dist
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$(tr -d '[:space:]' < VERSION).${{ github.run_number }}"
+          gh release create "$tag" dist/*.zip \
+            --target "${{ github.sha }}" \
+            --title "$tag" \
+            --generate-notes \
+            --latest

@@ -1,0 +1,23 @@
+# Godot
+game/.godot/
+game/addons/gdUnit4/
+game/addons/webrtc_native/
+*.translation
+export_presets.cfg.local
+
+# Test output
+game/reports/
+game/gdunit4_testadapter/
+
+# Tooling
+__pycache__/
+.venv/
+
+# Exports
+build/
+
+# Pinned tools in CI (STELLAMORTIS_TOOLS=.tools)
+.tools/
+
+# Commit baked into exports, removed after export (tools/export.py)
+game/build_id.txt

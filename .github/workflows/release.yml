@@ -46,6 +46,8 @@ jobs:
     name: export (${{ matrix.platform }})
     needs: check
     strategy:
+      # A failing platform must not hide whether the others export.
+      fail-fast: false
       matrix:
         include:
           - platform: linux

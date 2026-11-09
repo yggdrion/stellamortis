@@ -22,6 +22,11 @@ holds these ports and the Caddy route today.
     cp .env.example .env && chmod 600 .env    # fill in TURN_SECRET
     docker compose up -d --build
 
+If another stack already holds port 3478, the relay range or the network alias, stop it first
+(`docker compose down` in its directory) and copy its TURN secret into `.env` instead of making a
+new one. Bring the Caddy change up with `docker compose up -d caddy` in `/root/gvm` (not
+`restart`) when the change also touches Caddy's environment.
+
 The host firewall must let in 3478 TCP/UDP and UDP 49160–49259. gvm's `Caddyfile` (repo
 `yggdrion/gvm`) routes `lobby.r4b2.de` to `stellamortis-lobby:8080`, only `/ws` and `/healthz`;
 after changing it, `cd /root/gvm && git pull && docker compose restart caddy`.

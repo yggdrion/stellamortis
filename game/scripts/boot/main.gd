@@ -11,7 +11,10 @@ extends Node
 ##   --lobby=URL                    lobby for --host and --join (LobbyClient.DEFAULT_URL)
 ##     [--relay-only]               debug: connect through the TURN relay only
 ##   --bot [--expect=N]             headless test client (see GameClient._check_bot)
-##     [--bot-plan=shoot]           shoot: fire the crossbow where --look points
+##     [--bot-plan=shoot|combo|combo_walk]   shoot: fire the crossbow where --look points;
+##                                  combo: chain sword combos there (combo_walk: while walking
+##                                  and sweeping the camera); STELLAMORTIS_SNAP_LOG=1 prints
+##                                  the own player's rollback jumps
 ##     [--duration=SECS]
 ##   --solo                         solo: spawns a local --solo server and joins it
 ##   --name=NAME                    player name (instead of the saved one)

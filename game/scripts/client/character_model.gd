@@ -12,6 +12,8 @@ const HUMAN_EXTRA := "res://assets/quaternius/ual/UAL2.glb"
 
 ## Borrowed clips by library path, retargeted once (every humanoid shares the skeleton path).
 static var _cache := {}
+## Scene paths whose own clips were pinned in place (_pin_root); the clips are shared resources.
+static var _pinned := {}
 
 var animation: AnimationPlayer
 var skeleton: Skeleton3D
@@ -31,6 +33,13 @@ func _init(scene_path: String, held: Dictionary, scale_by := 1.0) -> void:
 	add_child(model)
 	animation = model.find_children("*", "AnimationPlayer", true, false)[0]
 	skeleton = model.find_children("*", "Skeleton3D", true, false)[0]
+	if not _pinned.has(scene_path):
+		_pinned[scene_path] = true
+		for clip_name in animation.get_animation_list():
+			var clip := animation.get_animation(clip_name)
+			for track in clip.get_track_count():
+				if String(clip.track_get_path(track)).ends_with(":Root"):
+					_pin_root(clip, track)
 	if scene_path == HUMAN:
 		_borrow_animations(HUMAN_EXTRA)
 	for node in model.find_children("*", "MeshInstance3D", true, false):
@@ -168,7 +177,25 @@ static func _borrowed(path: String, root: Node, target: Skeleton3D) -> Dictionar
 			var track_path := String(clip.track_get_path(track))
 			if track_path.begins_with(from + ":"):
 				clip.track_set_path(track, NodePath(to + track_path.substr(from.length())))
+			if track_path.ends_with(":Root"):
+				_pin_root(clip, track)
 		clips[clip_name] = clip
 	source.free()
 	_cache[path] = clips
 	return clips
+
+
+## Keeps a root bone position track in place sideways: some clips carry root motion (UAL2's
+## Sword_Regular_A 0.9 m and Sword_Regular_C 1.7 m, UAL1's *_RM clips), which walked the model
+## away from its body during the swing and snapped it back when the clip ended. The body moves
+## in the sim; the model only animates in place. Height stays (a hop is fine).
+static func _pin_root(clip: Animation, track: int) -> void:
+	if (
+		clip.track_get_type(track) != Animation.TYPE_POSITION_3D
+		or clip.track_get_key_count(track) == 0
+	):
+		return
+	var first: Vector3 = clip.track_get_key_value(track, 0)
+	for key in clip.track_get_key_count(track):
+		var at: Vector3 = clip.track_get_key_value(track, key)
+		clip.track_set_key_value(track, key, Vector3(first.x, at.y, first.z))

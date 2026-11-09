@@ -58,6 +58,10 @@ var _started_ms := 0
 var _wanted_weapon := 0
 ## Bot: peer id -> where it first saw that player; ids it saw move are in _seen_moved.
 var _first_seen := {}
+## Debug (STELLAMORTIS_SNAP_LOG=1): prints when the own player jumps between ticks.
+var _snap_log := OS.get_environment("STELLAMORTIS_SNAP_LOG") == "1"
+var _snap_tick := -1
+var _snap_at := Vector3.ZERO
 var _seen_moved := {}
 
 
@@ -234,6 +238,19 @@ func _read_controls(controls: PlayerControls) -> void:
 ## network test exercises combat and rollback too.
 func _bot_controls(controls: PlayerControls) -> void:
 	var seconds := (Time.get_ticks_msec() - _started_ms) / 1000.0
+	if bot_plan == "combo" or bot_plan == "combo_walk":
+		# Looks where --look points and chains light combos, every 4th time a heavy; combo_walk
+		# also walks forward and sweeps the camera (rubberband checks: STELLAMORTIS_SNAP_LOG=1).
+		var walking := bot_plan == "combo_walk"
+		controls.move = Vector2(0.0, 1.0) if walking else Vector2.ZERO
+		controls.yaw = _rig.yaw + (sin(seconds * 1.3) * 0.8 if walking else 0.0)
+		controls.pitch = _rig.pitch
+		controls.weapon = SimPlayer.Weapon.SWORD
+		var beat := int(seconds * 5.0)
+		var heavy := beat % 40 >= 30
+		var b := PlayerControls.Buttons
+		controls.buttons = (b.HEAVY if heavy else b.ATTACK) if beat % 2 == 0 else 0
+		return
 	if bot_plan == "shoot":
 		controls.move = Vector2.ZERO
 		controls.yaw = _rig.yaw
@@ -253,6 +270,8 @@ func _bot_controls(controls: PlayerControls) -> void:
 
 func _process(_delta: float) -> void:
 	_hud.room = room
+	if _snap_log and me != null:
+		_log_snaps()
 	if me != null:
 		_world.arena.show_planet(Layout.on_hub(me.global_position))
 	if me != null and not bot:
@@ -261,6 +280,35 @@ func _process(_delta: float) -> void:
 			and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 			and (Input.is_action_pressed(&"block") or me.action == SimPlayer.Action.DRAW)
 		)
+
+
+## Prints the own player's moves between ticks that are longer than its speed allows (rollback
+## corrections), with the action it is in.
+func _log_snaps() -> void:
+	if NetworkTime.tick == _snap_tick:
+		return
+	var at := me.global_position
+	if _snap_tick >= 0:
+		var ticks := maxi(1, NetworkTime.tick - _snap_tick)
+		var moved := at.distance_to(_snap_at)
+		var allowed := (me.velocity.length() + 1.0) * ticks / 30.0 + 0.05
+		if moved > allowed:
+			print(
+				(
+					"snap %.2f m over %d ticks, action %d time %d attack %d health %.0f tick %d"
+					% [
+						moved,
+						ticks,
+						me.action,
+						me.action_time,
+						me.attack,
+						me.health,
+						NetworkTime.tick
+					]
+				)
+			)
+	_snap_tick = NetworkTime.tick
+	_snap_at = at
 
 
 func _each_second() -> void:

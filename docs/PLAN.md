@@ -221,6 +221,8 @@ Decided (2026-11-09):
 - Snapshots go through netfox with our schemas (`net/wire.gd`), not hand-packed arrays as §3.1 planned.
 - The load test stays out of `tools/check.py`; run `python tools/run_load_test.py` by hand after netcode or state changes.
 
+- Play-test 2026-11-09, "the character teleports back after combos and boss attacks": not netcode. UAL2's Sword_Regular_A and Sword_Regular_C (light 1 and 3, the dummy's swing, the Warden's sweep) carry root motion on the Root bone (0.9 m and 1.7 m, 3.4 m on the Warden), so the model walked away from its body and snapped back when the clip ended. `CharacterModel._pin_root` keeps every clip's root in place sideways; `tests/character_model_test.gd` guards it. A combo bot under 100 ms lag (`--bot-plan=combo_walk`, `STELLAMORTIS_SNAP_LOG=1`) saw only 0.1 to 0.3 m rollback nudges against the Warden.
+
 Moved to milestones:
 
 - Sound: M14.

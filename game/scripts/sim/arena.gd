@@ -300,6 +300,7 @@ func _torch(parent: Node3D, at: Vector3, out: Vector3, shadows: bool) -> void:
 	light.shadow_enabled = shadows
 	root.add_child(light)
 	_torches.append(light)
+	Sounds.loop(root, &"torch", -14.0, 10.0)
 
 
 ## A lit window in the hall: a warm glowing pane and an area light (Godot 4.7 AreaLight3D)
@@ -358,6 +359,7 @@ func _portal(portal: Portal) -> Node3D:
 	light.omni_range = 8.0
 	light.position.y = 2.0
 	root.add_child(light)
+	Sounds.loop(root, &"portal", -8.0, 14.0)
 	var label := Label3D.new()
 	label.text = portal.label
 	label.font = load(Menus.TITLE_FONT)

@@ -96,6 +96,8 @@ func _process(_delta: float) -> void:
 			dart.global_transform = Transform3D(Basis.looking_at(velocity, axis_up), at)
 		elif _was_flying[i] > 0:
 			_burst(positions[i])
+			if color == PLAYER_COLOR:
+				Sounds.play(_darts[i], &"bolt_hit", -6.0)
 		dart.visible = flying
 		(dart.get_node("Trail") as GPUParticles3D).emitting = flying
 		_was_flying[i] = life[i]

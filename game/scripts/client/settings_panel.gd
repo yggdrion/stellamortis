@@ -1,7 +1,7 @@
 class_name SettingsPanel
 extends VBoxContainer
-## Graphics preset, mouse sensitivity and fullscreen, saved as they change. Shown by the main
-## menu and the pause menu; on_graphics re-applies the preset to a running game.
+## Graphics preset, mouse sensitivity, volume and fullscreen, saved as they change. Shown by
+## the main menu and the pause menu; on_graphics re-applies the preset to a running game.
 
 signal closed
 
@@ -37,6 +37,16 @@ func _ready() -> void:
 	_on_sensitivity(Settings.sensitivity)
 	add_child(Menus.row("Mouse sensitivity", sensitivity))
 
+	var volume := HSlider.new()
+	volume.min_value = 0.0
+	volume.max_value = 1.0
+	volume.step = 0.05
+	volume.value = Settings.volume
+	volume.custom_minimum_size.x = 160
+	volume.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	volume.value_changed.connect(_on_volume)
+	add_child(Menus.row("Volume", volume))
+
 	var fullscreen := CheckBox.new()
 	fullscreen.button_pressed = get_window().mode == Window.MODE_FULLSCREEN
 	fullscreen.toggled.connect(_on_fullscreen)
@@ -57,6 +67,12 @@ func _on_sensitivity(value: float) -> void:
 	if not is_equal_approx(value, Settings.sensitivity):
 		Settings.sensitivity = value
 		Settings.save()
+
+
+func _on_volume(value: float) -> void:
+	Settings.volume = value
+	Sounds.apply_volume()
+	Settings.save()
 
 
 func _on_fullscreen(on: bool) -> void:

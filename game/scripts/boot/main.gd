@@ -73,6 +73,7 @@ func _ready() -> void:
 		add_child(_presence)
 	Settings.load_saved()
 	Graphics.load_saved()
+	Sounds.setup()
 	if not _args.has("windowed") and not _args.has("bot") and not OS.is_debug_build():
 		Settings.apply_window(get_window())
 	for flag: String in DIRECT:

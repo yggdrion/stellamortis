@@ -352,6 +352,10 @@ static func _head_of(body_path: String, source: MeshInstance3D) -> Mesh:
 		if kept[indices[t]] and kept[indices[t + 1]] and kept[indices[t + 2]]:
 			cut.append_array([indices[t], indices[t + 1], indices[t + 2]])
 	arrays[Mesh.ARRAY_INDEX] = cut
+	# Custom channels (the female body has two) would need their format flags; the standard
+	# material doesn't read them.
+	for channel in [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3]:
+		arrays[channel] = null
 	var head_mesh := ArrayMesh.new()
 	var flags: int = body.surface_get_format(0) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS
 	head_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, flags)

@@ -98,6 +98,8 @@ static func button(text: String, pressed: Callable) -> Button:
 	var node := Button.new()
 	node.text = text
 	node.custom_minimum_size.y = 36
+	node.pressed.connect(func() -> void: Sounds.ui(node, &"ui_click"))
+	node.mouse_entered.connect(func() -> void: Sounds.ui(node, &"ui_hover"))
 	node.pressed.connect(pressed)
 	return node
 

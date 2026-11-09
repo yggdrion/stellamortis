@@ -14,6 +14,15 @@ var _model: CharacterModel
 var _last_health := -1.0
 var _turned := Quaternion.IDENTITY
 var _respawns := -1
+## Sounds: the state last frame, and distance walked since the last footstep.
+var _heard_action := -1
+var _heard_time := 0
+var _heard_attack := -1
+var _heard_weapon := -1
+var _heard_respawns := -1
+var _heard_rise := 0.0
+var _stride := 0.0
+var _last_feet := Vector3.ZERO
 
 
 func _init(of: SimPlayer, show_name: bool) -> void:
@@ -47,8 +56,11 @@ func _process(delta: float) -> void:
 	visible = Arena.shows(player.global_position)
 	_turn(delta)
 	if _last_health >= 0.0 and player.health < _last_health:
-		_model.flash(Color(1, 0.15, 0.1, 0.55), 0.15)
+		_model.flash(Color(1, 0.15, 0.1, 0.35), 0.15)
+		var blocked := player.action == SimPlayer.Action.BLOCK
+		Sounds.play(self, &"block" if blocked else &"hurt")
 	_last_health = player.health
+	_sounds(delta)
 	var crossbow := player.weapon == SimPlayer.Weapon.CROSSBOW
 	_model.show_prop("sword", not crossbow)
 	_model.show_prop("shield", not crossbow)
@@ -65,6 +77,68 @@ func _turn(delta: float) -> void:
 		_turned = body
 	_turned = _turned.slerp(body, 1.0 - exp(-TURN_FOLLOW * delta)).normalized()
 	_model.quaternion = body.inverse() * _turned
+
+
+## Sounds for what changed since last frame: swings when the blade moves, rolls, shield up, the
+## crossbow, weapon switches, death, portals and respawns, pad launches, footsteps.
+func _sounds(delta: float) -> void:
+	var action := player.action
+	var time := player.action_time
+	var fresh := (
+		action != _heard_action
+		or time < _heard_time
+		or (action == SimPlayer.Action.ATTACK and player.attack != _heard_attack)
+	)
+	var a := SimPlayer.Action
+	if action == a.ATTACK:
+		var windup := Combat.player_attack(player.attack).windup_ticks()
+		if (fresh and time >= windup) or (not fresh and _heard_time < windup and time >= windup):
+			var heavy := player.attack == SimPlayer.HEAVY_ATTACK
+			Sounds.play(self, &"swing_heavy" if heavy else &"swing")
+	elif fresh:
+		match action:
+			a.ROLL:
+				Sounds.play(self, &"cloth", 2.0)
+			a.BLOCK:
+				Sounds.play(self, &"cloth", -6.0)
+			a.DRAW:
+				Sounds.play(self, &"draw_bow")
+			a.SHOOT:
+				Sounds.play(self, &"twang")
+			a.DEAD:
+				Sounds.play(self, &"fall")
+	if _heard_weapon >= 0 and player.weapon != _heard_weapon:
+		var sword := player.weapon == SimPlayer.Weapon.SWORD
+		Sounds.play(self, &"draw_sword" if sword else &"load", -4.0)
+	if _heard_respawns >= 0 and player.respawns != _heard_respawns:
+		Sounds.play(self, &"travel")
+	var rise := player.velocity.dot(player.up)
+	if rise > 9.0 and _heard_rise < 4.0:
+		Sounds.play(self, &"whoom")
+	_footsteps(delta)
+	_heard_action = action
+	_heard_time = time
+	_heard_attack = player.attack
+	_heard_weapon = player.weapon
+	_heard_respawns = player.respawns
+	_heard_rise = rise
+
+
+## A step every stride walked on the ground: stone in the keep and on the asteroid, grass in
+## the Barrows.
+func _footsteps(_delta: float) -> void:
+	var feet := player.global_position
+	var moved := feet.distance_to(_last_feet)
+	_last_feet = feet
+	var walking := player.action == SimPlayer.Action.NONE or player.action == SimPlayer.Action.BLOCK
+	if not player.grounded or not walking or moved > 2.0:
+		return
+	_stride += moved
+	if _stride < 1.7:
+		return
+	_stride = 0.0
+	var stone := Layout.on_hub(feet) or Gravity.zone_at(feet) != null and feet.y > 20.0
+	Sounds.play(self, &"step_stone" if stone else &"step_grass", -8.0)
 
 
 func _pose() -> void:

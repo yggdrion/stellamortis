@@ -61,6 +61,9 @@ var _well_material: ShaderMaterial
 var _motes: GPUParticles3D
 var _last_health := -1.0
 var _was_parried := false
+## Sounds: the action last frame, and the Warden's well loop.
+var _heard_action := -1
+var _well_sound: AudioStreamPlayer3D
 var _clips := HUMAN_CLIPS
 
 
@@ -236,6 +239,10 @@ func _add_well() -> void:
 
 func _process(_delta: float) -> void:
 	visible = enemy.action != Enemy.Action.HIDDEN and Arena.shows(enemy.global_position)
+	if _last_health >= 0.0 and enemy.health < _last_health:
+		Sounds.play(self, &"hit")
+		if enemy is Warden:
+			Sounds.play(self, &"clang", -4.0)
 	if _last_health >= 0.0 and enemy.health < _last_health and enemy.alive():
 		_model.flash(Color(1, 1, 1, 0.6), 0.1)
 		_pop_number(_last_health - enemy.health, enemy.parried)
@@ -245,12 +252,39 @@ func _process(_delta: float) -> void:
 	if enemy.parried and not _was_parried:
 		_model.flash(Color(1, 0.9, 0.2, 0.7), 0.3)
 		_pop_text("PARRY", Color(1, 0.9, 0.3))
+		Sounds.play(self, &"parry")
 	_was_parried = enemy.parried
 	_bar_material.set_shader_parameter("fill", enemy.health / enemy.max_health)
 	_bar.visible = (enemy.health < enemy.max_health and enemy.alive() and not enemy is Warden)
 	_pose()
+	_sounds()
 	if _well:
 		_show_well()
+
+
+## Windups growl, strikes swoosh (embers hiss for shots), falls thud, the Warden stomps as it
+## rises.
+func _sounds() -> void:
+	var action := enemy.action
+	if action == _heard_action:
+		return
+	var giant := enemy is Warden
+	var a := Enemy.Action
+	match action:
+		a.WINDUP:
+			Sounds.play(self, &"telegraph_giant" if giant else &"telegraph", -4.0)
+		a.STRIKE:
+			if enemy.attack_def().melee():
+				Sounds.play(self, &"swing_giant" if giant else &"swing")
+			else:
+				Sounds.play(self, &"ember")
+		a.DOWN:
+			Sounds.play(self, &"fall")
+			if giant:
+				Sounds.play(self, &"stomp")
+		a.RISE:
+			Sounds.play(self, &"stomp", 2.0)
+	_heard_action = action
 
 
 func _show_well() -> void:
@@ -260,6 +294,13 @@ func _show_well() -> void:
 	_well.visible = strength > 0.0
 	_well_material.set_shader_parameter("strength", strength)
 	_motes.emitting = warden.well_time > 0
+	if _well_sound == null:
+		_well_sound = Sounds.loop(_well, &"well", 0.0, 30.0, false)
+	if (warden.well_time > 0) != _well_sound.playing and visible:
+		if warden.well_time > 0:
+			_well_sound.play()
+		else:
+			_well_sound.stop()
 
 
 func _pose() -> void:

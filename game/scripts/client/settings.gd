@@ -1,7 +1,7 @@
 class_name Settings
 extends RefCounted
 ## The player's settings besides the graphics preset (Graphics keeps that one), saved in the
-## same user://settings.cfg: name, mouse sensitivity, fullscreen.
+## same user://settings.cfg: name, mouse sensitivity, fullscreen, volume.
 
 const SENSITIVITY_MIN := 0.2
 const SENSITIVITY_MAX := 3.0
@@ -11,6 +11,8 @@ static var player_name := "player"
 ## Multiplier on Controls.MOUSE_SENSITIVITY.
 static var sensitivity := 1.0
 static var fullscreen := true
+## Master volume, 0..1.
+static var volume := 0.8
 
 
 static func load_saved() -> void:
@@ -24,6 +26,7 @@ static func load_saved() -> void:
 		SENSITIVITY_MAX
 	)
 	fullscreen = bool(config.get_value("display", "fullscreen", fullscreen))
+	volume = clampf(float(config.get_value("audio", "volume", volume)), 0.0, 1.0)
 
 
 static func save() -> void:
@@ -32,6 +35,7 @@ static func save() -> void:
 	config.set_value("player", "name", player_name)
 	config.set_value("input", "sensitivity", sensitivity)
 	config.set_value("display", "fullscreen", fullscreen)
+	config.set_value("audio", "volume", volume)
 	config.save(Graphics.SETTINGS)
 
 

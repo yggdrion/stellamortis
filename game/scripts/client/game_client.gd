@@ -53,6 +53,8 @@ var _leaving := false
 var _overlay: DebugOverlay
 var _hud: Hud
 var _pause: PauseMenu
+## The planet's wind (Sounds.ambience).
+var _ambience: AudioStreamPlayer
 var _started_ms := 0
 ## The weapon picked with 1, 2 or the wheel (SimPlayer.Weapon).
 var _wanted_weapon := 0
@@ -63,6 +65,10 @@ var _snap_log := OS.get_environment("STELLAMORTIS_SNAP_LOG") == "1"
 var _snap_tick := -1
 var _snap_at := Vector3.ZERO
 var _seen_moved := {}
+## Bot: where it first stood, and whether it has been 4 m away from there since (a respawn
+## near the spawn must not undo that).
+var _bot_start: Variant = null
+var _bot_moved := false
 
 
 func _init() -> void:
@@ -84,6 +90,8 @@ func _ready() -> void:
 	_overlay = DebugOverlay.new()
 	_overlay.client = self
 	add_child(_overlay)
+	_ambience = AudioStreamPlayer.new()
+	add_child(_ambience)
 	_pause = PauseMenu.new()
 	_pause.on_graphics = func() -> void: Graphics.apply(get_viewport(), _world.arena)
 	_pause.resumed.connect(_resume)
@@ -274,6 +282,7 @@ func _process(_delta: float) -> void:
 		_log_snaps()
 	if me != null:
 		_world.arena.show_planet(Layout.on_hub(me.global_position))
+		Sounds.ambience(_ambience, Layout.on_hub(me.global_position))
 	if me != null and not bot:
 		_rig.aiming = (
 			me.weapon == SimPlayer.Weapon.CROSSBOW
@@ -325,7 +334,14 @@ func _check_bot() -> void:
 		if other and other.global_position.distance_to(_first_seen[id]) > 2.0:
 			_seen_moved[id] = true
 	var seconds := (Time.get_ticks_msec() - _started_ms) / 1000.0
-	if seconds < bot_duration or me == null or me.global_position.distance_to(Layout.HUB) < 4.0:
+	if me != null:
+		if _bot_start == null:
+			_bot_start = me.global_position
+		elif me.global_position.distance_to(_bot_start) >= 4.0:
+			_bot_moved = true
+	# Standing plans (combo, shoot) only have to last.
+	var standing := bot_plan == "combo" or bot_plan == "shoot"
+	if seconds < bot_duration or not (_bot_moved or standing):
 		return
 	if _seen_moved.size() + 1 < bot_expect:
 		return

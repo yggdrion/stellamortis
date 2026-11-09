@@ -21,6 +21,7 @@ extends Node
 ##     [--frames=N]                 take N, 50 ms apart (PATH_0.png, PATH_1.png, ...)
 ##   --graphics=low|medium|high|ultra   graphics preset for this run (not saved)
 ##   --look=YAW,PITCH               start the camera there (degrees, yaw 0 looks along -Z)
+##   --bench=N                      time N simulated players and the enemies per tick, then quit
 ##   (none)                         solo: spawns a local --solo server and joins it
 
 const DEFAULT_PORT := 17777
@@ -35,6 +36,11 @@ var _server_pid := 0
 
 func _ready() -> void:
 	_args = parse_args(OS.get_cmdline_user_args())
+	if _args.has("bench"):
+		var bench := Bench.new()
+		bench.players = int(_args["bench"])
+		add_child(bench)
+		return
 	if _args.has("server"):
 		var server := GameServer.new()
 		server.net = _net

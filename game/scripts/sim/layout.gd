@@ -32,7 +32,8 @@ const MOBS := [
 ]
 const BOSS := Vector3(0.0, 0.0, 30.0)
 const SPAWN_RADIUS := 3.0
-const MAX_PLAYERS := 10
+## Places on the spawn ring (more than GameServer.MAX_PLAYERS, so ids spread out).
+const SPAWN_SLOTS := 10
 
 static var _zones: Array[GravityZone] = []
 static var _pads: Array[JumpPad] = []
@@ -70,5 +71,5 @@ static func pad_at(feet: Vector3) -> JumpPad:
 
 ## Where a player (re)spawns: a ring around the origin, by peer id.
 static func spawn_point(peer_id: int) -> Vector3:
-	var angle := (peer_id % MAX_PLAYERS) * TAU / MAX_PLAYERS
+	var angle := (peer_id % SPAWN_SLOTS) * TAU / SPAWN_SLOTS
 	return Vector3(cos(angle), 0.0, sin(angle)) * SPAWN_RADIUS

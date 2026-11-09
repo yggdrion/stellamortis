@@ -34,6 +34,7 @@ var ping_ms := 0
 var server_tps := 0.0
 var server_tick_ms := 0.0
 var server_tick_avg_ms := 0.0
+var server_out_kbps := 0.0
 ## Player host: the room code friends join with, "" without one.
 var room := ""
 ## Over WebRTC: the lobby that set up the connection.
@@ -87,10 +88,11 @@ func _ready() -> void:
 	net.room_received.connect(func(code: String) -> void: room = code)
 	net.ponged.connect(func(sent: int) -> void: ping_ms = Time.get_ticks_msec() - sent)
 	net.server_stats_received.connect(
-		func(tps: float, tick_ms: float, tick_avg_ms: float) -> void:
+		func(tps: float, tick_ms: float, tick_avg_ms: float, out_kbps: float) -> void:
 			server_tps = tps
 			server_tick_ms = tick_ms
 			server_tick_avg_ms = tick_avg_ms
+			server_out_kbps = out_kbps
 	)
 	var timer := Timer.new()
 	timer.wait_time = 1.0

@@ -30,7 +30,7 @@ lobby and coturn together with `docker compose -f deploy/lobby/docker-compose.lo
 (`deploy/lobby/README.md`). `--relay-only` forces a client through the TURN relay.
 
 Command line (after `--`, see `game/scripts/boot/main.gd`): `--server --port=N [--solo]`,
-`--connect=host:port`, `--host`, `--join=CODE`, `--lobby=URL`, `--relay-only`, `--encounter=boss`, `--name=NAME`, `--windowed`, `--look=YAW,PITCH`, `--spawn=X,Y,Z`, `--delay=S`, `--frames=N`, `--graphics=PRESET`, `--bot-plan=shoot|lock`, `--bot [--expect=N] [--duration=S]`.
+`--connect=host:port`, `--host`, `--join=CODE`, `--lobby=URL`, `--relay-only`, `--encounter=boss`, `--bench=N`, `--name=NAME`, `--windowed`, `--look=YAW,PITCH`, `--spawn=X,Y,Z`, `--delay=S`, `--frames=N`, `--graphics=PRESET`, `--bot-plan=shoot|lock`, `--bot [--expect=N] [--duration=S]`.
 
 Controls: WASD move, mouse look, Shift sprint, Space jump, Ctrl or C roll, 1, 2 or the mouse wheel
 switch weapons, Esc frees the mouse (click to capture again), F3 debug overlay, F4 graphics
@@ -63,6 +63,7 @@ The red zone to the west has high gravity.
 ## Check
 
     python tools/check.py            # lint, lobby tests, gdUnit4 tests, network test (ENet, WebRTC)
+    python tools/run_load_test.py    # 6 bots on one server: ticks per second, tick loop, kB/s (--lag=MS)
     python tools/check.py --quick    # lint only
 
 `--screenshot=PATH` saves a PNG after a few seconds and quits, for checking visuals without

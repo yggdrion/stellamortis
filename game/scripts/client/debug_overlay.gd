@@ -52,7 +52,7 @@ func _process(_delta: float) -> void:
 			(
 				(
 					"ping %d ms   netfox rtt %d ms   tick %d   server %.1f tps,"
-					+ " tick loop %.2f avg %.2f max ms"
+					+ " tick loop %.2f avg %.2f max ms, %.1f kB/s to each player"
 				)
 				% [
 					client.ping_ms,
@@ -61,6 +61,7 @@ func _process(_delta: float) -> void:
 					client.server_tps,
 					client.server_tick_avg_ms,
 					client.server_tick_ms,
+					client.server_out_kbps,
 				]
 			)
 		)

@@ -9,12 +9,12 @@ signal pinged(peer_id: int, sent_ms: int)
 # Client side.
 signal rejected(reason: String)
 signal ponged(sent_ms: int)
-signal server_stats_received(tps: float, tick_ms: float, tick_avg_ms: float)
+signal server_stats_received(tps: float, tick_ms: float, tick_avg_ms: float, out_kbps: float)
 signal room_received(code: String)
 
 ## Bump on any change to the RPCs here or to what netfox synchronizes (SimPlayer.STATE,
 ## PlayerControls) or to what both sides simulate (Layout, Gravity, Tuning).
-const PROTOCOL_VERSION := 8
+const PROTOCOL_VERSION := 9
 
 @rpc("any_peer", "reliable")
 func hello(version: int, player_name: String) -> void:
@@ -37,8 +37,9 @@ func pong(sent_ms: int) -> void:
 
 
 @rpc("authority", "unreliable")
-func server_stats(tps: float, tick_ms: float, tick_avg_ms: float) -> void:
-	server_stats_received.emit(tps, tick_ms, tick_avg_ms)
+## out_kbps: kB per second the server sends to each player (ENet only, 0 over WebRTC).
+func server_stats(tps: float, tick_ms: float, tick_avg_ms: float, out_kbps: float) -> void:
+	server_stats_received.emit(tps, tick_ms, tick_avg_ms, out_kbps)
 
 
 ## Player host: the lobby room code friends join with, on joining and whenever it changes.

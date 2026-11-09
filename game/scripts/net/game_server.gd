@@ -8,7 +8,9 @@ extends Node
 ## (player host, PLAN §4.7): then the server opens the room and keeps it open while it runs, so
 ## friends can join any time.
 
-const MAX_PLAYERS := 10
+## Players in one game. netfox's server-side rollback (GDScript) holds 30 ticks per second
+## with 6 on one core; 8 and more fell behind for good (PLAN M7, §8).
+const MAX_PLAYERS := 6
 ## A solo server exits when its player leaves, or if nobody joined within this many seconds.
 const SOLO_JOIN_TIMEOUT := 20.0
 ## The same through a lobby room, which takes longer to set up.
@@ -41,6 +43,9 @@ var _stats_ms := 0.0
 var _stats_sum_ms := 0.0
 var _stats_loops := 0
 var _stats_at := 0
+## Ticks netfox resimulated in rollback, summed over the second (debug builds only).
+var _stats_rollback_ticks := 0
+var _profile: RollbackProfile
 
 
 func _init() -> void:
@@ -63,7 +68,8 @@ func start(port: int) -> void:
 		_open_room()
 	else:
 		var peer := ENetMultiplayerPeer.new()
-		var err := peer.create_server(port, MAX_PLAYERS)
+		# Room for a few more connections than players, so the ones over get told why.
+		var err := peer.create_server(port, MAX_PLAYERS + 2)
 		if err != OK:
 			push_error("Could not open port %d: %s" % [port, error_string(err)])
 			get_tree().quit(1)
@@ -77,6 +83,9 @@ func start(port: int) -> void:
 	NetworkTime.on_tick.connect(func(_delta: float, _tick: int) -> void: _stats_ticks += 1)
 	_started_ms = Time.get_ticks_msec()
 	_stats_at = _started_ms
+	if OS.has_environment("STELLAMORTIS_SERVER_STATS"):
+		_profile = RollbackProfile.new()
+		_profile.attach()
 	if lobby_url == "":
 		print("Server listening on port %d%s" % [port, " (solo)" if solo else ""])
 
@@ -134,14 +143,45 @@ func _track_stats() -> void:
 	_stats_ms = maxf(_stats_ms, took)
 	_stats_sum_ms += took
 	_stats_loops += 1
+	if NetworkPerformance.is_enabled():
+		_stats_rollback_ticks += NetworkPerformance.get_rollback_ticks()
 	var now := Time.get_ticks_msec()
 	if now - _stats_at < 1000:
 		return
 	var average := _stats_sum_ms / maxi(_stats_loops, 1)
+	var seconds := (now - _stats_at) / 1000.0
+	var tps := _stats_ticks / seconds
+	var out_kbps := 0.0
+	var in_kbps := 0.0
+	var enet := multiplayer.multiplayer_peer as ENetMultiplayerPeer
+	if enet and enet.host and not _names.is_empty():
+		var sent := enet.host.pop_statistic(ENetConnection.HOST_TOTAL_SENT_DATA)
+		var received := enet.host.pop_statistic(ENetConnection.HOST_TOTAL_RECEIVED_DATA)
+		out_kbps = sent / 1000.0 / seconds / _names.size()
+		in_kbps = received / 1000.0 / seconds / _names.size()
 	if not _names.is_empty():
-		net.server_stats.rpc(_stats_ticks * 1000.0 / (now - _stats_at), _stats_ms, average)
+		net.server_stats.rpc(tps, _stats_ms, average, out_kbps)
 	if OS.has_environment("STELLAMORTIS_SERVER_STATS"):
-		print("tick loop avg %.2f ms max %.2f ms" % [average, _stats_ms])
+		# One parseable line per second (tools/run_load_test.py reads it).
+		print(
+			(
+				(
+					"stats players=%d tps=%.1f tick_avg_ms=%.2f tick_max_ms=%.2f resim_ticks=%.1f"
+					+ " out_kbps_per_player=%.2f in_kbps_per_player=%.2f %s"
+				)
+				% [
+					_names.size(),
+					tps,
+					average,
+					_stats_ms,
+					float(_stats_rollback_ticks) / maxi(_stats_loops, 1),
+					out_kbps,
+					in_kbps,
+					_profile.take(),
+				]
+			)
+		)
+	_stats_rollback_ticks = 0
 	_stats_ticks = 0
 	_stats_ms = 0.0
 	_stats_sum_ms = 0.0
@@ -154,6 +194,9 @@ func _on_hello(id: int, version: int, player_name: String) -> void:
 		net.reject.rpc_id(id, "Game version %d, server runs %d" % [version, Net.PROTOCOL_VERSION])
 		return
 	if _names.has(id):
+		return
+	if _names.size() >= MAX_PLAYERS:
+		net.reject.rpc_id(id, "The game is full (%d players)" % MAX_PLAYERS)
 		return
 	_names[id] = player_name.substr(0, 24)
 	_ever_joined = true

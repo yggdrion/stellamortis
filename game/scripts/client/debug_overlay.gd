@@ -52,6 +52,22 @@ func _process(_delta: float) -> void:
 	lines.append("players %d" % client.player_count())
 	if client.me:
 		var p := client.me.global_position
-		lines.append("pos %.1f %.1f %.1f   grounded %s" % [p.x, p.y, p.z, client.me.grounded])
+		var zone := Gravity.zone_at(p)
+		(
+			lines
+			. append(
+				(
+					"pos %.1f %.1f %.1f   grounded %s   gravity %.1f m/s² (%s)"
+					% [
+						p.x,
+						p.y,
+						p.z,
+						client.me.grounded,
+						Gravity.sample(p).length(),
+						"normal" if zone == null else zone.label,
+					]
+				)
+			)
+		)
 	lines.append("%s, %s" % [RenderingServer.get_video_adapter_name(), OS.get_name()])
 	_label.text = "\n".join(lines)

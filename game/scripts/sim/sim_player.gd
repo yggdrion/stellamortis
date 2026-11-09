@@ -71,6 +71,15 @@ func networked(owner_peer: int, interpolate: bool) -> void:
 		add_child(interpolator)
 
 
+## Puts the body's feet at a point, standing along the local gravity.
+func place(feet: Vector3) -> void:
+	var gravity := Gravity.sample(feet)
+	up = -gravity.normalized() if gravity.length_squared() > 0.000001 else Vector3.UP
+	ref_forward = _tangent(Vector3.FORWARD, up)
+	facing = ref_forward
+	global_transform = Transform3D(SimPlayer.frame(up, facing), feet)
+
+
 func _rollback_tick(delta: float, _tick: int, _is_fresh: bool) -> void:
 	step(controls.move, controls.yaw, controls.buttons, delta)
 
@@ -81,7 +90,7 @@ func step(move: Vector2, yaw: float, buttons: int, delta: float) -> void:
 	var gravity := Gravity.sample(global_position)
 	var strength := gravity.length()
 	if strength > 0.001:
-		_turn_frame(up.slerp(-gravity / strength, minf(1.0, delta / t.up_turn_time)))
+		_turn_frame(-gravity / strength, minf(1.0, delta / t.up_turn_time))
 
 	var look_forward := ref_forward.rotated(up, yaw)
 	var look_right := look_forward.cross(up)
@@ -96,7 +105,8 @@ func step(move: Vector2, yaw: float, buttons: int, delta: float) -> void:
 	var accel := t.ground_accel if grounded else t.air_accel
 	horizontal = horizontal.move_toward(wish * speed, accel * delta)
 	if grounded and buttons & PlayerControls.Buttons.JUMP != 0:
-		vertical = up * t.jump_speed
+		var pad := Layout.pad_at(global_position)
+		vertical = up * (pad.speed if pad else t.jump_speed)
 	vertical += gravity * delta
 
 	velocity = horizontal + vertical
@@ -113,15 +123,20 @@ func step(move: Vector2, yaw: float, buttons: int, delta: float) -> void:
 	_orient()
 
 
-## Turns up to new_up and carries ref_forward and facing along (parallel transport).
-func _turn_frame(new_up: Vector3) -> void:
-	new_up = new_up.normalized()
-	if up.is_equal_approx(new_up):
+## Turns up by weight (0..1) of the way to target and carries ref_forward and facing along
+## (parallel transport). Axis-angle, because slerp and arc quaternions are undefined for
+## opposite vectors, which happens when leaving the asteroid's underside.
+func _turn_frame(target: Vector3, weight: float) -> void:
+	var angle := up.angle_to(target)
+	if angle < 0.0001:
 		return
-	var turn := Quaternion(up, new_up)
-	ref_forward = _tangent(turn * ref_forward, new_up)
-	facing = _tangent(turn * facing, new_up)
-	up = new_up
+	var axis := up.cross(target)
+	if axis.length_squared() < 0.000001:
+		axis = ref_forward
+	var turn := Quaternion(axis.normalized(), angle * weight)
+	up = (turn * up).normalized()
+	ref_forward = _tangent(turn * ref_forward, up)
+	facing = _tangent(turn * facing, up)
 
 
 func _orient() -> void:

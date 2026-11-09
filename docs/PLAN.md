@@ -125,6 +125,12 @@ All numbers live in data resources (`game/data/*.tres`), not in code.
 - Boss "Warden": a melee sweep (roll through it), a ground slam with an area (roll out of it), a bolt volley (block or strafe). Below 50% health, phase 2: faster, plus a gravity well that pulls players toward it, built on the same `GravityZone` system.
 - Boss health scales with player count.
 - A dead player respawns at the start after a few seconds. If everyone is dead, the encounter resets.
+- Built in M5 (`sim/encounter.gd`, `sim/mob.gd`, `sim/warden.gd`, numbers in `data/attacks/mob_*.tres` and `warden_*.tres` and the scripts' constants): every enemy exists on every peer from the start (netfox finds nodes by path), so nothing is spawned during rollback; the encounter only changes their state. Enemy indices: dummies 0–1, mobs 2–4, Warden 5.
+  - Arena: south of the spawn, in front of the long wall. Two melee skeletons (minions with axes, 90 health, 18 damage chop with 0.8 s windup) at (±6, 0, 24), a ranged one (rogue with a crossbow, 70 health, 14 damage bolts every 1.6 s, keeps 7–13 m away) at (0, 0, 33). Mobs notice players within 16 m, chase them within a 24 m leash around their post, walk back when the player leaves it and stay down when killed.
+  - Warden: rises (3 s, unhittable) where the ranged mob stood when the third mob falls, 900 health plus 50% per extra player present at that moment. Moves: sweep (30 damage, 220°, 4.2 m, parryable), slam (40 damage, a 3.2 m circle 2.2 m in front of it, not parryable: roll out), volley (5 bolts in a 50° fan, 16 damage each, blockable). Below half health, phase 2: windups at 70%, faster steps, and every 4th move a gravity well (14 m, 5 s) that drags players toward it (`Gravity.pull`, a `GravityZone` sphere read apart from `Gravity.sample`, so it doesn't turn the player's up vector or bend bolts; `well_drag` 0.4 s of its 11 m/s² becomes drift, so walking out is slow and sprints or rolls escape). The HUD shows its bar; telegraphs are the same orange glow and ground area as the dummies'.
+  - Enemy bolts: fixed slots in the enemy's rolled back state (like the players'), aimed up to make up for gravity, ended by walls in the enemy's tick and by players in their own tick (`SimPlayer._catch_bolts`: rolls pass through, blocks reduce, no parry).
+  - Phases (`Encounter.Phase`): MOBS, BOSS, CLEARED; 20 s after the Warden falls everything resets. A wipe (every player dead at once, at least 4 s after the last reset) resets to the mobs. The encounter node is rolled back with prediction like the enemies.
+  - Debug: `--encounter=boss` starts a server (or solo) with the mobs dead.
 
 ## 5. Repository layout
 
@@ -150,7 +156,7 @@ docs/        PLAN.md, RESOURCES.md
 | M2 | Melee + defense | Stamina, roll with i-frames, light combo, heavy, block, parry; a training dummy that swings on a timer to test i-frames and parry; animated player model (CC0); graphics presets | Done (2026-11-09), v0.3.0 |
 | M3 | Ranged | Aim mode, crosshair, charged bolt simulated on the server and falling with local gravity; hits the dummy; weapon switching | Done (2026-11-09), v0.4.0 |
 | M4 | Lock-on | Toggle, target switch, strafe and roll relative to target, works on the asteroid | Done (2026-11-09), v0.5.0 |
-| M5 | Encounter | 3 mobs with telegraphed attacks, boss with phases and gravity well, death and respawn, wipe reset, HUD (health, stamina, boss bar) | Planned |
+| M5 | Encounter | 3 mobs with telegraphed attacks, boss with phases and gravity well, death and respawn, wipe reset, HUD (health, stamina, boss bar) | Done (2026-11-09), v0.6.0 |
 | M6 | Lobby | `lobby/` and `deploy/lobby/` moved from jotra into this repo, renamed to stellamortis, jotra-only parts dropped (its telemetry push), lobby protocol restarted at 1; `lobby_client.gd` and the WebRTC transport ported; `--host` spawns the server with a lobby room, host and friends join by code via WebRTC (TURN relay when direct fails); `bun test` in `tools/check.py`; works against a local lobby + coturn compose | Planned |
 | M7 | 10 players | Headless bots fill a game to 10; server holds 30 tps; bandwidth per peer measured; state packets fit netfox's 508 byte limit again (since M3's bolt slots a player's state snapshot is 520–590 bytes and netfox warns it may be dropped) | Planned |
 | M8 | Lobby deploy | Replace jotra's lobby + coturn on the gvm host with stellamortis' `deploy/lobby/`: stop the `jotra-lobby` stack, start ours on the same ports (3478, relay 49160-49259) and the same Caddy route `lobby.r4b2.de` (gvm's Caddyfile: container alias and comment), reuse or rotate `TURN_SECRET`; old jotra builds stop working, which is fine; host and friends join by code from different networks, one through TURN. Touches the gvm host, so it needs a go-ahead before deploying | Planned |
@@ -160,4 +166,42 @@ docs/        PLAN.md, RESOURCES.md
 ## 7. Open questions
 
 - M8: keep `lobby.r4b2.de` (default) or move to a stellamortis subdomain. jotra's other gvm services (download page and telemetry at `jotra.r4b2.de`) are out of scope; retire them separately.
-- Exact CC0 packs (pick in M2 when the player model goes in).
+- Exact CC0 packs: answered in M2 (KayKit Adventurers and Skeletons, `docs/RESOURCES.md`).
+
+## 8. Open items to clarify after the last milestone
+
+Everything left open, deferred or decided on the way, collected so it can be gone through at the end. Add to it whenever a milestone leaves something open; strike items when they are settled.
+
+Testing and verification:
+
+- Nobody has play-tested M2 (melee, defense), M3 (crossbow), M4 (lock-on) or M5 (encounter) by hand yet; all of it is covered only by gdUnit4 tests, the headless network test and screenshots. Numbers (damage, windups, ranges, boss health, well strength) are first guesses.
+- The gravity well's look (shell and motes) and the phase 2 Warden were never seen in a screenshot; only the mobs, the rising Warden and its volley were.
+- The headless network test only has bots walking, fighting the dummies and toggling lock-on; nothing in it fights the encounter, so its netcode (mob chases, boss phases, enemy bolts against prediction) is untested under lag.
+
+Network and performance:
+
+- netfox warns that state snapshots exceed its 508 byte packet limit (`Buffer of 520–590 bytes ... may be dropped`) since M3's player bolt slots; M5 adds enemy bolt slots (the Warden has 10). Planned for M7: shrink or split the state.
+- Server tick loop with one local headless bot: about 5 ms at M4 and 7–9 ms at M5 (rollback resimulates walking enemies with `move_and_slide`; both processes on one machine). The 1.6 ms noted at M2 came from a smaller setup. Watch in M7 with 10 players.
+- Snapshots as packed `PackedByteArray`s (§3.1) were replaced by netfox's own serialization; revisit only if bandwidth in M7 asks for it.
+
+Design decisions to confirm:
+
+- MMB moved from heavy attack to lock-on in M4 (heavy is Q only). Lock-on also takes over mouse look: sideways flicks switch targets.
+- The Warden's gravity well drags players (`Gravity.pull`) instead of being a real gravity zone in `Gravity.sample`: players don't tilt toward it and bolts don't bend around it. A real zone would make the arena briefly a tiny planet around the boss.
+- Boss health scales with the players present when it rises; players joining later don't change it.
+- The encounter loops: 20 s after the Warden falls it starts over. There is no end screen or score.
+- A wipe resets the encounter at once (players still respawn after their 3 s).
+- Enemies don't collide with each other (melee mobs can overlap) and walk only on their own up (mobs stay on the flat ground by their leash; none goes to the asteroid or the gravity zones).
+- The debug overlay (F3) overlaps the encounter title at the top center.
+- Fantasy KayKit characters stand in for space ones (no CC0 space pack found yet).
+
+Planned in §3.1 and not built yet:
+
+- LightmapGI for the static arena, `AreaLight3D` lights on structures, decals for impacts, collision on `GPUParticles3D`, `MultiMeshInstance3D` for rocks and debris, visibility ranges.
+- The compositor screen-space distortion for the gravity well (it is a glowing shell with motes falling in for now).
+- Stencil x-ray for players seen through walls (the stencil outline is used for the lock-on target).
+- `AnimationTree` with blend spaces and foot IK; views use `AnimationPlayer` clips posed from the sim state.
+- Sound: there is no audio at all (the plan mentions telegraph sounds).
+- Shader baker for exports and a check that ubershaders avoid hitches in the release builds.
+
+Later milestones not started: M6 lobby, M7 10 players, M8 lobby deploy (needs a go-ahead, touches gvm), M9 frame pacing, M10 Wooting analog.

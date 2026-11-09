@@ -15,7 +15,8 @@ Installs gdtoolkit and pre-commit (a venv), the pinned Godot (`.godot-version`, 
 
 ## Run
 
-    python tools/godot.py                    # solo: spawns a local headless server and joins it
+    python tools/godot.py                    # main menu: Solo, Host, Join by code, Settings, name
+    python tools/godot.py -- --solo          # straight into solo: a local headless server, joined
     python tools/godot.py -e                 # editor
     python tools/dev.py 2 --lag=100          # headless server + 2 windowed clients through a 100 ms lag proxy
     python tools/lag_proxy.py 17778 17777 150 --jitter=20   # lag proxy on its own
@@ -30,10 +31,10 @@ lobby and coturn together with `docker compose -f deploy/lobby/docker-compose.lo
 (`deploy/lobby/README.md`). `--relay-only` forces a client through the TURN relay.
 
 Command line (after `--`, see `game/scripts/boot/main.gd`): `--server --port=N [--solo]`,
-`--connect=host:port`, `--host`, `--join=CODE`, `--lobby=URL`, `--relay-only`, `--encounter=boss`, `--bench=N`, `--name=NAME`, `--windowed`, `--look=YAW,PITCH`, `--spawn=X,Y,Z`, `--delay=S`, `--frames=N`, `--graphics=PRESET`, `--bot-plan=shoot`, `--bot [--expect=N] [--duration=S]`.
+`--connect=host:port`, `--solo`, `--host`, `--join=CODE`, `--lobby=URL`, `--relay-only`, `--encounter=boss`, `--bench=N`, `--name=NAME`, `--windowed`, `--look=YAW,PITCH`, `--spawn=X,Y,Z`, `--delay=S`, `--frames=N`, `--graphics=PRESET`, `--bot-plan=shoot`, `--bot [--expect=N] [--duration=S]`.
 
 Controls: WASD move, mouse look, Shift sprint, Space jump, Ctrl or C roll, 1, 2 or the mouse wheel
-switch weapons, Esc frees the mouse (click to capture again), F3 debug overlay, F4 graphics
+switch weapons, Esc pause menu (Resume, Settings, Leave to menu, Quit), F3 debug overlay, F4 graphics
 preset, F11 fullscreen.
 
 - Blade and shield (1): LMB attack (press again for the combo), Q heavy attack, RMB raises the

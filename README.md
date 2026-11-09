@@ -21,10 +21,16 @@ Installs gdtoolkit and pre-commit (a venv), the pinned Godot (`.godot-version`, 
     python tools/lag_proxy.py 17778 17777 150 --jitter=20   # lag proxy on its own
 
 Command line (after `--`, see `game/scripts/boot/main.gd`): `--server --port=N [--solo]`,
-`--connect=host:port`, `--name=NAME`, `--windowed`, `--look=YAW,PITCH`, `--spawn=X,Y,Z`, `--bot [--expect=N] [--duration=S]`.
+`--connect=host:port`, `--name=NAME`, `--windowed`, `--look=YAW,PITCH`, `--spawn=X,Y,Z`, `--delay=S`, `--graphics=PRESET`, `--bot [--expect=N] [--duration=S]`.
 
-Controls: WASD move, mouse look, Shift sprint, Space jump, Esc frees the mouse (click to capture
-again), F3 debug overlay, F11 fullscreen.
+Controls: WASD move, mouse look, Shift sprint, Space jump, LMB attack (press again for the combo),
+Q or middle mouse heavy attack, RMB block (press it just before a hit lands to parry), Ctrl or C
+roll, Esc frees the mouse (click to capture again), F3 debug overlay, F4 graphics preset, F11
+fullscreen.
+
+Two training dummies stand north of the spawn: the left one only takes hits, the right one swings
+at you every few seconds. Its windup glows orange and draws its reach on the ground: roll through
+it, block it, or parry it for a stagger and a riposte that hits 2.5 times as hard.
 
 The low gravity zone (blue, east of the spawn) has a jump pad: stand on it and press Space to fly
 up to the asteroid, walk all the way around it, and use the pad on its underside to come back.

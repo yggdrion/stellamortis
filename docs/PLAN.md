@@ -49,7 +49,7 @@ Rendering (client):
 - No hitches: ubershaders and pipeline precompilation are on, and the shader baker bakes shaders into the export.
 - Scene cost: occlusion culling, automatic mesh LOD, visibility ranges for distant props, `MultiMeshInstance3D` for rocks and debris.
 - Animation: `AnimationTree` with blend spaces, foot IK (the 4.6 IK modifiers) so feet sit on slopes and on the asteroid. Animations are visual only: no root motion, movement comes from the sim.
-- Graphics presets Low, Medium, High, Ultra, plus resolution scale.
+- Graphics presets Low, Medium, High, Ultra (F4, saved in `user://settings.cfg`): Low and Medium render at 67%/80% and upscale with FSR 2, Low drops SSAO and the zone fog; High adds SSIL and SMAA; Ultra adds SDFGI, SSR and TAA. On a GTX 1050 Ti (vsync off): Low 146 fps (GPU 3.7 ms), Medium 132 (5.4), High 128 (5.6), Ultra 93 (10).
 
 Server and network:
 
@@ -113,6 +113,9 @@ All numbers live in data resources (`game/data/*.tres`), not in code.
 - Ranged: hold right mouse for over-the-shoulder aim with crosshair; hold fire to charge (faster bolt, more damage, more stamina). The bolt falls with `Gravity.sample` along its path.
 - Lock-on: toggle key picks the enemy nearest to screen center within range; camera keeps it framed, movement strafes around it, rolls go relative to it. Switch target with the mouse or scroll.
 - Enemy actions are state machines: idle, chase, windup (telegraphed by animation, a sound and a glow), attack, recover, stagger.
+- Built in M2 (numbers in `data/tuning.tres` and `data/attacks/*.tres`): stamina 100, regen 35/s after 0.8 s; light combo of 3 (18/20/28 damage, 12/12/16 stamina), heavy 50 (28 stamina, 0.6 s windup); roll 0.6 s with i-frames 0.06–0.4 s (20 stamina); block stops 80% and costs 1 stamina per point blocked, guard breaks at 0; parry window 0.2 s after block press, staggers 1.5 s, ripostes deal 2.5×; unguarded hits stun 0.35 s and give 0.45 s of invulnerability (no double hits); 3 s death, then respawn at the spawn ring. Presses are buffered 0.3 s; rolls and the next combo swing can cancel an attack's recovery; attacking or rolling drops the block.
+- Controls: LMB light, Q or MMB heavy, RMB block (and parry), Ctrl or C roll (mouse button 4 too). When M3 adds the bow, RMB aims with the bow out: weapons switch like in Valheim.
+- Netcode for hits: enemy swings are checked in the defending player's own `_rollback_tick` against its state that tick (roll, block, parry), so a late dodge input that the server resimulates still counts. Player hits and parries change the enemy and call `NetworkRollback.mutate(enemy)`. Enemies use `RollbackSynchronizer` with prediction, so clients simulate them between server states. Views pose models from the state (action and ticks since it started), never from their own animation clock.
 
 ### 4.6 Encounter
 
@@ -142,7 +145,7 @@ docs/        PLAN.md, RESOURCES.md
 |---|---|---|---|
 | M0 | Skeleton | Tooling copied from jotra (pinned Godot, gdUnit4, lint); client spawns a local server in solo; capsule player moves with prediction and reconciliation (netfox since 2026-11-09); third-person camera; a second client joins by IP; two clients see each other move smoothly at 100 ms simulated latency | Done (2026-11-09), v0.1.x |
 | M1 | Gravity zones | `Gravity.sample` with zones; low-g and high-g zones; walk all the way around the asteroid with a steady camera; jump pad to the asteroid; tests for sampling and zone priority | Done (2026-11-09), v0.2.0 |
-| M2 | Melee + defense | Stamina, roll with i-frames, light combo, heavy, block, parry; a training dummy that swings on a timer to test i-frames and parry; animated player model (CC0) | Planned |
+| M2 | Melee + defense | Stamina, roll with i-frames, light combo, heavy, block, parry; a training dummy that swings on a timer to test i-frames and parry; animated player model (CC0); graphics presets | Done (2026-11-09), v0.3.0 |
 | M3 | Ranged | Aim mode, crosshair, charged bolt simulated on the server and falling with local gravity; hits the dummy | Planned |
 | M4 | Lock-on | Toggle, target switch, strafe and roll relative to target, works on the asteroid | Planned |
 | M5 | Encounter | 3 mobs with telegraphed attacks, boss with phases and gravity well, death and respawn, wipe reset, HUD (health, stamina, boss bar) | Planned |

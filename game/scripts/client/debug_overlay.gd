@@ -34,18 +34,22 @@ func _process(_delta: float) -> void:
 			)
 		)
 	)
-	lines.append(
-		(
-			"ping %d ms   fake lag %d ms   server %.1f tps, tick max %.2f ms"
-			% [client.ping_ms, client.net.lag_ms, client.server_tps, client.server_tick_ms]
+	(
+		lines
+		. append(
+			(
+				"ping %d ms   netfox rtt %d ms   tick %d   server %.1f tps, tick loop max %.2f ms"
+				% [
+					client.ping_ms,
+					NetworkTime.remote_rtt * 1000.0,
+					NetworkTime.tick,
+					client.server_tps,
+					client.server_tick_ms,
+				]
+			)
 		)
 	)
-	lines.append(
-		(
-			"players %d   corrections %d (max %.3f m)"
-			% [client.player_count(), client.corrections, client.max_error]
-		)
-	)
+	lines.append("players %d" % client.player_count())
 	if client.me:
 		var p := client.me.global_position
 		lines.append("pos %.1f %.1f %.1f   grounded %s" % [p.x, p.y, p.z, client.me.grounded])

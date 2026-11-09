@@ -5,7 +5,6 @@ extends Node
 ##   --bot [--expect=N]             headless test client (see GameClient._check_bot)
 ##     [--duration=SECS]
 ##   --name=NAME                    player name
-##   --lag=MS                       fake round-trip latency on this client (Net.lag_ms)
 ##   --windowed                     start in a window instead of fullscreen
 ##   --screenshot=PATH              save a PNG of the screen after a few seconds, then quit
 ##   (none)                         solo: spawns a local --solo server and joins it
@@ -30,7 +29,6 @@ func _ready() -> void:
 	Controls.setup()
 	if not _args.has("windowed") and not _args.has("bot") and not OS.is_debug_build():
 		get_window().mode = Window.MODE_FULLSCREEN
-	_net.lag_ms = int(_args.get("lag", "0"))
 	var client := GameClient.new()
 	client.net = _net
 	client.bot = _args.has("bot")

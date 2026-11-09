@@ -1,8 +1,9 @@
 class_name SimPlayer
 extends CharacterBody3D
-## A player's body and movement rules (PLAN §4.2). Runs on the server for every player and on
-## the client for its own player (prediction). Movement happens in the plane of the current up
-## vector, which follows gravity, so the same code walks on flat ground and around planetoids.
+## A player's body and movement rules (PLAN §4.2). netfox runs _rollback_tick on the server for
+## every player and on the owning client for prediction and rollback (networked()). Movement
+## happens in the plane of the current up vector, which follows gravity, so the same code walks
+## on flat ground and around planetoids.
 
 const HEIGHT := 1.8
 const RADIUS := 0.4
@@ -11,8 +12,13 @@ const RADIUS := 0.4
 const LAYER_WORLD := 1
 const LAYER_PLAYERS := 2
 
+## State netfox records, sends and rolls back. transform covers position and orientation.
+const STATE := ["transform", "velocity", "up", "ref_forward", "facing", "grounded"]
+
 var peer_id := 0
 var player_name := ""
+## The owning player's input; null until networked() (tests call step directly).
+var controls: PlayerControls
 ## Turns toward -gravity over Tuning.up_turn_time.
 var up := Vector3.UP
 ## The direction input yaw is measured from: a tangent vector carried along when up turns, so
@@ -38,59 +44,72 @@ func _init() -> void:
 	add_child(shape)
 
 
+## Makes this body a networked player: server-owned state, input owned by peer, rollback, and
+## on clients interpolation between ticks. Call before adding it to the tree, on every peer.
+func networked(owner_peer: int, interpolate: bool) -> void:
+	peer_id = owner_peer
+	name = "Player%d" % owner_peer
+	set_multiplayer_authority(1)
+	controls = PlayerControls.new()
+	controls.name = "Controls"
+	controls.set_multiplayer_authority(owner_peer)
+	add_child(controls)
+	var rollback := RollbackSynchronizer.new()
+	rollback.name = "Rollback"
+	rollback.root = self
+	rollback.enable_input_broadcast = false
+	for property: String in STATE:
+		rollback.state_properties.append(":" + property)
+	for property: String in ["move", "yaw", "buttons"]:
+		rollback.input_properties.append("Controls:" + property)
+	add_child(rollback)
+	if interpolate:
+		var interpolator := TickInterpolator.new()
+		interpolator.name = "Interpolator"
+		interpolator.root = self
+		interpolator.properties.append(":transform")
+		add_child(interpolator)
+
+
+func _rollback_tick(delta: float, _tick: int, _is_fresh: bool) -> void:
+	step(controls.move, controls.yaw, controls.buttons, delta)
+
+
 ## One tick of movement from one input.
-func step(input: PlayerInput, delta: float) -> void:
+func step(move: Vector2, yaw: float, buttons: int, delta: float) -> void:
 	var t := Tuning.data()
 	var gravity := Gravity.sample(global_position)
 	var strength := gravity.length()
 	if strength > 0.001:
 		_turn_frame(up.slerp(-gravity / strength, minf(1.0, delta / t.up_turn_time)))
 
-	var look_forward := ref_forward.rotated(up, input.yaw)
+	var look_forward := ref_forward.rotated(up, yaw)
 	var look_right := look_forward.cross(up)
-	var wish := look_right * input.move.x + look_forward * input.move.y
+	var wish := look_right * move.x + look_forward * move.y
 	if wish.length_squared() > 1.0:
 		wish = wish.normalized()
-	var sprinting := input.has(PlayerInput.Buttons.SPRINT) and input.move.y > 0.3
+	var sprinting := buttons & PlayerControls.Buttons.SPRINT != 0 and move.y > 0.3
 	var speed := t.sprint_speed if sprinting else t.walk_speed
 
 	var vertical := up * velocity.dot(up)
 	var horizontal := velocity - vertical
 	var accel := t.ground_accel if grounded else t.air_accel
 	horizontal = horizontal.move_toward(wish * speed, accel * delta)
-	if grounded and input.has(PlayerInput.Buttons.JUMP):
+	if grounded and buttons & PlayerControls.Buttons.JUMP != 0:
 		vertical = up * t.jump_speed
 	vertical += gravity * delta
 
 	velocity = horizontal + vertical
 	up_direction = up
+	# move_and_slide assumes the physics delta, netfox ticks may differ (rollback caveats).
+	velocity *= NetworkTime.physics_factor
 	move_and_slide()
+	velocity /= NetworkTime.physics_factor
 	grounded = is_on_floor()
 
 	if wish.length_squared() > 0.01:
 		facing = facing.slerp(wish.normalized(), minf(1.0, delta * t.turn_rate))
 	facing = _tangent(facing, up)
-	_orient()
-
-
-func get_state() -> PlayerState:
-	var state := PlayerState.new()
-	state.position = global_position
-	state.velocity = velocity
-	state.up = up
-	state.ref_forward = ref_forward
-	state.facing = facing
-	state.grounded = grounded
-	return state
-
-
-func apply_state(state: PlayerState) -> void:
-	global_position = state.position
-	velocity = state.velocity
-	up = state.up
-	ref_forward = state.ref_forward
-	facing = state.facing
-	grounded = state.grounded
 	_orient()
 
 

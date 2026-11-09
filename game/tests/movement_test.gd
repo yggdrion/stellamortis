@@ -20,24 +20,37 @@ func _player() -> SimPlayer:
 	return player
 
 
-func _forward(yaw := 0.0, buttons := 0) -> PlayerInput:
-	var input := PlayerInput.new()
-	input.move = Vector2(0, 1)
-	input.yaw = yaw
-	input.buttons = buttons
-	return input.quantized()
+## [move, yaw, buttons]
+func _forward(yaw := 0.0, buttons := 0) -> Array:
+	return [Vector2(0, 1), yaw, buttons]
+
+
+func _idle() -> Array:
+	return [Vector2.ZERO, 0.0, 0]
 
 
 ## Steps inside physics frames, like the game: move_and_slide reads the physics delta.
-func _run(player: SimPlayer, inputs: Array[PlayerInput]) -> void:
-	for input in inputs:
+func _run(player: SimPlayer, inputs: Array) -> void:
+	for input: Array in inputs:
 		await get_tree().physics_frame
-		player.step(input, DELTA)
+		player.step(input[0], input[1], input[2], DELTA)
+
+
+func _snapshot(player: SimPlayer) -> Array:
+	return [player.global_transform, player.velocity, player.up, player.ref_forward, player.facing]
+
+
+func _restore(player: SimPlayer, state: Array) -> void:
+	player.global_transform = state[0]
+	player.velocity = state[1]
+	player.up = state[2]
+	player.ref_forward = state[3]
+	player.facing = state[4]
 
 
 func test_walks_forward() -> void:
 	var player := _player()
-	var inputs: Array[PlayerInput] = []
+	var inputs: Array = []
 	for i in 30:
 		inputs.append(_forward())
 	await _run(player, inputs)
@@ -49,7 +62,7 @@ func test_walks_forward() -> void:
 
 func test_yaw_turns_the_walk() -> void:
 	var player := _player()
-	var inputs: Array[PlayerInput] = []
+	var inputs: Array = []
 	for i in 20:
 		inputs.append(_forward(PI / 2.0))
 	await _run(player, inputs)
@@ -59,12 +72,12 @@ func test_yaw_turns_the_walk() -> void:
 
 func test_jump_lands() -> void:
 	var player := _player()
-	var idle: Array[PlayerInput] = []
+	var idle: Array = []
 	for i in 10:
-		idle.append(PlayerInput.new())
+		idle.append(_idle())
 	await _run(player, idle)
 	assert_bool(player.grounded).is_true()
-	var inputs: Array[PlayerInput] = [_forward(0.0, PlayerInput.Buttons.JUMP)]
+	var inputs: Array = [_forward(0.0, PlayerControls.Buttons.JUMP)]
 	for i in 3:
 		inputs.append(_forward())
 	await _run(player, inputs)
@@ -80,12 +93,12 @@ func test_jump_lands() -> void:
 
 func test_replay_is_deterministic() -> void:
 	var player := _player()
-	var inputs: Array[PlayerInput] = []
+	var inputs: Array = []
 	for i in 40:
-		inputs.append(_forward(i * 0.05, PlayerInput.Buttons.JUMP if i == 10 else 0))
-	var start := player.get_state()
+		inputs.append(_forward(i * 0.05, PlayerControls.Buttons.JUMP if i == 10 else 0))
+	var start := _snapshot(player)
 	await _run(player, inputs)
-	var first := player.get_state()
-	player.apply_state(start)
+	var first: Transform3D = player.global_transform
+	_restore(player, start)
 	await _run(player, inputs)
-	assert_float(player.get_state().error_to(first)).is_less(0.001)
+	assert_float(player.global_position.distance_to(first.origin)).is_less(0.001)

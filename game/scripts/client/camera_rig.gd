@@ -44,7 +44,8 @@ func _process(delta: float) -> void:
 		return
 	_up = _up.slerp(target.up, minf(1.0, delta * UP_FOLLOW)).normalized()
 	var base := SimPlayer.frame(_up, SimPlayer._tangent(target.ref_forward, _up))
-	var feet := target.get_global_transform_interpolated().origin
+	# netfox's TickInterpolator moves the body smoothly between ticks.
+	var feet := target.global_position
 	global_transform = Transform3D(
 		base * Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, pitch), feet + _up * HEAD_HEIGHT
 	)

@@ -149,6 +149,8 @@ docs/        PLAN.md, RESOURCES.md
 | M6 | Lobby | `lobby/` and `deploy/lobby/` moved from jotra into this repo, renamed to stellamortis, jotra-only parts dropped (its telemetry push), lobby protocol restarted at 1; `lobby_client.gd` and the WebRTC transport ported; `--host` spawns the server with a lobby room, host and friends join by code via WebRTC (TURN relay when direct fails); `bun test` in `tools/check.py`; works against a local lobby + coturn compose | Planned |
 | M7 | 10 players | Headless bots fill a game to 10; server holds 30 tps; bandwidth per peer measured | Planned |
 | M8 | Lobby deploy | Replace jotra's lobby + coturn on the gvm host with stellamortis' `deploy/lobby/`: stop the `jotra-lobby` stack, start ours on the same ports (3478, relay 49160-49259) and the same Caddy route `lobby.r4b2.de` (gvm's Caddyfile: container alias and comment), reuse or rotate `TURN_SECRET`; old jotra builds stop working, which is fine; host and friends join by code from different networks, one through TURN. Touches the gvm host, so it needs a go-ahead before deploying | Planned |
+| M9 | Frame pacing | Settings to turn vsync off and, as an alternative, cap the frame rate (`Engine.max_fps`, e.g. 60/120/144/unlimited), saved with the graphics preset; F3 shows the cap. Later, not relevant for the PoC | Later |
+| M10 | Wooting analog | Analog movement from Wooting keyboards through the Wooting Analog SDK (GDExtension or a small native bridge): WASD depth becomes `PlayerControls.move` length, so walk speed follows key pressure; digital keys stay the fallback when no Wooting device or SDK is present. Later, not relevant for the PoC | Later |
 
 ## 7. Open questions
 

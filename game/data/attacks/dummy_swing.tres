@@ -12,4 +12,4 @@ stamina = 0.0
 reach = 2.7
 arc_degrees = 120.0
 lunge = 0.0
-animation = &"1H_Melee_Attack_Chop"
+animation = &"Sword_Regular_A"

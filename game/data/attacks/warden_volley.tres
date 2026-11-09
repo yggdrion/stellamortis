@@ -16,4 +16,4 @@ parryable = false
 bolts = 5
 spread_degrees = 50.0
 bolt_speed = 15.0
-animation = &"Spellcast_Shoot"
+animation = &"AttackAuto"

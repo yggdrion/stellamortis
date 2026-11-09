@@ -13,4 +13,4 @@ reach = 0.0
 arc_degrees = 0.0
 lunge = 0.0
 parryable = false
-animation = &"Spellcast_Summon"
+animation = &"Look"

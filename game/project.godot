@@ -62,3 +62,7 @@ textures/vram_compression/import_etc2_astc=true
 occlusion_culling/use_occlusion_culling=true
 lights_and_shadows/directional_shadow/size=4096
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality=3
+
+[gui]
+
+theme/custom_font="res://assets/fonts/Rajdhani-Medium.ttf"

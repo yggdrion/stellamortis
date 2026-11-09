@@ -1,13 +1,8 @@
 class_name PlayerView
 extends Node3D
-## A player's look (PLAN §4.5): the KayKit knight with sword and shield or crossbow, posed from
-## the player's rolled back state every frame, with its bolts, a hit flash and, for others, a
-## name.
-
-const KNIGHT := "res://assets/kaykit/Knight.glb"
-const SWORD := "res://assets/kaykit/sword_1handed.gltf"
-const SHIELD := "res://assets/kaykit/shield_round_color.gltf"
-const CROSSBOW := "res://assets/kaykit/crossbow_1handed.gltf"
+## A player's look (PLAN §4.5): a figure in a dark armored suit (Gear) with blade and shield or
+## the revolver, posed from the player's rolled back state every frame, with its bolts, a hit
+## flash and, for others, a name.
 
 var player: SimPlayer
 var _model: CharacterModel
@@ -20,14 +15,17 @@ func _init(of: SimPlayer, show_name: bool) -> void:
 	_model = (
 		CharacterModel
 		. new(
-			KNIGHT,
+			CharacterModel.HUMAN,
 			{
-				"sword": ["handslot.r", SWORD],
-				"shield": ["handslot.l", SHIELD],
-				"crossbow": ["handslot.r", CROSSBOW],
+				"sword": ["RightHand", Gear.blade()],
+				"shield": ["LeftLowerArm", Gear.shield()],
+				"crossbow": ["RightHand", Gear.revolver()],
+				"visor": ["Head", Gear.visor()],
 			}
 		)
 	)
+	var suit := Gear.suit()
+	_model.skin(suit[0], {1: suit[1]})
 	add_child(_model)
 	add_child(BoltsView.new(player))
 	if show_name:
@@ -49,6 +47,7 @@ func _process(_delta: float) -> void:
 	_model.show_prop("sword", not crossbow)
 	_model.show_prop("shield", not crossbow)
 	_model.show_prop("crossbow", crossbow)
+	Gear.set_shield(_model.props["shield"], player.action == SimPlayer.Action.BLOCK)
 	_pose()
 
 
@@ -61,32 +60,32 @@ func _pose() -> void:
 			_model.play_timed(def.animation, time / def.total_ticks(), def.total_ticks() / 30.0)
 		SimPlayer.Action.ROLL:
 			var ticks := Combat.ticks(t.roll_time)
-			_model.play_timed(&"Dodge_Forward", time / ticks, t.roll_time)
+			_model.play_timed(&"Roll", time / ticks, t.roll_time)
 		SimPlayer.Action.BLOCK:
-			_model.loop(&"Blocking")
+			_model.loop(&"Idle_Shield")
 		SimPlayer.Action.DRAW:
-			_model.loop(&"1H_Ranged_Aiming")
+			_model.loop(&"Pistol_Aim_Neutral")
 		SimPlayer.Action.SHOOT:
 			var ticks := Combat.ticks(t.shoot_recover)
-			_model.play_timed(&"1H_Ranged_Shoot", time / ticks * 0.6, t.shoot_recover / 0.6)
+			_model.play_timed(&"Pistol_Shoot", time / ticks * 0.6, t.shoot_recover / 0.6)
 		SimPlayer.Action.STAGGER:
 			var length := maxi(player.action_length, 1)
-			_model.play_timed(&"Hit_A", time / length, length / 30.0)
+			_model.play_timed(&"Hit_Chest", time / length, length / 30.0)
 		SimPlayer.Action.DEAD:
-			_model.play_timed(&"Death_A", time / 24.0, 0.8)
+			_model.play_timed(&"Death01", time / 36.0, 1.2)
 		_:
 			_locomotion(t)
 
 
 func _locomotion(t: Tuning) -> void:
 	if not player.grounded:
-		_model.loop(&"Jump_Idle")
+		_model.loop(&"Jump")
 		return
 	var flat := player.velocity - player.up * player.velocity.dot(player.up)
 	var speed := flat.length()
 	if speed < 0.4:
-		_model.loop(&"Idle")
+		_model.loop(&"Sword_Idle" if player.weapon == SimPlayer.Weapon.SWORD else &"Pistol_Idle")
 	elif speed < (t.walk_speed + t.sprint_speed) / 2.0:
-		_model.loop(&"Running_A", speed / t.walk_speed * 0.8)
+		_model.loop(&"Jog_Fwd", speed / t.walk_speed * 0.8)
 	else:
-		_model.loop(&"Running_B", speed / t.sprint_speed * 1.1)
+		_model.loop(&"Sprint", speed / t.sprint_speed * 1.1)

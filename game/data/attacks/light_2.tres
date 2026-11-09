@@ -13,4 +13,4 @@ reach = 2.3
 arc_degrees = 130.0
 lunge = 2.0
 next = &"light_3"
-animation = &"1H_Melee_Attack_Slice_Horizontal"
+animation = &"Sword_Regular_B"

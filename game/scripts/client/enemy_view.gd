@@ -1,12 +1,33 @@
 class_name EnemyView
 extends Node3D
-## How an enemy looks (PLAN §4.5, §4.6): a KayKit skeleton posed from its state, with the
-## telegraph that makes dodging fair: an orange glow building up over the windup and the
-## swing's area drawn on the ground. Parries flash yellow, hits pop damage numbers, a bar shows
-## health (the Warden's is on the HUD), bolts glow magenta, the Warden's gravity well is a
-## pulsing shell with motes falling in.
+## How an enemy looks (PLAN §4.5, §4.6): a model posed from its state (training mannequins in a
+## pale suit, a four legged walker, an eye drone and, for the Warden, a big six legged walker;
+## robots from Quaternius, CC0), with the telegraph that makes dodging fair: an orange glow
+## building up over the windup and the swing's area drawn on the ground. Parries flash yellow,
+## hits pop damage numbers, a bar shows health (the Warden's is on the HUD), bolts glow red, the
+## Warden's gravity well is a pulsing shell with motes falling in.
 
-const SKELETONS := "res://assets/kaykit_skeletons/"
+const ROBOTS := "res://assets/quaternius/robots/"
+## Clips per model: idle, walk, hit, down (powering off or dying), rise (down played backwards).
+## down_time: how long the down clip runs (seconds).
+const HUMAN_CLIPS := {
+	"idle": &"Sword_Idle",
+	"walk": &"Walk",
+	"hit": &"Hit_Chest",
+	"down": &"Death01",
+	"down_time": 1.6
+}
+const ROBOT_CLIPS := {
+	"idle": &"Idle", "walk": &"Walk", "hit": &"Hit", "down": &"TurnOff", "down_time": 0.6
+}
+const DRONE_CLIPS := {
+	"idle": &"Idle", "walk": &"Idle", "hit": &"Hit", "down": &"BackFlip", "down_time": 1.0
+}
+## Pale suit and orange seams for the training mannequins.
+const DUMMY_ARMOR := Color(0.55, 0.56, 0.58)
+const DUMMY_ACCENT := Color(1.0, 0.5, 0.15)
+## Hover height of the drone's center.
+const DRONE_LIFT := 1.3
 const TELEGRAPH := Color(1.0, 0.45, 0.1)
 const LOCKED := Color(1.0, 0.85, 0.35)
 ## Moving faster than this (m/s) plays the walk.
@@ -27,6 +48,7 @@ var _last_health := -1.0
 var _was_parried := false
 var _locked := false
 var _marker: MeshInstance3D
+var _clips := ROBOT_CLIPS
 
 
 func _init(of: Enemy) -> void:
@@ -43,25 +65,34 @@ func _init(of: Enemy) -> void:
 		_add_well()
 
 
-## Which skeleton, holding what, at which size.
+## Which model at which size, with its clips. Robots light up their emission maps (eyes,
+## vents); the textures ship with the pack but the glTF files don't reference them.
 func _make_model() -> CharacterModel:
+	var model: CharacterModel
 	if enemy is Warden:
-		var blade := SKELETONS + "Skeleton_Blade.gltf"
-		return CharacterModel.new(
-			SKELETONS + "Skeleton_Warrior.glb",
-			{"blade": ["handslot.r", blade]},
-			enemy.height / Enemy.HEIGHT
-		)
+		model = CharacterModel.new(ROBOTS + "Enemy_Trilobite.gltf", {}, enemy.height / 2.5)
+		model.light_up(load(ROBOTS + "T_Enemies_Large_Emissive.png"), 6.0)
+		return model
 	if enemy is Mob and (enemy as Mob).ranged:
-		var crossbow := SKELETONS + "Skeleton_Crossbow.gltf"
-		return CharacterModel.new(
-			SKELETONS + "Skeleton_Rogue.glb", {"crossbow": ["handslot.r", crossbow]}
-		)
+		_clips = DRONE_CLIPS
+		model = CharacterModel.new(ROBOTS + "Enemy_EyeDrone.gltf", {}, 0.8, DRONE_LIFT)
+		model.light_up(load(ROBOTS + "T_Enemies_Emissive.png"), 6.0)
+		return model
 	if enemy is Mob:
-		var axe := SKELETONS + "Skeleton_Axe.gltf"
-		return CharacterModel.new(SKELETONS + "Skeleton_Minion.glb", {"axe": ["handslot.r", axe]})
-	var sword := "res://assets/kaykit/sword_1handed.gltf"
-	return CharacterModel.new(SKELETONS + "Skeleton_Warrior.glb", {"blade": ["handslot.r", sword]})
+		model = CharacterModel.new(ROBOTS + "Enemy_QuadShell.gltf", {}, 1.1)
+		model.light_up(load(ROBOTS + "T_Enemies_Emissive.png"), 6.0)
+		return model
+	_clips = HUMAN_CLIPS
+	model = CharacterModel.new(
+		CharacterModel.HUMAN,
+		{
+			"blade": ["RightHand", Gear.blade(DUMMY_ACCENT)],
+			"visor": ["Head", Gear.visor(DUMMY_ACCENT)]
+		}
+	)
+	var suit := Gear.suit(DUMMY_ACCENT, DUMMY_ARMOR)
+	model.skin(suit[0], {1: suit[1]})
+	return model
 
 
 ## Marks this enemy as the own player's lock-on target: an outline and a dot on its chest.
@@ -224,16 +255,18 @@ func _pose() -> void:
 		if not _arcs.has(def.resource_path):
 			_arcs[def.resource_path] = _arc_mesh(def)
 		_arc.mesh = _arcs[def.resource_path]
+	if _clips == DRONE_CLIPS and enemy.action != Enemy.Action.DOWN:
+		_model.lift(DRONE_LIFT)
 	match enemy.action:
 		Enemy.Action.WINDUP:
 			var progress := time / windup
 			_model.play_timed(def.animation, time / total, seconds)
-			_model.glow(Color(TELEGRAPH, 0.15 + 0.45 * progress))
+			_model.glow(Color(TELEGRAPH, 0.1 + 0.3 * progress))
 			if def.melee():
 				_arc_material.albedo_color = Color(TELEGRAPH, 0.1 + 0.35 * progress)
 		Enemy.Action.STRIKE:
 			_model.play_timed(def.animation, (windup + time) / total, seconds)
-			_model.glow(Color(1, 0.2, 0.1, 0.6))
+			_model.glow(Color(1, 0.2, 0.1, 0.45))
 			if def.melee():
 				_arc_material.albedo_color = Color(1, 0.2, 0.1, 0.6)
 		Enemy.Action.RECOVER:
@@ -241,12 +274,16 @@ func _pose() -> void:
 			_model.glow(Color(0, 0, 0, 0))
 		Enemy.Action.STAGGER:
 			var ticks := Combat.ticks(enemy.stagger_time)
-			_model.play_timed(&"Hit_B", time / ticks, enemy.stagger_time)
+			_model.play_timed(_clips["hit"], time / ticks, enemy.stagger_time)
 		Enemy.Action.DOWN:
-			_model.play_timed(&"Death_C_Skeletons", time / Combat.ticks(enemy.down_time), 2.0)
+			var down: float = _clips["down_time"]
+			var fallen := time / Combat.ticks(down)
+			_model.play_timed(_clips["down"], fallen, down)
+			if _clips == DRONE_CLIPS:
+				_model.lift(lerpf(DRONE_LIFT, 0.45, clampf(fallen, 0.0, 1.0)))
 		Enemy.Action.RISE:
 			var rise := Combat.ticks(Warden.RISE_TIME)
-			_model.play_timed(&"Spawn_Ground_Skeletons", time / rise, Warden.RISE_TIME)
+			_model.play_timed(_clips["down"], time / rise, Warden.RISE_TIME, true)
 		_:
 			_idle_or_walk()
 
@@ -256,9 +293,9 @@ func _idle_or_walk() -> void:
 	var moving := enemy.velocity - enemy.up() * enemy.velocity.dot(enemy.up())
 	var speed := moving.length()
 	if speed > WALKING:
-		_model.loop(&"Walking_D_Skeletons", speed / 2.0)
+		_model.loop(_clips["walk"], speed / 2.0)
 	else:
-		_model.loop(&"Idle_Combat")
+		_model.loop(_clips["idle"])
 
 
 func _pop_number(amount: float, riposte: bool) -> void:

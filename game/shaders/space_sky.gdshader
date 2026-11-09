@@ -1,15 +1,15 @@
-// Space sky (PLAN §3.1): stars, a faint nebula, a thin horizon glow, the sun and a banded gas
-// giant lit by the sun. Cheap enough for every preset: a few hashes and 4 noise octaves.
+// Space sky (PLAN §3.1): stars, a faint cold nebula, a thin horizon glow, the sun and a pale
+// ice giant lit by the sun. Cheap enough for every preset: a few hashes and 4 noise octaves.
 shader_type sky;
 
-uniform vec3 nebula_warm : source_color = vec3(0.32, 0.10, 0.34);
-uniform vec3 nebula_cold : source_color = vec3(0.06, 0.14, 0.36);
-uniform vec3 horizon_glow : source_color = vec3(0.42, 0.24, 0.36);
+uniform vec3 nebula_warm : source_color = vec3(0.07, 0.09, 0.11);
+uniform vec3 nebula_cold : source_color = vec3(0.02, 0.05, 0.10);
+uniform vec3 horizon_glow : source_color = vec3(0.12, 0.16, 0.21);
 uniform vec3 planet_direction = vec3(-0.45, 0.32, -0.83);
 // Angular radius in radians.
-uniform float planet_size = 0.22;
-uniform vec3 planet_light : source_color = vec3(0.92, 0.62, 0.40);
-uniform vec3 planet_dark : source_color = vec3(0.45, 0.22, 0.18);
+uniform float planet_size = 0.3;
+uniform vec3 planet_light : source_color = vec3(0.52, 0.56, 0.6);
+uniform vec3 planet_dark : source_color = vec3(0.36, 0.39, 0.43);
 uniform float star_density = 0.9975;
 
 float hash(vec3 p) {

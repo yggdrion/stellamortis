@@ -25,8 +25,9 @@ extends Resource
 ## Bolts: fan width in degrees and speed in m/s.
 @export var spread_degrees := 0.0
 @export var bolt_speed := 16.0
-## Animation in the KayKit rig, stretched to windup + active + recover.
-@export var animation: StringName = &"1H_Melee_Attack_Slice_Diagonal"
+## Animation of the model that uses it (EnemyView, PlayerView), stretched to windup + active +
+## recover.
+@export var animation: StringName = &"Sword_Regular_A"
 
 
 ## Hits in an area (reach and arc) during its active window.

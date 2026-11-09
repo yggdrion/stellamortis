@@ -5,7 +5,7 @@ extends Node3D
 ## between ticks along their velocity, with a burst where one ends.
 
 const PLAYER_COLOR := Color(0.2, 0.9, 1.0)
-const ENEMY_COLOR := Color(1.0, 0.3, 0.9)
+const ENEMY_COLOR := Color(1.0, 0.25, 0.12)
 
 ## A SimPlayer or an Enemy: anything with the three bolt arrays.
 var shooter: Node3D

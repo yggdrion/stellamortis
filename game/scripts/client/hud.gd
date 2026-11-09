@@ -1,14 +1,20 @@
 class_name Hud
 extends CanvasLayer
 ## Health and stamina bars, the death notice, a controls hint (PLAN §4.5), and on top the
-## encounter: mobs left, the Warden's bar, the victory notice (PLAN §4.6).
+## encounter: machines left, the Warden's bar, the victory notice (PLAN §4.6). Thin flat bars,
+## small spaced capitals in Rajdhani (OFL), muted colors: an instrument readout, not a toy.
 
 const HINT := (
-	"Sword: LMB attack   Q heavy   RMB block (just before a hit: parry)\n"
-	+ "Crossbow: RMB aim   hold LMB to draw, release to shoot\n"
+	"Blade: LMB attack   Q heavy   RMB shield (just before a hit: parry)\n"
+	+ "Revolver: RMB aim   hold LMB to charge, release to fire\n"
 	+ "MMB / Tab lock-on (flick the mouse or wheel: switch target)\n"
 	+ "1 / 2 / wheel weapon   Ctrl / C roll   Shift sprint   Space jump   F3 debug   F4 graphics"
 )
+const FONT := "res://assets/fonts/Rajdhani-SemiBold.ttf"
+const TEXT := Color(0.78, 0.84, 0.88)
+const HEALTH := Color(0.74, 0.2, 0.17)
+const STAMINA := Color(0.52, 0.62, 0.68)
+const BOSS := Color(0.62, 0.12, 0.1)
 
 var player: SimPlayer
 var encounter: Encounter
@@ -27,51 +33,62 @@ var _boss_bar: ProgressBar
 
 
 func _ready() -> void:
+	var font := FontVariation.new()
+	font.base_font = load(FONT)
+	font.spacing_glyph = 2
+	var theme := Theme.new()
+	theme.default_font = font
+	theme.set_color("font_color", "Label", TEXT)
+	theme.set_color("font_outline_color", "Label", Color(0, 0, 0, 0.7))
+	theme.set_constant("outline_size", "Label", 4)
+	var root := Control.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.theme = theme
+	add_child(root)
 	var box := VBoxContainer.new()
 	box.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	box.position = Vector2(24, -84)
 	box.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	box.add_theme_constant_override("separation", 6)
-	add_child(box)
-	_health = _bar(Color(0.8, 0.16, 0.14), 320)
-	_stamina = _bar(Color(0.35, 0.8, 0.3), 260)
+	root.add_child(box)
+	_health = _bar(HEALTH, 300)
+	_stamina = _bar(STAMINA, 240)
 	box.add_child(_health)
 	box.add_child(_stamina)
 
 	var hint := Label.new()
 	hint.text = HINT
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	hint.modulate = Color(1, 1, 1, 0.6)
-	hint.add_theme_font_size_override("font_size", 13)
+	hint.modulate = Color(1, 1, 1, 0.45)
+	hint.add_theme_font_size_override("font_size", 14)
 	hint.set_anchors_and_offsets_preset(
 		Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 16
 	)
 	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	add_child(hint)
+	root.add_child(hint)
 
 	_weapon = Label.new()
-	_weapon.add_theme_font_size_override("font_size", 15)
+	_weapon.add_theme_font_size_override("font_size", 16)
 	box.add_child(_weapon)
 	box.move_child(_weapon, 0)
 
 	_crosshair = Crosshair.new()
 	_crosshair.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	add_child(_crosshair)
+	root.add_child(_crosshair)
 
 	var top := VBoxContainer.new()
 	top.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_MINSIZE, 20)
 	top.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	top.alignment = BoxContainer.ALIGNMENT_CENTER
-	add_child(top)
+	root.add_child(top)
 	_goal = Label.new()
 	_goal.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_goal.add_theme_font_size_override("font_size", 20)
-	_goal.add_theme_constant_override("outline_size", 6)
-	_goal.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	_goal.add_theme_font_size_override("font_size", 19)
 	top.add_child(_goal)
-	_boss_bar = _bar(Color(0.62, 0.2, 0.9), 560)
-	_boss_bar.custom_minimum_size.y = 16
+	_boss_bar = _bar(BOSS, 560)
+	_boss_bar.custom_minimum_size.y = 8
 	top.add_child(_boss_bar)
 
 	_room = Label.new()
@@ -80,7 +97,7 @@ func _ready() -> void:
 	_room.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
 	_room.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_room.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	add_child(_room)
+	root.add_child(_room)
 	_notice = Label.new()
 	_notice.add_theme_font_size_override("font_size", 18)
 	_notice.set_anchors_and_offsets_preset(
@@ -89,28 +106,33 @@ func _ready() -> void:
 	_notice.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_notice.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	add_child(_notice)
+	root.add_child(_notice)
 
 	_dead = Label.new()
-	_dead.text = "You died"
-	_dead.add_theme_font_size_override("font_size", 56)
-	_dead.add_theme_color_override("font_color", Color(0.85, 0.15, 0.12))
+	_dead.text = "SIGNAL LOST"
+	_dead.add_theme_font_size_override("font_size", 52)
+	_dead.add_theme_constant_override("outline_size", 0)
+	_dead.add_theme_color_override("font_color", Color(0.8, 0.2, 0.16))
 	_dead.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	_dead.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_dead.visible = false
-	add_child(_dead)
+	root.add_child(_dead)
 
 
 func _bar(color: Color, width: float) -> ProgressBar:
 	var bar := ProgressBar.new()
-	bar.custom_minimum_size = Vector2(width, 14)
+	bar.custom_minimum_size = Vector2(width, 6)
 	bar.show_percentage = false
 	var fill := StyleBoxFlat.new()
 	fill.bg_color = color
 	var back := StyleBoxFlat.new()
-	back.bg_color = Color(0, 0, 0, 0.55)
-	back.border_color = Color(0, 0, 0, 0.8)
-	back.set_border_width_all(2)
+	back.bg_color = Color(0.02, 0.03, 0.04, 0.6)
+	back.border_color = Color(TEXT, 0.25)
+	back.set_border_width_all(1)
+	back.expand_margin_left = 1
+	back.expand_margin_right = 1
+	back.expand_margin_top = 1
+	back.expand_margin_bottom = 1
 	bar.add_theme_stylebox_override("fill", fill)
 	bar.add_theme_stylebox_override("background", back)
 	return bar
@@ -136,7 +158,7 @@ func _process(delta: float) -> void:
 	_stamina.value = player.stamina
 	_dead.visible = player.action == SimPlayer.Action.DEAD
 	var crossbow := player.weapon == SimPlayer.Weapon.CROSSBOW
-	_weapon.text = "[2] Crossbow" if crossbow else "[1] Sword and shield"
+	_weapon.text = "2  REVOLVER" if crossbow else "1  BLADE · SHIELD"
 	_crosshair.visible = crossbow and player.action != SimPlayer.Action.DEAD
 	var draw := 0.0
 	if player.action == SimPlayer.Action.DRAW:
@@ -153,20 +175,20 @@ func _show_encounter() -> void:
 	match encounter.phase:
 		Encounter.Phase.MOBS:
 			var left := encounter.mobs_left()
-			_goal.text = "Skeletons to the south: %d of %d left" % [left, encounter.mobs.size()]
+			_goal.text = "MACHINES TO THE SOUTH   %d / %d" % [left, encounter.mobs.size()]
 		Encounter.Phase.BOSS:
 			var boss := encounter.boss
-			var phase := "  (enraged)" if boss.phase_2() else ""
-			_goal.text = "The Warden" + phase
+			var phase := "   OVERDRIVE" if boss.phase_2() else ""
+			_goal.text = "THE WARDEN" + phase
 			_boss_bar.visible = true
 			_boss_bar.max_value = boss.max_health
 			_boss_bar.value = boss.health
 		Encounter.Phase.CLEARED:
 			var seconds := Encounter.RESTART_AFTER - encounter.phase_time / 30.0
-			_goal.text = "The Warden has fallen. The arena wakes again in %d s" % ceili(seconds)
+			_goal.text = "WARDEN DOWN   REACTIVATION IN %d S" % ceili(seconds)
 
 
-## A dot with a ring that fills while the crossbow is drawn.
+## Four short ticks around a gap, and a thin ring that fills while the shot charges.
 class Crosshair:
 	extends Control
 
@@ -177,9 +199,11 @@ class Crosshair:
 				queue_redraw()
 
 	func _draw() -> void:
-		draw_circle(Vector2.ZERO, 2.5, Color(1, 1, 1, 0.9))
-		draw_arc(Vector2.ZERO, 14.0, 0.0, TAU, 48, Color(1, 1, 1, 0.25), 2.0, true)
+		var tick := Color(TEXT, 0.85)
+		for direction: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
+			draw_line(direction * 5.0, direction * 11.0, tick, 1.5, true)
+		draw_arc(Vector2.ZERO, 16.0, 0.0, TAU, 64, Color(TEXT, 0.15), 1.0, true)
 		if charge > 0.0:
 			var full := charge >= 1.0
-			var color := Color(0.4, 1.0, 1.0) if full else Color(1, 1, 1, 0.9)
-			draw_arc(Vector2.ZERO, 14.0, -PI / 2.0, -PI / 2.0 + TAU * charge, 48, color, 3.0, true)
+			var color := Gear.ACCENT if full else Color(TEXT, 0.9)
+			draw_arc(Vector2.ZERO, 16.0, -PI / 2.0, -PI / 2.0 + TAU * charge, 64, color, 2.0, true)

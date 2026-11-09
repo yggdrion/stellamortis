@@ -1,14 +1,23 @@
 class_name Arena
 extends Node3D
 ## The PoC arena (PLAN §4.4): collision on both sides, meshes, light and sky only on clients.
-## Built in code so server and client always get the same collision.
+## Built in code so server and client always get the same collision. Surfaces are tiling PBR
+## materials from ambientCG (CC0) mapped triplanar, so any box size works.
 
 const SIZE := 160.0
+const MATERIALS := "res://assets/ambientcg/"
+const FLOOR := "DiamondPlate008C"
+const PANELS := "MetalPlates013"
+const PLATES := "MetalPlates006"
+const ROCK := "Rock030"
+const ASTEROID := "Rock035"
 
 var visual := false
 ## Clients only: what Graphics presets adjust.
 var environment: Environment
 var sun: DirectionalLight3D
+## Materials by name and tint, shared by every box that uses them.
+var _materials := {}
 
 
 func _init(with_visuals: bool) -> void:
@@ -17,31 +26,29 @@ func _init(with_visuals: bool) -> void:
 
 
 func _ready() -> void:
-	var ground := Color(0.36, 0.33, 0.38)
-	var rock := Color(0.48, 0.42, 0.40)
-	var metal := Color(0.55, 0.58, 0.62)
-	_box(Vector3(0, -0.5, 0), Vector3(SIZE, 1, SIZE), ground, 0.95)
+	_box(Vector3(0, -0.5, 0), Vector3(SIZE, 1, SIZE), FLOOR, Vector3.ZERO, 0.5)
 	# Blocks to walk around and jump on.
 	for i in 8:
 		var angle := TAU * i / 8.0
 		var at := Vector3(cos(angle), 0, sin(angle)) * 18.0
 		var height := 1.0 + (i % 3) * 0.8
-		_box(at + Vector3(0, height / 2.0, 0), Vector3(3, height, 3), rock, 0.8)
+		_box(at + Vector3(0, height / 2.0, 0), Vector3(3, height, 3), PANELS)
 	# A ramp and a stair to test slopes and steps.
-	_box(Vector3(-8, 1.2, -30), Vector3(4, 0.4, 10), metal, 0.4, Vector3(deg_to_rad(15), 0, 0))
+	_box(Vector3(-8, 1.2, -30), Vector3(4, 0.4, 10), PLATES, Vector3(deg_to_rad(15), 0, 0))
 	for s in 6:
-		_box(Vector3(8, 0.2 + s * 0.2, -26 - s * 0.8), Vector3(4, 0.4 + s * 0.4, 0.8), metal, 0.4)
+		_box(Vector3(8, 0.2 + s * 0.2, -26 - s * 0.8), Vector3(4, 0.4 + s * 0.4, 0.8), PLATES)
 	# A wall at the edge.
-	_box(Vector3(0, 3, 45), Vector3(40, 6, 1), metal, 0.5)
+	_box(Vector3(0, 3, 45), Vector3(40, 6, 1), PANELS)
 	_add_asteroid()
 	if visual:
+		_add_floodlights()
 		_add_environment()
 		_add_zone_visuals()
 		_add_pads()
 
 
 func _box(
-	at: Vector3, size: Vector3, color: Color, roughness: float, rotation_euler := Vector3.ZERO
+	at: Vector3, size: Vector3, surface: String, rotation_euler := Vector3.ZERO, tiles := 0.5
 ) -> void:
 	var body := StaticBody3D.new()
 	body.collision_layer = SimPlayer.LAYER_WORLD
@@ -57,12 +64,7 @@ func _box(
 		var mesh := MeshInstance3D.new()
 		var cube := BoxMesh.new()
 		cube.size = size
-		var material := StandardMaterial3D.new()
-		material.albedo_color = color
-		material.roughness = roughness
-		material.metallic = 0.6 if roughness < 0.6 else 0.0
-		material.uv1_triplanar = true
-		cube.material = material
+		cube.material = _surface(surface, tiles)
 		mesh.mesh = cube
 		body.add_child(mesh)
 	add_child(body)
@@ -91,7 +93,7 @@ func _add_asteroid() -> void:
 		var size := Vector3(2.5, 1.6 + (i % 3) * 0.6, 2.5)
 		var at := Layout.ASTEROID_CENTER + normal * (Layout.ASTEROID_RADIUS + size.y / 2.0 - 0.3)
 		var basis := SimPlayer.frame(normal, SimPlayer._tangent(Vector3.FORWARD, normal))
-		_box(at, size, Color(0.42, 0.36, 0.34), 0.9, basis.get_euler())
+		_box(at, size, ROCK, basis.get_euler())
 
 
 func _asteroid_mesh() -> MeshInstance3D:
@@ -101,31 +103,49 @@ func _asteroid_mesh() -> MeshInstance3D:
 	sphere.height = Layout.ASTEROID_RADIUS * 2.0
 	sphere.radial_segments = 96
 	sphere.rings = 48
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.45, 0.4, 0.42)
-	material.roughness = 0.95
-	var noise := FastNoiseLite.new()
-	noise.frequency = 0.03
-	var bumps := NoiseTexture2D.new()
-	bumps.noise = noise
-	bumps.as_normal_map = true
-	bumps.seamless = true
-	bumps.bump_strength = 6.0
-	material.normal_enabled = true
-	material.normal_texture = bumps
-	material.uv1_triplanar = true
-	material.uv1_scale = Vector3.ONE * 0.08
-	sphere.material = material
+	sphere.material = _surface(ASTEROID, 0.12)
 	mesh.mesh = sphere
 	return mesh
+
+
+## A tiling PBR material from assets/ambientcg/<name>/ (Color, NormalGL, Roughness and, where the
+## set has them, Metalness and AmbientOcclusion), triplanar at scale tiles per meter.
+func _surface(surface: String, scale_by := 0.25) -> StandardMaterial3D:
+	var key := "%s@%s" % [surface, scale_by]
+	if _materials.has(key):
+		return _materials[key]
+	var dir := MATERIALS + surface + "/"
+	var material := StandardMaterial3D.new()
+	material.albedo_texture = load(dir + "Color.jpg")
+	material.normal_enabled = true
+	material.normal_texture = load(dir + "NormalGL.jpg")
+	material.roughness_texture = load(dir + "Roughness.jpg")
+	material.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GRAYSCALE
+	if ResourceLoader.exists(dir + "Metalness.jpg"):
+		# Full metal mirrors the black sky and goes black; half keeps the plates readable.
+		material.metallic = 0.45
+		material.metallic_texture = load(dir + "Metalness.jpg")
+		material.metallic_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GRAYSCALE
+	if ResourceLoader.exists(dir + "AmbientOcclusion.jpg"):
+		material.ao_enabled = true
+		material.ao_texture = load(dir + "AmbientOcclusion.jpg")
+		material.ao_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GRAYSCALE
+	material.uv1_triplanar = true
+	material.uv1_world_triplanar = true
+	material.uv1_scale = Vector3.ONE * scale_by
+	if surface == FLOOR:
+		# The tread plate is bright bare steel; dark painted deck reads better under the sky.
+		material.albedo_color = Color(0.3, 0.32, 0.35)
+	_materials[key] = material
+	return material
 
 
 ## Sun, space sky and post-processing (PLAN §3.1).
 func _add_environment() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation = Vector3(deg_to_rad(-40), deg_to_rad(30), 0)
-	sun.light_color = Color(1.0, 0.93, 0.86)
-	sun.light_energy = 1.3
+	sun.light_color = Color(0.86, 0.92, 1.0)
+	sun.light_energy = 1.6
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 140.0
 	add_child(sun)
@@ -141,17 +161,21 @@ func _add_environment() -> void:
 	env.sky = sky
 	# The sky is mostly black, so ambient light comes from a fixed color instead.
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.42, 0.38, 0.5)
-	env.ambient_light_energy = 0.55
+	env.ambient_light_color = Color(0.32, 0.38, 0.48)
+	env.ambient_light_energy = 0.9
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
 	env.ssao_enabled = true
 	env.ssil_enabled = true
 	env.glow_enabled = true
 	env.glow_bloom = 0.05
+	# Slightly cold, slightly crushed: a grim, low key grade.
+	env.adjustment_enabled = true
+	env.adjustment_contrast = 1.12
+	env.adjustment_saturation = 0.82
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.32, 0.22, 0.34)
-	env.fog_density = 0.003
+	env.fog_light_color = Color(0.1, 0.13, 0.17)
+	env.fog_density = 0.006
 	env.fog_sky_affect = 0.0
 	# Only the zones' FogVolumes add volumetric fog.
 	env.volumetric_fog_enabled = true
@@ -162,6 +186,34 @@ func _add_environment() -> void:
 	environment = env
 	self.sun = sun
 	add_child(world_env)
+
+
+## Floodlights along the long wall: cold lamps with a glowing strip on top, so the encounter
+## side has its own light against the dark.
+func _add_floodlights() -> void:
+	var strip := StandardMaterial3D.new()
+	strip.albedo_color = Color(0.1, 0.12, 0.14)
+	strip.emission_enabled = true
+	strip.emission = Color(0.75, 0.88, 1.0)
+	strip.emission_energy_multiplier = 3.0
+	var top := MeshInstance3D.new()
+	var bar := BoxMesh.new()
+	bar.size = Vector3(40, 0.12, 0.2)
+	bar.material = strip
+	top.mesh = bar
+	top.position = Vector3(0, 6.05, 44.4)
+	top.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(top)
+	for i in 5:
+		var lamp := SpotLight3D.new()
+		lamp.position = Vector3(-16 + i * 8, 5.6, 44.2)
+		lamp.rotation = Vector3(deg_to_rad(-50), PI, 0)
+		lamp.light_color = Color(0.8, 0.9, 1.0)
+		lamp.light_energy = 6.0
+		lamp.spot_range = 24.0
+		lamp.spot_angle = 50.0
+		lamp.shadow_enabled = i % 2 == 0
+		add_child(lamp)
 
 
 ## Gravity zones are tinted fog with drifting motes and a glowing border on the ground: blue

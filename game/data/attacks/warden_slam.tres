@@ -14,4 +14,4 @@ arc_degrees = 360.0
 lunge = 0.0
 parryable = false
 offset = 2.2
-animation = &"2H_Melee_Attack_Chop"
+animation = &"Attack"

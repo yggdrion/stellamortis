@@ -1,10 +1,11 @@
 class_name Gear
 extends RefCounted
-## What players and enemies wear and hold (PLAN §3.2, M12): knights in worn steel over dark
-## leather with a great helm, a steel sword, the MegaKit's round wooden shield and a crossbow;
-## the dead in bone and rags with ember eyes and rusted blades. Built in code apart from the
-## shield (Quaternius Fantasy Props MegaKit, CC0). Every prop's origin is the grip, its long axis
-## local +Y (the hand bone's axis toward the fingers).
+## Who wears what (PLAN §3.2): players are rangers, the training squires peasants, the dead
+## peasants in their dark set with grey skin and ember eyes (Quaternius outfits and base
+## character heads, CC0), the Warden the UAL figure in black iron. Weapons are built in code (a
+## steel sword, a crossbow) apart from the round wooden shield (Fantasy Props MegaKit, CC0).
+## Every prop's origin is the grip, its long axis local +Y (the hand bone's axis toward the
+## fingers).
 
 const SHIELD := "res://assets/quaternius/props/Shield_Wooden.gltf"
 ## Enemy eyes and shots.
@@ -12,6 +13,8 @@ const EMBER := Color(1.0, 0.35, 0.1)
 const STEEL := Color(0.62, 0.63, 0.65)
 const IRON := Color(0.16, 0.16, 0.17)
 const LEATHER := Color(0.2, 0.14, 0.1)
+## The dead's skin and faded clothes.
+const DEAD := Color(0.72, 0.78, 0.68)
 
 
 ## A knight: plate for the body, leather at the joints (the mannequin's second surface).
@@ -25,15 +28,57 @@ static func armor(plate := STEEL, joints := LEATHER) -> Array[Material]:
 	return [plates, leather]
 
 
-## The dead: grey-green bone for the body, rotten cloth at the joints.
-static func bones() -> Array[Material]:
-	var bone := StandardMaterial3D.new()
-	bone.albedo_color = Color(0.46, 0.47, 0.4)
-	bone.roughness = 0.9
-	var rags := StandardMaterial3D.new()
-	rags.albedo_color = Color(0.11, 0.1, 0.08)
-	rags.roughness = 1.0
-	return [bone, rags]
+## A player: a ranger, male (bearded) or female in the second color set by peer id, with a dark
+## or light skin by the next bit.
+static func ranger(peer_id: int, held: Dictionary) -> CharacterModel:
+	var male := peer_id % 2 == 0
+	var light := (peer_id / 2) % 2 == 1
+	var c := CharacterModel.CHARACTERS
+	var outfit := CharacterModel.RANGER_MALE if male else CharacterModel.RANGER_FEMALE
+	var model := CharacterModel.new(outfit, held)
+	if male:
+		model.wear_head(
+			CharacterModel.BODY_MALE,
+			[c + "Hair_Beard.gltf"],
+			load(c + "T_Superhero_Male_Ligh.png") if light else null
+		)
+	else:
+		model.wear_head(
+			CharacterModel.BODY_FEMALE,
+			[],
+			load(c + "T_Superhero_Female_Light_BaseColor.png") if light else null
+		)
+		model.swap_albedo(
+			"T_Ranger_BaseColor.png", load(CharacterModel.OUTFITS + "T_Ranger_3_BaseColor.png")
+		)
+	return model
+
+
+## A training squire: a peasant with short or parted hair.
+static func squire(index: int, held: Dictionary) -> CharacterModel:
+	var c := CharacterModel.CHARACTERS
+	var model := CharacterModel.new(CharacterModel.PEASANT_MALE, held)
+	var hair := "Hair_SimpleParted.gltf" if index % 2 == 0 else "Hair_Buzzed.gltf"
+	model.wear_head(CharacterModel.BODY_MALE, [c + hair], load(c + "T_Superhero_Male_Ligh.png"))
+	return model
+
+
+## One of the dead: a peasant in the dark set, grey-green, long or bound hair, ember eyes (male
+## swordsmen, female crossbow archers).
+static func dead(archer: bool, held: Dictionary) -> CharacterModel:
+	var c := CharacterModel.CHARACTERS
+	held["eyes"] = ["Head", eyes()]
+	var outfit := CharacterModel.PEASANT_FEMALE if archer else CharacterModel.PEASANT_MALE
+	var model := CharacterModel.new(outfit, held)
+	if archer:
+		model.wear_head(CharacterModel.BODY_FEMALE, [c + "Hair_Buns.gltf"])
+	else:
+		model.wear_head(CharacterModel.BODY_MALE, [c + "Hair_Long.gltf"])
+	model.swap_albedo(
+		"T_Peasant_BaseColor.png", load(CharacterModel.OUTFITS + "T_Peasant_2_BaseColor.png")
+	)
+	model.tint(DEAD)
+	return model
 
 
 ## A rounded bascinet: a dome over a short cylinder, a dark eye slit and a nasal ridge, for

@@ -1,7 +1,7 @@
 class_name PlayerView
 extends Node3D
-## A player's look (PLAN §4.5, §3.2): a knight in worn plate and a great helm (Gear) with sword
-## and round shield or the crossbow, posed from the player's rolled back state every frame,
+## A player's look (PLAN §4.5, §3.2): a ranger (Gear.ranger) with sword and round shield or the
+## crossbow, posed from the player's rolled back state every frame,
 ## with its bolts, a hit flash and, for others, a name.
 
 ## Per second, how fast the model turns to the body's facing (exponential). The sim snaps the
@@ -20,19 +20,16 @@ func _init(of: SimPlayer, show_name: bool) -> void:
 	player = of
 	name = "View"
 	_model = (
-		CharacterModel
-		. new(
-			CharacterModel.HUMAN,
+		Gear
+		. ranger(
+			player.peer_id,
 			{
 				"sword": ["RightHand", Gear.sword()],
 				"shield": ["LeftLowerArm", Gear.shield()],
 				"crossbow": ["RightHand", Gear.crossbow()],
-				"helm": ["Head", Gear.helm()],
 			}
 		)
 	)
-	var plate := Gear.armor()
-	_model.skin(plate[0], {1: plate[1]})
 	add_child(_model)
 	add_child(BoltsView.new(player))
 	if show_name:

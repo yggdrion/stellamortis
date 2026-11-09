@@ -1,8 +1,9 @@
 class_name EnemyView
 extends Node3D
-## How an enemy looks (PLAN §4.5, §4.6, §3.2): the UAL figure posed from its state, dressed by
-## Gear: training squires in tarnished plate, the dead in bone and rags with ember eyes (rusted
-## swords, or crossbows for the ranged ones), and the Warden, a giant dead knight in black iron.
+## How an enemy looks (PLAN §4.5, §4.6, §3.2): a figure posed from its state, dressed by
+## Gear: training squires as peasants, the dead as grey peasants in dark rags with ember eyes
+## (rusted swords, or crossbows for the archers), and the Warden, a giant dead knight in black
+## iron.
 ## The telegraph makes dodging fair: an orange glow building up over the windup and the swing's
 ## area drawn on the ground. Parries flash yellow, hits pop damage numbers, a bar shows health
 ## (the Warden's is on the HUD), embers fly as their shots, the Warden's well is a pulsing shell
@@ -38,8 +39,7 @@ const WARDEN_CLIPS := {
 	"down": &"Death01",
 	"down_time": 2.0
 }
-## Tarnished plate for the training squires, black iron for the Warden.
-const SQUIRE_PLATE := Color(0.42, 0.39, 0.34)
+## The dead's rusted swords.
 const RUST := Color(0.3, 0.17, 0.1)
 const TELEGRAPH := Color(1.0, 0.45, 0.1)
 ## Moving faster than this (m/s) plays the walk.
@@ -102,18 +102,8 @@ func _make_model() -> CharacterModel:
 		var ranged := (enemy as Mob).ranged
 		_clips = ARCHER_CLIPS if ranged else UNDEAD_CLIPS
 		var weapon := Gear.crossbow() if ranged else Gear.sword(RUST, 0.7)
-		model = CharacterModel.new(
-			human, {"weapon": ["RightHand", weapon], "eyes": ["Head", Gear.eyes()]}
-		)
-		var bones := Gear.bones()
-		model.skin(bones[0], {1: bones[1]})
-		return model
-	model = CharacterModel.new(
-		human, {"sword": ["RightHand", Gear.sword()], "helm": ["Head", Gear.helm(SQUIRE_PLATE)]}
-	)
-	var plate := Gear.armor(SQUIRE_PLATE)
-	model.skin(plate[0], {1: plate[1]})
-	return model
+		return Gear.dead(ranged, {"weapon": ["RightHand", weapon]})
+	return Gear.squire(enemy.index, {"sword": ["RightHand", Gear.sword()]})
 
 
 func _add_arc() -> void:

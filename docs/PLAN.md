@@ -61,9 +61,9 @@ Server and network:
 
 Dark, grounded medieval fantasy (M12, chosen 2026-11-09, replacing M9's sci-fi, which replaced the cute KayKit fantasy): worn steel, stone, torches, the dead; muted colors, adult proportions, not cute. Space stays as travel: each planet is a place (a hub keep, the Barrows), reached through portals. Color is reserved for meaning: enemy embers and telegraph orange, the gate portals' blue, the victory portal's gold, the gravity zones' blue and red.
 
-- Players: knights. The Quaternius Universal Animation Library mannequin (UAL1) in half-metal steel plate over dark leather with a rounded bascinet, a steel sword, the Fantasy Props MegaKit's round wooden shield and a code-built crossbow (`client/gear.gd`). Animations come from UAL1 and UAL2, both imported with a humanoid `BoneMap` (`assets/quaternius/ual/*_bone_map.tres`) so their bones share names; `CharacterModel` copies the UAL2 clips onto the UAL1 skeleton at runtime. (Quaternius' fantasy outfits for the UAL rig are only on itch.io, which refuses scripted downloads; they would replace the mannequin.)
-- Training squires: the same figure in tarnished plate.
-- The dead: the mannequin in grey-green bone and rags with ember eyes, rusted swords (zombie clips) or crossbows. The Warden: the same figure at twice the size in black iron with a greatsword, ember eyes, sword and spell clips.
+- Players: rangers from Quaternius' Modular Character Outfits (Fantasy, the free set: Ranger and Peasant), with heads, hair and brows from the Universal Base Characters (the full body cut to head and neck at runtime, `CharacterModel.wear_head`). Male (bearded) or female (second color set) and dark or light skin by peer id (`Gear.ranger`). Steel sword and crossbow built in code, the Fantasy Props MegaKit's round wooden shield. The outfits ship without clips; they are imported with a humanoid `BoneMap` (`assets/quaternius/outfits/outfit_bone_map.tres`) and `CharacterModel` gives them every UAL1 and UAL2 clip, like it copies UAL2's onto UAL1.
+- Training squires: peasants with short or parted hair (`Gear.squire`).
+- The dead: peasants in the dark color set, tinted grey-green, with long or bound hair, ember eyes and rusted swords (male) or crossbows (female); zombie clips for the swordsmen (`Gear.dead`). The Warden: the UAL1 mannequin at twice the size in black iron with a bascinet, a greatsword and ember eyes (the paid outfit sets have the plate knight that would suit it).
 - Planets: the realm (the Barrows) on ambientCG dark grass, broken brick blocks and a barrow wall in the Medieval Village MegaKit's uneven brick, rock grave slabs, torches, the asteroid. The hub keep: a cobbled yard (ambientCG paving) inside brick walls with corner towers (MegaKit roofs), a hall with lit windows (Godot 4.7 `AreaLight3D`), torches, banners, vines, a training corner and a smithy (MegaKit props). Surfaces are tiling materials mapped world triplanar (`Arena._surface`).
 - Light: a cold moon, warm flickering torches, a night sky with stars and a banded moon-planet, fog, a muted grade.
 - HUD and menus: Cinzel capitals for titles, buttons and the HUD, Alegreya for running text, parchment on near black, old-blood bars (`client/menus.gd` holds the theme).
@@ -233,12 +233,14 @@ Moved to milestones:
 
 - M13 to check in M15: the presence on a running Discord (Linux with socat passed on 2026-11-09: handshake and SET_ACTIVITY, the user saw it in Discord; still to see: Windows named pipe, macOS nc), the party size updating as friends join, the logo showing once uploaded. For the user: upload `game/assets/logo/stellamortis-1024.png` in the developer portal as the app icon and as a Rich Presence art asset named `logo`.
 
+- Outfits (2026-11-09, after M13): to check in M15 how the rangers, squires and the dead look in a fight (outfit clipping in the UAL clips, the hood and hair, the weapon grips on the new hands, the hit flash on several stacked meshes).
+
 Still open (§3.1, not in a milestone yet):
 
 - The compositor screen-space distortion for the gravity well (a glowing shell with motes for now).
 - Stencil x-ray for players seen through walls.
 - Collision on `GPUParticles3D`, `MultiMeshInstance3D` for debris, visibility ranges.
 - Shader baker for exports and a check that ubershaders avoid hitches in the release builds.
-- From M12: LightmapGI needs an editor bake, and the levels are built in code at runtime; it waits for levels saved as scenes. `AnimationTree` with blend spaces and foot IK (`TwoBoneIK3D` exists in 4.7) would replace `CharacterModel.play_timed`, which the rolled back views rely on; left out. Decals for impacts left out. Only one realm; more planets mean more `Layout` entries and portals. Quaternius' UAL fantasy outfits need a manual download from itch.io (scripted downloads get 403).
+- From M12: LightmapGI needs an editor bake, and the levels are built in code at runtime; it waits for levels saved as scenes. `AnimationTree` with blend spaces and foot IK (`TwoBoneIK3D` exists in 4.7) would replace `CharacterModel.play_timed`, which the rolled back views rely on; left out. Decals for impacts left out. Only one realm; more planets mean more `Layout` entries and portals.
 
 Milestones not started: M14 sound, M15 test round; Later: M16 frame pacing, M17 Wooting analog, M18 telemetry.

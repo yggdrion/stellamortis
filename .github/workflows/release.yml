@@ -2,8 +2,10 @@ name: Release
 
 # Every push to main: run the checks (lint, gdUnit4, headless network test), export each
 # platform on its own runner (macOS: universal, ad-hoc signed), keep the exports as workflow
-# artifacts for ARTIFACT_DAYS days, and publish them as a GitHub Release v<VERSION>.<run number>.
-# Releases stay; artifacts expire. Bump VERSION (e.g. at a milestone) to start a new minor.
+# artifacts for ARTIFACT_DAYS days, and publish them as a GitHub Release v<VERSION>.<patch>.
+# Releases stay; artifacts expire. Every milestone is a minor version: the commit that finishes
+# milestone Mn sets VERSION to 0.<n+1>, and its release is v0.<n+1>.0. Every later push until the
+# next milestone is a patch: the patch is one above the highest existing v<VERSION>.* tag.
 
 on:
   push:
@@ -113,7 +115,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="v$(tr -d '[:space:]' < VERSION).${{ github.run_number }}"
+          minor="$(tr -d '[:space:]' < VERSION)"
+          # Releases run one at a time (concurrency group), so the next free patch is safe.
+          last=$(git ls-remote --tags origin "refs/tags/v$minor.*" \
+            | sed -n "s#.*refs/tags/v$minor\.\([0-9]*\)\$#\1#p" | sort -n | tail -1)
+          tag="v$minor.$(( ${last:--1} + 1 ))"
+          echo "Releasing $tag"
           gh release create "$tag" dist/*.zip \
             --target "${{ github.sha }}" \
             --title "$tag" \

@@ -66,6 +66,13 @@ func _process(_delta: float) -> void:
 		)
 	)
 	lines.append("players %d" % client.player_count())
+	if client.lobby:
+		# What the server offered, not the pair that won: Godot exposes no WebRTC stats.
+		var note := LobbyClient.turn_note(
+			client.lobby.local_candidates, client.lobby.remote_candidates
+		)
+		var offered := ", ".join(client.lobby.remote_candidates)
+		lines.append("webrtc room %s   %s   server offered: %s" % [client.room, note, offered])
 	if client.me:
 		var p := client.me.global_position
 		var zone := Gravity.zone_at(p)

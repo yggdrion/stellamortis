@@ -20,8 +20,17 @@ Installs gdtoolkit and pre-commit (a venv), the pinned Godot (`.godot-version`, 
     python tools/dev.py 2 --lag=100          # headless server + 2 windowed clients through a 100 ms lag proxy
     python tools/lag_proxy.py 17778 17777 150 --jitter=20   # lag proxy on its own
 
+Play with friends (player host, over WebRTC through the lobby at `lobby.r4b2.de`):
+
+    python tools/godot.py -- --host          # opens a room; the code shows top right, F2 copies it
+    python tools/godot.py -- --join=CODE     # a friend joins by that code
+
+`--lobby=ws://127.0.0.1:8080/ws` uses a local lobby instead: `cd lobby && bun src/server.ts`, or
+lobby and coturn together with `docker compose -f deploy/lobby/docker-compose.local.yml up --build`
+(`deploy/lobby/README.md`). `--relay-only` forces a client through the TURN relay.
+
 Command line (after `--`, see `game/scripts/boot/main.gd`): `--server --port=N [--solo]`,
-`--connect=host:port`, `--name=NAME`, `--windowed`, `--look=YAW,PITCH`, `--spawn=X,Y,Z`, `--delay=S`, `--frames=N`, `--graphics=PRESET`, `--bot-plan=shoot`, `--bot [--expect=N] [--duration=S]`.
+`--connect=host:port`, `--host`, `--join=CODE`, `--lobby=URL`, `--relay-only`, `--encounter=boss`, `--name=NAME`, `--windowed`, `--look=YAW,PITCH`, `--spawn=X,Y,Z`, `--delay=S`, `--frames=N`, `--graphics=PRESET`, `--bot-plan=shoot|lock`, `--bot [--expect=N] [--duration=S]`.
 
 Controls: WASD move, mouse look, Shift sprint, Space jump, Ctrl or C roll, 1, 2 or the mouse wheel
 switch weapons, Esc frees the mouse (click to capture again), F3 debug overlay, F4 graphics
@@ -53,7 +62,7 @@ The red zone to the west has high gravity.
 
 ## Check
 
-    python tools/check.py            # lint, gdUnit4 tests, headless network test
+    python tools/check.py            # lint, lobby tests, gdUnit4 tests, network test (ENet, WebRTC)
     python tools/check.py --quick    # lint only
 
 `--screenshot=PATH` saves a PNG after a few seconds and quits, for checking visuals without

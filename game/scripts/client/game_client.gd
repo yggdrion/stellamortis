@@ -3,6 +3,8 @@ extends Node3D
 ## A player's side of the game (PLAN §4.3). netfox predicts the own player from its input and
 ## rolls it back on server state, and interpolates every player between ticks; this node fills
 ## the input, follows the own player with the camera and runs the bot and screenshot modes.
+## It reaches the server over ENet by address (solo, --connect) or over WebRTC by lobby room
+## code (player host, PLAN §4.7).
 
 signal left(reason: String)
 
@@ -32,6 +34,12 @@ var ping_ms := 0
 var server_tps := 0.0
 var server_tick_ms := 0.0
 var server_tick_avg_ms := 0.0
+## Player host: the room code friends join with, "" without one.
+var room := ""
+## Over WebRTC: the lobby that set up the connection.
+var lobby: LobbyClient
+## Debug: only relay ICE candidates (LobbyClient.relay_only).
+var relay_only := false
 
 var _world: World
 var _rig: CameraRig
@@ -76,6 +84,7 @@ func _ready() -> void:
 	_overlay.client = self
 	add_child(_overlay)
 	net.rejected.connect(func(reason: String) -> void: left.emit(reason))
+	net.room_received.connect(func(code: String) -> void: room = code)
 	net.ponged.connect(func(sent: int) -> void: ping_ms = Time.get_ticks_msec() - sent)
 	net.server_stats_received.connect(
 		func(tps: float, tick_ms: float, tick_avg_ms: float) -> void:
@@ -100,6 +109,29 @@ func join(host: String, port: int) -> void:
 		left.emit("Could not connect: %s" % error_string(err))
 		return
 	multiplayer.multiplayer_peer = peer
+	_watch_connection()
+
+
+## Joins a lobby room by code, over WebRTC.
+func join_room(lobby_url: String, code: String) -> void:
+	room = code.strip_edges().to_upper()
+	lobby = LobbyClient.new()
+	lobby.relay_only = relay_only
+	add_child(lobby)
+	lobby.peer_created.connect(
+		func(peer: WebRTCMultiplayerPeer) -> void: multiplayer.multiplayer_peer = peer
+	)
+	lobby.failed.connect(
+		func(reason: String) -> void:
+			push_error(reason)
+			var path := lobby.log.path_shown() if lobby.log else ""
+			left.emit(reason if path == "" else "%s (details: %s)" % [reason, path])
+	)
+	_watch_connection()
+	lobby.join(lobby_url, room)
+
+
+func _watch_connection() -> void:
 	multiplayer.connected_to_server.connect(
 		func() -> void: net.hello.rpc_id(1, Net.PROTOCOL_VERSION, player_name)
 	)
@@ -114,13 +146,16 @@ func join(host: String, port: int) -> void:
 ## Disconnects cleanly and waits a moment, so the server drops the peer before it would send
 ## to a closed connection (it logged "Unable to send packet" when a client just quit).
 func leave() -> void:
-	var peer := multiplayer.multiplayer_peer as ENetMultiplayerPeer
+	var peer := multiplayer.multiplayer_peer
 	if peer == null or peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
 		return
 	_leaving = true
 	# No more input packets onto the closing connection.
 	NetworkTime.stop()
-	peer.get_peer(1).peer_disconnect_later()
+	if peer is ENetMultiplayerPeer:
+		(peer as ENetMultiplayerPeer).get_peer(1).peer_disconnect_later()
+	else:
+		peer.close()
 	await get_tree().create_timer(0.3).timeout
 
 
@@ -206,6 +241,7 @@ func _bot_controls(controls: PlayerControls) -> void:
 
 
 func _process(delta: float) -> void:
+	_hud.room = room
 	_flick_left = maxf(0.0, _flick_left - delta)
 	_flick_wait = maxf(0.0, _flick_wait - delta)
 	if _flick_left == 0.0:
@@ -295,6 +331,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		_wanted_weapon = 1 - _wanted_weapon
 	elif event.is_action_pressed(&"graphics"):
 		Graphics.cycle(get_viewport(), _world.arena)
+	elif event.is_action_pressed(&"copy_room") and room != "":
+		DisplayServer.clipboard_set(room)
+		_hud.notice("Room code %s copied" % room)
 	elif event.is_action_pressed(&"toggle_debug"):
 		_overlay.visible = not _overlay.visible
 

@@ -1,0 +1,38 @@
+# Player host (PLAN §4.7): the lobby that hands out room codes and relays WebRTC signaling,
+# and coturn for STUN plus a TURN relay. Runs from a clone of this repo on the gvm host. gvm's
+# Caddy terminates TLS for lobby.r4b2.de and reaches the lobby over gvm's network. Setup:
+# README.md. For a local test without gvm: docker-compose.local.yml.
+name: stellamortis-lobby
+
+services:
+  lobby:
+    build: ../../lobby
+    environment:
+      TURN_HOST: lobby.r4b2.de
+      TURN_SECRET: ${TURN_SECRET:?set TURN_SECRET in .env}
+    restart: unless-stopped
+    networks:
+      default:
+      # gvm's Caddy proxies wss://lobby.r4b2.de/ws to stellamortis-lobby:8080.
+      gvm:
+        aliases: [stellamortis-lobby]
+
+  coturn:
+    image: coturn/coturn:4.18.0
+    command:
+      - -c
+      - /etc/coturn/turnserver.conf
+      - --static-auth-secret=${TURN_SECRET:?set TURN_SECRET in .env}
+    volumes:
+      - ./turnserver.conf:/etc/coturn/turnserver.conf:ro
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      # Relay range; must match min-port/max-port in turnserver.conf.
+      - "49160-49259:49160-49259/udp"
+    restart: unless-stopped
+
+networks:
+  gvm:
+    name: gvm_default
+    external: true

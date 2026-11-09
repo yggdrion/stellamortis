@@ -11,6 +11,7 @@ const KEYS := {
 	&"sprint": [KEY_SHIFT],
 	&"heavy": [KEY_Q],
 	&"roll": [KEY_CTRL, KEY_C],
+	&"copy_room": [KEY_F2],
 	&"toggle_debug": [KEY_F3],
 	&"graphics": [KEY_F4],
 	&"weapon_1": [KEY_1],

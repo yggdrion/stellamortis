@@ -1,0 +1,24 @@
+# The lobby and coturn on this machine, for testing player host without the gvm host:
+#   docker compose -f deploy/lobby/docker-compose.local.yml up --build
+# then host with --lobby=ws://127.0.0.1:8080/ws. TURN runs on 127.0.0.1:3478 with a fixed test
+# secret; relaying only reaches this machine (turnserver.local.conf).
+name: stellamortis-lobby-local
+
+services:
+  lobby:
+    build: ../../lobby
+    environment:
+      TURN_HOST: 127.0.0.1
+      TURN_SECRET: local-test-secret
+    ports:
+      - "8080:8080"
+
+  coturn:
+    image: coturn/coturn:4.18.0
+    command:
+      - -c
+      - /etc/coturn/turnserver.conf
+      - --static-auth-secret=local-test-secret
+    volumes:
+      - ./turnserver.local.conf:/etc/coturn/turnserver.conf:ro
+    network_mode: host

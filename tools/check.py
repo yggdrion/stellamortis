@@ -1,10 +1,10 @@
 """Runs all checks locally (there is no CI) and stops at the first failure:
-  1. gdlint + gdformat --check   2. gdUnit4 tests (pinned Godot)
-  3. headless network test (one server, two bot clients over ENet with fake lag)
+  1. gdlint + gdformat --check   2. lobby tests (pinned Bun)   3. gdUnit4 tests (pinned Godot)
+  4. headless network test (ENet with fake lag, and WebRTC through a local lobby)
 
 Usage: python tools/check.py [--quick | --tests]
   --quick   only step 1 (no Godot), a few seconds
-  --tests   steps 1-2 (no network test)
+  --tests   steps 1-3 (no network test)
 python tools/setup.py installs it as a git pre-push hook (skip once with: git push --no-verify).
 """
 
@@ -36,6 +36,9 @@ run(venv_py, "-m", "gdtoolkit.formatter", "--check", *dirs, cwd=ROOT)
 if "--quick" in args:
     print("\nQuick checks passed (Godot tests skipped).")
     sys.exit(0)
+
+step("Lobby tests")
+tool("run_lobby_tests")
 
 step("gdUnit4 tests")
 tool("run_tests")

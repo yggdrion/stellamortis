@@ -3,7 +3,13 @@ extends Node
 ##   --server --port=N [--solo]     headless game server; --solo: exits with its player
 ##     [--spawn=X,Y,Z]              debug: spawn players there (a solo client passes it on)
 ##     [--encounter=boss]           debug: start with the mobs dead (a solo client passes it on)
+##     [--lobby=URL [--room-file=PATH]]   instead of the port: open a room in this lobby and
+##                                  take players over WebRTC; the code goes to PATH
 ##   --connect=host:port            client joining a running server over ENet
+##   --host                         spawns a local server with a lobby room and joins it by code
+##   --join=CODE                    client joining a lobby room over WebRTC
+##   --lobby=URL                    lobby for --host and --join (LobbyClient.DEFAULT_URL)
+##     [--relay-only]               debug: connect through the TURN relay only
 ##   --bot [--expect=N]             headless test client (see GameClient._check_bot)
 ##     [--bot-plan=shoot|lock]      shoot: fire the crossbow where --look points;
 ##                                  lock: lock on and strafe around the target
@@ -18,6 +24,8 @@ extends Node
 ##   (none)                         solo: spawns a local --solo server and joins it
 
 const DEFAULT_PORT := 17777
+## Seconds the host waits for its server to open a room.
+const ROOM_TIMEOUT := 20.0
 
 var _args := {}
 var _server_pid := 0
@@ -35,6 +43,8 @@ func _ready() -> void:
 			var p := (_args["spawn"] as String).split(",")
 			server.spawn_at = Vector3(float(p[0]), float(p[1]), float(p[2]))
 		server.skip_to_boss = _args.get("encounter", "") == "boss"
+		server.lobby_url = _args.get("lobby", "")
+		server.room_file = _args.get("room-file", "")
 		add_child(server)
 		server.start(int(_args.get("port", DEFAULT_PORT)))
 		return
@@ -52,6 +62,7 @@ func _ready() -> void:
 	client.screenshot_delay = float(_args.get("delay", "4"))
 	client.screenshot_frames = int(_args.get("frames", "1"))
 	client.graphics = _args.get("graphics", "")
+	client.relay_only = _args.has("relay-only")
 	if _args.has("look"):
 		var parts := (_args["look"] as String).split(",")
 		client.look = Vector2(float(parts[0]), float(parts[1]) if parts.size() > 1 else -15.0)
@@ -60,16 +71,56 @@ func _ready() -> void:
 	if _args.has("connect"):
 		var parts: PackedStringArray = (_args["connect"] as String).rsplit(":", true, 1)
 		client.join(parts[0], int(parts[1]) if parts.size() > 1 else DEFAULT_PORT)
+	elif _args.has("join"):
+		client.join_room(_lobby_url(), _args["join"])
+	elif _args.has("host"):
+		_host(client)
 	else:
 		var port := _free_port()
 		var server_args: PackedStringArray = ["--solo", "--port=%d" % port]
-		if _args.has("spawn"):
-			server_args.append("--spawn=" + _args["spawn"])
-		if _args.has("encounter"):
-			server_args.append("--encounter=" + _args["encounter"])
+		server_args.append_array(_debug_args())
 		_server_pid = _spawn_server(server_args)
 		# The server needs a moment to open its port; ENet retries the connect meanwhile.
 		client.join("127.0.0.1", port)
+
+
+## Starts a local server that opens a lobby room, waits for its code and joins it like any
+## friend would: in player host everyone, the host too, uses WebRTC (one peer type per
+## MultiplayerAPI).
+func _host(client: GameClient) -> void:
+	var lobby := _lobby_url()
+	var room_file := OS.get_user_data_dir().path_join("host_room_%d.txt" % OS.get_process_id())
+	DirAccess.remove_absolute(room_file)
+	var server_args: PackedStringArray = ["--solo", "--lobby=" + lobby, "--room-file=" + room_file]
+	server_args.append_array(_debug_args())
+	_server_pid = _spawn_server(server_args)
+	var waited := 0.0
+	while waited < ROOM_TIMEOUT:
+		await get_tree().create_timer(0.2).timeout
+		waited += 0.2
+		var text := FileAccess.get_file_as_string(room_file).strip_edges()
+		if text.begins_with("!"):
+			_on_left("Could not open a room: " + text.substr(1))
+			return
+		if text != "":
+			DirAccess.remove_absolute(room_file)
+			print("Hosting room ", text)
+			client.join_room(lobby, text)
+			return
+	_on_left("The local server did not open a room")
+
+
+## Debug args a client passes on to the server it spawns.
+func _debug_args() -> PackedStringArray:
+	var passed := PackedStringArray()
+	for key: String in ["spawn", "encounter"]:
+		if _args.has(key):
+			passed.append("--%s=%s" % [key, _args[key]])
+	return passed
+
+
+func _lobby_url() -> String:
+	return _args.get("lobby", LobbyClient.DEFAULT_URL)
 
 
 func _on_left(reason: String) -> void:

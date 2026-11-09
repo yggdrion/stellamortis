@@ -12,12 +12,17 @@ const HINT := (
 
 var player: SimPlayer
 var encounter: Encounter
+## The lobby room code friends join with, "" when not hosting through the lobby.
+var room := ""
 var _health: ProgressBar
 var _stamina: ProgressBar
 var _dead: Label
 var _weapon: Label
 var _crosshair: Crosshair
 var _goal: Label
+var _room: Label
+var _notice: Label
+var _notice_left := 0.0
 var _boss_bar: ProgressBar
 
 
@@ -69,6 +74,23 @@ func _ready() -> void:
 	_boss_bar.custom_minimum_size.y = 16
 	top.add_child(_boss_bar)
 
+	_room = Label.new()
+	_room.add_theme_font_size_override("font_size", 15)
+	_room.modulate = Color(1, 1, 1, 0.8)
+	_room.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
+	_room.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_room.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	add_child(_room)
+	_notice = Label.new()
+	_notice.add_theme_font_size_override("font_size", 18)
+	_notice.set_anchors_and_offsets_preset(
+		Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_MINSIZE, 140
+	)
+	_notice.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_notice.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(_notice)
+
 	_dead = Label.new()
 	_dead.text = "You died"
 	_dead.add_theme_font_size_override("font_size", 56)
@@ -94,10 +116,19 @@ func _bar(color: Color, width: float) -> ProgressBar:
 	return bar
 
 
-func _process(_delta: float) -> void:
+## A line near the bottom for a few seconds.
+func notice(text: String) -> void:
+	_notice.text = text
+	_notice_left = 2.5
+
+
+func _process(delta: float) -> void:
 	visible = player != null
 	if player == null:
 		return
+	_notice_left = maxf(0.0, _notice_left - delta)
+	_notice.visible = _notice_left > 0.0
+	_room.text = "Room %s  (F2 copies it)" % room if room != "" else ""
 	var t := Tuning.data()
 	_health.max_value = t.max_health
 	_health.value = player.health

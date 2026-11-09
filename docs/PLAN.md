@@ -17,7 +17,7 @@ In:
 - Lock-on (toggle key).
 - 3 mobs with telegraphed attacks, then a boss with phases.
 - Death, respawn, encounter reset on wipe.
-- Up to 10 players. Solo, host-by-code (lobby) and dedicated all run the same server.
+- Up to 6 players (10 planned; netfox's server rollback holds 6, §8). Solo, host-by-code (lobby) and dedicated all run the same server.
 
 Out (for the PoC): inventory, loot, crafting, persistence, procedural world, building, telemetry, public dedicated hosting.
 
@@ -88,6 +88,7 @@ netfox does the netcode (decided 2026-11-09, replacing M0's own prediction code)
 - Our own RPCs (`Net`): hello with protocol version and name, reject, ping, server stats, the room code.
 - Hits (later milestones): player melee and projectiles go through netfox rollback and lag compensation, enemy attacks are resolved on the server, so i-frames, block and parry are checked there against the player's rolled back state. Details are worked out in M2/M3.
 - Testing latency: `tools/lag_proxy.py` delays every UDP packet (netfox's too), with optional jitter and loss.
+- Built in M7: every synced property has a netfox schema serializer (`net/wire.gd`: 32 bit floats and vectors, small ints, varuint tick counters, our own serializers for packed arrays), so no value falls back to netfox's Variant encoding; besides transform and velocity, the rolled back fields travel packed in groups (`SimPlayer.net_motion`, `net_combat`, `net_bolts`; `Enemy.net_combat`, `net_bolts`: properties with a getter and setter around `Wire.pack`/`unpack`), because netfox's cost grows with the number of synced properties. `tests/wire_test.gd` checks every property has a serializer, values round-trip and a full state fits 508 bytes. Servers started with `STELLAMORTIS_SERVER_STATS=1` print one line per second: players, tps, tick loop avg and max, ticks resimulated per loop (netfox `NetworkPerformance`, debug builds), kB/s per player out and in (ENet host statistics), and the rollback loop split into restore, simulate, record and send (`net/rollback_profile.gd`). The F3 overlay shows the server's kB/s per player. `tools/run_load_test.py [--players=6] [--seconds=40] [--lag=MS]` runs a server and that many bots and reports it all; `--bench=N` times N simulated players and the enemies without the network. Up to 6 players (`GameServer.MAX_PLAYERS`).
 
 ### 4.7 Lobby and player host
 
@@ -165,7 +166,7 @@ docs/        PLAN.md, RESOURCES.md
 | M4 | Lock-on | Toggle, target switch, strafe and roll relative to target, works on the asteroid | Done (2026-11-09), v0.5.0 |
 | M5 | Encounter | 3 mobs with telegraphed attacks, boss with phases and gravity well, death and respawn, wipe reset, HUD (health, stamina, boss bar) | Done (2026-11-09), v0.6.0 |
 | M6 | Lobby | `lobby/` (Bun, lobby protocol 1) and `deploy/lobby/` (lobby + coturn) in this repo; `net/lobby_client.gd` and the WebRTC transport; `--host` spawns the server with a lobby room, host and friends join by code via WebRTC (TURN relay when direct fails); `bun test` and a WebRTC run in `tools/check.py`; works against a local lobby + coturn compose | Done (2026-11-09), v0.7.0 |
-| M7 | 10 players | Headless bots fill a game to 10; server holds 30 tps; bandwidth per peer measured; state packets fit netfox's 508 byte limit again (since M3's bolt slots a player's state snapshot is 520–590 bytes and netfox warns it may be dropped) | Planned |
+| M7 | 6 players | Headless bots fill a game (`tools/run_load_test.py`); server holds 30 tps; bandwidth per player measured; state packets fit netfox's 508 byte limit (netfox schemas). Planned for 10 players; measured, netfox's server rollback holds 6 (§4.3, §8), and the cap is 6 by decision (2026-11-09) | Done (2026-11-09), v0.8.0 |
 | M8 | Lobby deploy | Run `deploy/lobby/` on the gvm host in place of the lobby + coturn stack there today: stop that stack, start ours on the same ports (3478, relay 49160-49259) and the Caddy route `lobby.r4b2.de` (gvm's Caddyfile: container alias `stellamortis-lobby` and comment), reuse or rotate `TURN_SECRET`; host and friends join by code from different networks, one through TURN. Touches the gvm host, so it needs a go-ahead before deploying | Planned |
 | M9 | Frame pacing | Settings to turn vsync off and, as an alternative, cap the frame rate (`Engine.max_fps`, e.g. 60/120/144/unlimited), saved with the graphics preset; F3 shows the cap. Later, not relevant for the PoC | Later |
 | M10 | Wooting analog | Analog movement from Wooting keyboards through the Wooting Analog SDK (GDExtension or a small native bridge): WASD depth becomes `PlayerControls.move` length, so walk speed follows key pressure; digital keys stay the fallback when no Wooting device or SDK is present. Later, not relevant for the PoC | Later |
@@ -190,9 +191,11 @@ Network and performance:
 
 - In player host the host's own server is a child process of the host's client: when the host quits, the game ends for everyone in the room. Host migration is out of scope; confirm that this is fine.
 
-- netfox warns that state snapshots exceed its 508 byte packet limit (`Buffer of 520–590 bytes ... may be dropped`) since M3's player bolt slots; M5 adds enemy bolt slots (the Warden has 10). Planned for M7: shrink or split the state.
-- Server tick loop with one local headless bot: about 5 ms at M4 and 7–9 ms at M5 (rollback resimulates walking enemies with `move_and_slide`; both processes on one machine). The 1.6 ms noted at M2 came from a smaller setup. Watch in M7 with 10 players.
-- Snapshots as packed `PackedByteArray`s (§3.1) were replaced by netfox's own serialization; revisit only if bandwidth in M7 asks for it.
+- Fixed in M7: state packets fit netfox's 508 byte limit again (`net/wire.gd` schemas).
+- The game holds 6 players (`GameServer.MAX_PLAYERS`, a 7th is told the game is full), not the 10 of the brainstorm. At 6 the server core is saturated (tick loops of 50–90 ms that run two ticks at once, 30 tps on average, worst seconds 21–25); at 8 it fell to 13 tps, at 10 to about 2, for good. Simulation is cheap (`--bench`: 2.8 ms per tick with 10 players and all enemies); the cost is netfox's server-side rollback in GDScript: late input from any player (2–5 ticks late, even on localhost) makes it resimulate those ticks, and for every resimulated tick it records the whole state and diffs and serializes every node for every peer (16 ms per tick at 6 players). Ways to 10 players, not taken for now: patch netfox's state sync to serialize each node once per tick and add only the per-peer node id (netfox writes per-peer ids, so it is a real patch, maybe an upstream PR); fewer ticks (20 Hz, coarser rolls and parries); or no server-side rollback for late input (a netcode redesign, less fair dodges under lag). An attempt to only send the newest of the resimulated ticks broke remote players: the server simulates a player only for ticks it has that player's input for, so the resent older ticks are what carry other players' movement.
+- Bandwidth at 6 players: about 30–40 kB/s from the server to each player and 2–3 kB/s back (ENet, measured by the server); a host's upload is about 6 × that. Packing the state into groups (`net_motion`, `net_combat`, `net_bolts`) cut netfox's per-property work but sends a whole group when one field in it changes (`action_time` changes every tick), so bandwidth rose from about 23 to 35 kB/s per player at 4 players. Fine for the PoC; split the groups by how often they change if bandwidth matters.
+- The load test is not part of `tools/check.py` (7 Godot processes, a minute): run `python tools/run_load_test.py` after netcode or state changes.
+- Snapshots are netfox's own serialization with our schemas (`net/wire.gd`), not hand-packed `PackedByteArray`s as §3.1 planned.
 
 Design decisions to confirm:
 
@@ -216,4 +219,4 @@ Planned in §3.1 and not built yet:
 - Sound: there is no audio at all (the plan mentions telegraph sounds).
 - Shader baker for exports and a check that ubershaders avoid hitches in the release builds.
 
-Later milestones not started: M7 10 players, M8 lobby deploy (needs a go-ahead, touches gvm), M9 frame pacing, M10 Wooting analog.
+Later milestones not started: M8 lobby deploy (needs a go-ahead, touches gvm), M9 frame pacing, M10 Wooting analog.

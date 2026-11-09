@@ -41,7 +41,7 @@ Rule: use the newest Godot 4.7 features where they improve looks or speed, and c
 Rendering (client):
 
 - Forward+ on Vulkan (Linux) and Direct3D 12 (Windows default since 4.6).
-- HDR output (new in 4.7) as a setting, on where the display supports it; AgX tonemapping; glow blended before tonemapping (4.6).
+- AgX tonemapping; glow blended before tonemapping (4.6). HDR output (new in 4.7) is left out for now (2026-11-09).
 - Lighting: one directional sun with tuned shadow cascades; LightmapGI baked for the static arena with SSAO and SSIL on top; SDFGI only in the Ultra preset. `AreaLight3D` (new in 4.7) for panel and window lights on structures.
 - Atmosphere: volumetric fog per planet zone, sky shader with stars and the planet in view; SSR (rewritten in 4.6, half resolution mode) for wet and metal surfaces.
 - Effects: `GPUParticles3D` with collision for bolts, hits and dust; decals for impacts; compositor effects for screen-space distortion of the boss gravity well; stencil buffer for the lock-on target outline and players seen through walls.
@@ -49,7 +49,7 @@ Rendering (client):
 - No hitches: ubershaders and pipeline precompilation are on, and the shader baker bakes shaders into the export.
 - Scene cost: occlusion culling, automatic mesh LOD, visibility ranges for distant props, `MultiMeshInstance3D` for rocks and debris.
 - Animation: `AnimationTree` with blend spaces, foot IK (the 4.6 IK modifiers) so feet sit on slopes and on the asteroid. Animations are visual only: no root motion, movement comes from the sim.
-- Graphics presets Low, Medium, High, Ultra, plus resolution scale and the HDR toggle.
+- Graphics presets Low, Medium, High, Ultra, plus resolution scale.
 
 Server and network:
 

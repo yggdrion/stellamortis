@@ -17,7 +17,7 @@ const KEYS := {
 	&"weapon_1": [KEY_1],
 	&"weapon_2": [KEY_2],
 	&"toggle_fullscreen": [KEY_F11],
-	&"release_mouse": [KEY_ESCAPE],
+	&"pause": [KEY_ESCAPE],
 }
 const MOUSE := {
 	&"attack": [MOUSE_BUTTON_LEFT],

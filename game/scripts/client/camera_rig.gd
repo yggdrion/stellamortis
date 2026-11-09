@@ -44,8 +44,10 @@ func _ready() -> void:
 
 
 func look(relative: Vector2) -> void:
-	yaw = fposmod(yaw - relative.x * Controls.MOUSE_SENSITIVITY, TAU)
-	pitch = clampf(pitch - relative.y * Controls.MOUSE_SENSITIVITY, PITCH_MIN, PITCH_MAX)
+	yaw = fposmod(yaw - relative.x * Controls.MOUSE_SENSITIVITY * Settings.sensitivity, TAU)
+	pitch = clampf(
+		pitch - relative.y * Controls.MOUSE_SENSITIVITY * Settings.sensitivity, PITCH_MIN, PITCH_MAX
+	)
 
 
 func _process(delta: float) -> void:

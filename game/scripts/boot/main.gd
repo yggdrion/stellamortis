@@ -13,22 +13,31 @@ extends Node
 ##   --bot [--expect=N]             headless test client (see GameClient._check_bot)
 ##     [--bot-plan=shoot]           shoot: fire the crossbow where --look points
 ##     [--duration=SECS]
-##   --name=NAME                    player name
-##   --windowed                     start in a window instead of fullscreen
+##   --solo                         solo: spawns a local --solo server and joins it
+##   --name=NAME                    player name (instead of the saved one)
+##   --windowed                     start in a window instead of fullscreen (or the saved mode)
 ##   --screenshot=PATH              save a PNG of the screen after a few seconds, then quit
 ##     [--delay=SECONDS]            how long to wait first (default 4)
 ##     [--frames=N]                 take N, 50 ms apart (PATH_0.png, PATH_1.png, ...)
 ##   --graphics=low|medium|high|ultra   graphics preset for this run (not saved)
 ##   --look=YAW,PITCH               start the camera there (degrees, yaw 0 looks along -Z)
 ##   --bench=N                      time N simulated players and the enemies per tick, then quit
-##   (none)                         solo: spawns a local --solo server and joins it
+##   (none of the above)            the main menu (MainMenu); --spawn, --encounter, --look and
+##                                  --screenshot without a role mean solo, as before M11
 
 const DEFAULT_PORT := 17777
 ## Seconds the host waits for its server to open a room.
 const ROOM_TIMEOUT := 20.0
 
+## Flags that start a game right away instead of the menu.
+const DIRECT := [
+	"connect", "join", "host", "bot", "solo", "screenshot", "spawn", "encounter", "look"
+]
+
 var _args := {}
 var _server_pid := 0
+var _client: GameClient
+var _menu: MainMenu
 
 @onready var _net: Net = $Net
 
@@ -54,39 +63,72 @@ func _ready() -> void:
 		server.start(int(_args.get("port", DEFAULT_PORT)))
 		return
 	Controls.setup()
+	Settings.load_saved()
+	Graphics.load_saved()
 	if not _args.has("windowed") and not _args.has("bot") and not OS.is_debug_build():
-		get_window().mode = Window.MODE_FULLSCREEN
+		Settings.apply_window(get_window())
+	for flag: String in DIRECT:
+		if _args.has(flag):
+			_start(_direct_mode())
+			return
+	_show_menu("")
+
+
+## The mode the command line asks for.
+func _direct_mode() -> String:
+	for mode: String in ["connect", "join", "host"]:
+		if _args.has(mode):
+			return mode
+	return "solo"
+
+
+func _show_menu(message: String) -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_menu = MainMenu.new()
+	_menu.message = message
+	_menu.chosen.connect(_start)
+	add_child(_menu)
+
+
+## Starts a game: "solo", "host", "join" (code from the menu or --join) or "connect".
+func _start(mode: String, code := "") -> void:
+	if _menu:
+		_menu.queue_free()
+		_menu = null
 	var client := GameClient.new()
 	client.net = _net
 	client.bot = _args.has("bot")
 	client.bot_expect = int(_args.get("expect", "1"))
 	client.bot_duration = float(_args.get("duration", "5"))
 	client.bot_plan = _args.get("bot-plan", "")
-	client.player_name = _args.get("name", "player")
+	client.player_name = _args.get("name", Settings.player_name)
 	client.screenshot_path = _args.get("screenshot", "")
 	client.screenshot_delay = float(_args.get("delay", "4"))
 	client.screenshot_frames = int(_args.get("frames", "1"))
 	client.graphics = _args.get("graphics", "")
 	client.relay_only = _args.has("relay-only")
+	client.hosting = mode == "host"
 	if _args.has("look"):
 		var parts := (_args["look"] as String).split(",")
 		client.look = Vector2(float(parts[0]), float(parts[1]) if parts.size() > 1 else -15.0)
 	client.left.connect(_on_left)
+	_client = client
 	add_child(client)
-	if _args.has("connect"):
-		var parts: PackedStringArray = (_args["connect"] as String).rsplit(":", true, 1)
-		client.join(parts[0], int(parts[1]) if parts.size() > 1 else DEFAULT_PORT)
-	elif _args.has("join"):
-		client.join_room(_lobby_url(), _args["join"])
-	elif _args.has("host"):
-		_host(client)
-	else:
-		var port := _free_port()
-		var server_args: PackedStringArray = ["--solo", "--port=%d" % port]
-		server_args.append_array(_debug_args())
-		_server_pid = _spawn_server(server_args)
-		# The server needs a moment to open its port; ENet retries the connect meanwhile.
-		client.join("127.0.0.1", port)
+	match mode:
+		"connect":
+			var parts: PackedStringArray = (_args["connect"] as String).rsplit(":", true, 1)
+			client.join(parts[0], int(parts[1]) if parts.size() > 1 else DEFAULT_PORT)
+		"join":
+			client.join_room(_lobby_url(), code if code != "" else _args["join"])
+		"host":
+			_host(client)
+		_:
+			var port := _free_port()
+			var server_args: PackedStringArray = ["--solo", "--port=%d" % port]
+			server_args.append_array(_debug_args())
+			_server_pid = _spawn_server(server_args)
+			# The server needs a moment to open its port; ENet retries the connect meanwhile.
+			client.join("127.0.0.1", port)
 
 
 ## Starts a local server that opens a lobby room, waits for its code and joins it like any
@@ -103,6 +145,9 @@ func _host(client: GameClient) -> void:
 	while waited < ROOM_TIMEOUT:
 		await get_tree().create_timer(0.2).timeout
 		waited += 0.2
+		# Left to the menu meanwhile.
+		if client != _client:
+			return
 		var text := FileAccess.get_file_as_string(room_file).strip_edges()
 		if text.begins_with("!"):
 			_on_left("Could not open a room: " + text.substr(1))
@@ -128,20 +173,45 @@ func _lobby_url() -> String:
 	return _args.get("lobby", LobbyClient.DEFAULT_URL)
 
 
+## The game ended: bots quit (exit 2 on failure), players go back to the menu with the
+## reason ("" when they left themselves).
 func _on_left(reason: String) -> void:
 	print("Left the game: ", reason)
-	get_tree().quit(2 if _args.has("bot") else 0)
+	if _args.has("bot"):
+		get_tree().quit(2)
+		return
+	_back_to_menu.call_deferred(reason)
+
+
+func _back_to_menu(reason: String) -> void:
+	if _client == null:
+		return
+	var client := _client
+	_client = null
+	await client.leave()
+	NetworkTime.stop()
+	remove_child(client)
+	client.free()
+	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+	_stop_server()
+	_show_menu(reason)
+
+
+func _stop_server() -> void:
+	if _server_pid > 0:
+		OS.kill(_server_pid)
+		_server_pid = 0
 
 
 func _exit_tree() -> void:
-	if _server_pid > 0:
-		OS.kill(_server_pid)
+	_stop_server()
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"toggle_fullscreen"):
-		var full := get_window().mode == Window.MODE_FULLSCREEN
-		get_window().mode = Window.MODE_WINDOWED if full else Window.MODE_FULLSCREEN
+		Settings.fullscreen = get_window().mode != Window.MODE_FULLSCREEN
+		Settings.apply_window(get_window())
+		Settings.save()
 
 
 ## "--key=value" → {key: value}, "--flag" → {flag: ""}.

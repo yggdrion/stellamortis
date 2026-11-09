@@ -8,7 +8,8 @@ extends CanvasLayer
 const HINT := (
 	"Blade: LMB attack   Q heavy   RMB shield (just before a hit: parry)\n"
 	+ "Revolver: RMB aim   hold LMB to charge, release to fire\n"
-	+ "1 / 2 / wheel weapon   Ctrl / C roll   Shift sprint   Space jump   F3 debug   F4 graphics"
+	+ "1 / 2 / wheel weapon   Ctrl / C roll   Shift sprint   Space jump\n"
+	+ "Esc menu   F3 debug   F4 graphics"
 )
 const FONT := "res://assets/fonts/Rajdhani-SemiBold.ttf"
 const TEXT := Color(0.78, 0.84, 0.88)

@@ -40,6 +40,9 @@ var room := ""
 var lobby: LobbyClient
 ## Debug: only relay ICE candidates (LobbyClient.relay_only).
 var relay_only := false
+## This client opened the room it joins (--host or Host in the menu): when the server goes, it
+## is not "the host left".
+var hosting := false
 
 var _world: World
 var _rig: CameraRig
@@ -47,6 +50,7 @@ var _rig: CameraRig
 var _leaving := false
 var _overlay: DebugOverlay
 var _hud: Hud
+var _pause: PauseMenu
 var _started_ms := 0
 ## The weapon picked with 1, 2 or the wheel (SimPlayer.Weapon).
 var _wanted_weapon := 0
@@ -74,6 +78,11 @@ func _ready() -> void:
 	_overlay = DebugOverlay.new()
 	_overlay.client = self
 	add_child(_overlay)
+	_pause = PauseMenu.new()
+	_pause.on_graphics = func() -> void: Graphics.apply(get_viewport(), _world.arena)
+	_pause.resumed.connect(_resume)
+	_pause.left_game.connect(_leave_to_menu)
+	add_child(_pause)
 	net.rejected.connect(func(reason: String) -> void: left.emit(reason))
 	net.room_received.connect(func(code: String) -> void: room = code)
 	net.ponged.connect(func(sent: int) -> void: ping_ms = Time.get_ticks_msec() - sent)
@@ -131,7 +140,7 @@ func _watch_connection() -> void:
 	multiplayer.server_disconnected.connect(
 		func() -> void:
 			if not _leaving:
-				left.emit("The server closed")
+				left.emit("The host left" if lobby and not hosting else "The server closed")
 	)
 
 
@@ -151,6 +160,31 @@ func leave() -> void:
 	await get_tree().create_timer(0.3).timeout
 
 
+## Pause menu: back into the game.
+func _resume() -> void:
+	_pause.visible = false
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+## Pause menu: disconnects and hands back to the main menu (an empty reason).
+func _leave_to_menu() -> void:
+	await leave()
+	left.emit("")
+
+
+## Signals of the persistent Net node and the MultiplayerAPI still point at this client's
+## lambdas; drop them, so a later game doesn't call into a freed one.
+func _exit_tree() -> void:
+	for source: Object in [net, multiplayer]:
+		if source == null:
+			continue
+		for info in source.get_signal_list():
+			for connection in source.get_signal_connection_list(info.name):
+				var callable: Callable = connection.callable
+				if callable.get_object() == self:
+					source.disconnect(info.name, callable)
+
+
 func player_count() -> int:
 	return _world.players.get_child_count()
 
@@ -167,7 +201,7 @@ func _on_player_spawned(player: SimPlayer) -> void:
 	if look is Vector2:
 		_rig.yaw = deg_to_rad((look as Vector2).x)
 		_rig.pitch = deg_to_rad((look as Vector2).y)
-	if not bot:
+	if not bot and not _pause.visible:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
@@ -268,8 +302,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	var motion := event as InputEventMouseMotion
 	if motion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_rig.look(motion.screen_relative)
-	elif event.is_action_pressed(&"release_mouse"):
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	elif event.is_action_pressed(&"pause"):
+		if _pause.visible:
+			_pause.back()
+		else:
+			_pause.open()
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	elif _pause.visible:
+		return
 	elif event is InputEventMouseButton and event.is_pressed() and me != null:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	elif event.is_action_pressed(&"weapon_1"):

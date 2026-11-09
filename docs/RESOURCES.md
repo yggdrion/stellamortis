@@ -11,6 +11,8 @@ Art and other third-party content in the game, with source, license and what the
 | ambientCG materials | `game/assets/ambientcg/` (Ground020, PavingStones049, Rock030, Rock035; 1K JPG: color, normal GL, roughness and AO where present) | [ambientcg.com](https://ambientcg.com) | CC0 1.0 (`LICENSE.txt`) | Credit optional. |
 | Cinzel (Natanael Gama) | `game/assets/fonts/Cinzel.ttf` (variable weight) | [google/fonts](https://github.com/google/fonts/tree/main/ofl/cinzel) at `3dd7884` | SIL OFL 1.1 (`Cinzel-OFL.txt`) | The OFL allows bundling; the font may not be sold on its own. |
 | Alegreya (Huerta Tipográfica) | `game/assets/fonts/Alegreya.ttf` (variable weight) | [google/fonts](https://github.com/google/fonts/tree/main/ofl/alegreya) at `3dd7884` | SIL OFL 1.1 (`Alegreya-OFL.txt`) | As above. |
+| Discord Rich Presence for Godot (SlayHorizon) | `game/addons/discord_rich_presence/` (one GDScript file, committed) | [GitHub](https://github.com/SlayHorizon/discord-rich-presence-godot) at `a4c30b4` | MIT (`LICENSE` beside the file) | Patched: also bridges the unix socket through `socat` (marked "Stellamortis patch"). |
+| Stellamortis logo | `game/assets/logo/` (SVG and a 1024 px PNG) | Drawn for this project (M13) | Ours | Game icon and Discord art. |
 | netfox | `game/addons/netfox*` (downloaded, not committed) | [GitHub](https://github.com/foxssake/netfox) at `cf5189d` | MIT | Installed by `tools/install.py`. |
 
 Until M9 the game used KayKit Adventurers and Skeletons (CC0, Kay Lousberg). M9's sci-fi look used the Quaternius Sci-Fi Essentials Kit (robots, revolver), the ambientCG sets DiamondPlate008C, MetalPlates006 and MetalPlates013 and the Rajdhani font; M12 removed them with the switch to medieval fantasy (PLAN §3.2).

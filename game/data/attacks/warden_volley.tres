@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AttackDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/attack_def.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+windup = 1.1
+active = 0.1
+recover = 0.8
+damage = 16.0
+stamina = 0.0
+reach = 0.0
+arc_degrees = 0.0
+lunge = 0.0
+parryable = false
+bolts = 5
+spread_degrees = 50.0
+bolt_speed = 15.0
+animation = &"Spellcast_Shoot"

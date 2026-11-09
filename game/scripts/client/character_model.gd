@@ -17,9 +17,9 @@ var _flash_left := 0.0
 var _looping: StringName = &""
 
 
-func _init(scene_path: String, held: Dictionary) -> void:
+func _init(scene_path: String, held: Dictionary, size := 1.0) -> void:
 	var model := (load(scene_path) as PackedScene).instantiate() as Node3D
-	model.scale = Vector3.ONE * SCALE
+	model.scale = Vector3.ONE * SCALE * size
 	model.rotation.y = PI
 	add_child(model)
 	animation = model.find_children("*", "AnimationPlayer", true, false)[0]

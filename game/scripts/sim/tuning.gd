@@ -60,6 +60,9 @@ static var _data: Tuning
 ## Walk speed while aiming or drawing.
 @export var aim_speed := 3.0
 
+## Seconds of a gravity well's pull that become drift toward it (PLAN §4.6).
+@export var well_drag := 0.4
+
 @export_group("Lock-on")
 ## Enemies this close can be locked.
 @export var lock_range := 22.0

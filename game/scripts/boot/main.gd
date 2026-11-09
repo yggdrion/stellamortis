@@ -2,6 +2,7 @@ extends Node
 ## Entry point. Picks the role from the user args (after `--`):
 ##   --server --port=N [--solo]     headless game server; --solo: exits with its player
 ##     [--spawn=X,Y,Z]              debug: spawn players there (a solo client passes it on)
+##     [--encounter=boss]           debug: start with the mobs dead (a solo client passes it on)
 ##   --connect=host:port            client joining a running server over ENet
 ##   --bot [--expect=N]             headless test client (see GameClient._check_bot)
 ##     [--bot-plan=shoot|lock]      shoot: fire the crossbow where --look points;
@@ -33,6 +34,7 @@ func _ready() -> void:
 		if _args.has("spawn"):
 			var p := (_args["spawn"] as String).split(",")
 			server.spawn_at = Vector3(float(p[0]), float(p[1]), float(p[2]))
+		server.skip_to_boss = _args.get("encounter", "") == "boss"
 		add_child(server)
 		server.start(int(_args.get("port", DEFAULT_PORT)))
 		return
@@ -63,6 +65,8 @@ func _ready() -> void:
 		var server_args: PackedStringArray = ["--solo", "--port=%d" % port]
 		if _args.has("spawn"):
 			server_args.append("--spawn=" + _args["spawn"])
+		if _args.has("encounter"):
+			server_args.append("--encounter=" + _args["encounter"])
 		_server_pid = _spawn_server(server_args)
 		# The server needs a moment to open its port; ENet retries the connect meanwhile.
 		client.join("127.0.0.1", port)

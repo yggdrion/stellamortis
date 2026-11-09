@@ -40,6 +40,13 @@ Two training dummies stand north of the spawn: the left one only takes hits, the
 at you every few seconds. Its windup glows orange and draws its reach on the ground: roll through
 it, block it, or parry it for a stagger and a riposte that hits 2.5 times as hard.
 
+The encounter waits south of the spawn, in front of the long wall: two skeletons with axes and
+one with a crossbow. Kill all three and the Warden rises: a big skeleton with a wide sweep (roll
+through it), a slam that hits the ground in front of it (roll out of the circle) and a fan of
+bolts (block or strafe). Below half health it gets faster and opens a gravity well that drags
+you in; sprint or roll out. If everyone dies at once the encounter resets; 20 s after the Warden
+falls it starts over. `--encounter=boss` starts with the mobs dead.
+
 The low gravity zone (blue, east of the spawn) has a jump pad: stand on it and press Space to fly
 up to the asteroid, walk all the way around it, and use the pad on its underside to come back.
 The red zone to the west has high gravity.

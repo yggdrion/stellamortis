@@ -1,6 +1,7 @@
 class_name Hud
 extends CanvasLayer
-## Health and stamina bars, the death notice and a controls hint (PLAN §4.5).
+## Health and stamina bars, the death notice, a controls hint (PLAN §4.5), and on top the
+## encounter: mobs left, the Warden's bar, the victory notice (PLAN §4.6).
 
 const HINT := (
 	"Sword: LMB attack   Q heavy   RMB block (just before a hit: parry)\n"
@@ -10,11 +11,14 @@ const HINT := (
 )
 
 var player: SimPlayer
+var encounter: Encounter
 var _health: ProgressBar
 var _stamina: ProgressBar
 var _dead: Label
 var _weapon: Label
 var _crosshair: Crosshair
+var _goal: Label
+var _boss_bar: ProgressBar
 
 
 func _ready() -> void:
@@ -49,6 +53,21 @@ func _ready() -> void:
 	_crosshair = Crosshair.new()
 	_crosshair.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	add_child(_crosshair)
+
+	var top := VBoxContainer.new()
+	top.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_MINSIZE, 20)
+	top.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	top.alignment = BoxContainer.ALIGNMENT_CENTER
+	add_child(top)
+	_goal = Label.new()
+	_goal.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_goal.add_theme_font_size_override("font_size", 20)
+	_goal.add_theme_constant_override("outline_size", 6)
+	_goal.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	top.add_child(_goal)
+	_boss_bar = _bar(Color(0.62, 0.2, 0.9), 560)
+	_boss_bar.custom_minimum_size.y = 16
+	top.add_child(_boss_bar)
 
 	_dead = Label.new()
 	_dead.text = "You died"
@@ -92,6 +111,28 @@ func _process(_delta: float) -> void:
 	if player.action == SimPlayer.Action.DRAW:
 		draw = clampf(float(player.action_time) / Combat.ticks(t.draw_time), 0.0, 1.0)
 	_crosshair.charge = draw
+	_show_encounter()
+
+
+func _show_encounter() -> void:
+	_boss_bar.visible = false
+	if encounter == null:
+		_goal.text = ""
+		return
+	match encounter.phase:
+		Encounter.Phase.MOBS:
+			var left := encounter.mobs_left()
+			_goal.text = "Skeletons to the south: %d of %d left" % [left, encounter.mobs.size()]
+		Encounter.Phase.BOSS:
+			var boss := encounter.boss
+			var phase := "  (enraged)" if boss.phase_2() else ""
+			_goal.text = "The Warden" + phase
+			_boss_bar.visible = true
+			_boss_bar.max_value = boss.max_health
+			_boss_bar.value = boss.health
+		Encounter.Phase.CLEARED:
+			var seconds := Encounter.RESTART_AFTER - encounter.phase_time / 30.0
+			_goal.text = "The Warden has fallen. The arena wakes again in %d s" % ceili(seconds)
 
 
 ## A dot with a ring that fills while the crossbow is drawn.

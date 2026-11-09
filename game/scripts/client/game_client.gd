@@ -134,6 +134,7 @@ func _on_player_spawned(player: SimPlayer) -> void:
 		return
 	me = player
 	_hud.player = me
+	_hud.encounter = _world.encounter
 	me.controls.reader = _bot_controls if bot else _read_controls
 	_rig.target = me
 	if look is Vector2:

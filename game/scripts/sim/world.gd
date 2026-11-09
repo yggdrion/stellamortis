@@ -8,7 +8,9 @@ signal player_spawned(player: SimPlayer)
 var visual := false
 var arena: Arena
 var players: Node3D
+var encounter: Encounter
 var _spawner: MultiplayerSpawner
+var _enemies: Node3D
 
 
 func _init(with_visuals: bool) -> void:
@@ -27,14 +29,15 @@ func _ready() -> void:
 	_spawner.spawn_path = NodePath("../Players")
 	_spawner.spawn_function = _spawn_player
 	add_child(_spawner)
+	_enemies = Node3D.new()
+	_enemies.name = "Enemies"
+	add_child(_enemies)
 	_add_dummies()
+	_add_encounter()
 
 
 ## The same dummies, same names and order, on every peer (netfox finds them by path).
 func _add_dummies() -> void:
-	var enemies := Node3D.new()
-	enemies.name = "Enemies"
-	add_child(enemies)
 	for i in Layout.DUMMIES.size():
 		var dummy := TrainingDummy.new()
 		dummy.name = "Dummy%d" % i
@@ -46,7 +49,41 @@ func _add_dummies() -> void:
 		dummy.basis = SimPlayer.frame(Vector3.UP, dummy.facing)
 		if visual:
 			dummy.add_child(EnemyView.new(dummy))
-		enemies.add_child(dummy)
+		_enemies.add_child(dummy)
+
+
+## The mobs and the Warden (hidden until the mobs are dead), indices after the dummies.
+func _add_encounter() -> void:
+	encounter = Encounter.new()
+	var next := Layout.DUMMIES.size()
+	for i in Layout.MOBS.size():
+		var mob := Mob.new()
+		mob.name = "Mob%d" % i
+		if Layout.MOBS[i][1]:
+			mob.make_ranged()
+		else:
+			mob.make_melee()
+		_add_enemy(mob, next + i, Layout.MOBS[i][0], Enemy.Action.IDLE)
+		encounter.mobs.append(mob)
+	var boss := Warden.new()
+	boss.name = "Warden"
+	_add_enemy(boss, next + Layout.MOBS.size(), Layout.BOSS, Enemy.Action.HIDDEN)
+	encounter.boss = boss
+	encounter.networked()
+	add_child(encounter)
+
+
+func _add_enemy(enemy: Enemy, index: int, at: Vector3, start: Enemy.Action) -> void:
+	enemy.index = index
+	enemy.home = Transform3D(SimPlayer.frame(Vector3.UP, Vector3.FORWARD), at)
+	var state := Enemy.STATE + Enemy.ACTOR_STATE
+	if enemy is Warden:
+		state += Warden.EXTRA_STATE
+	enemy.networked(state)
+	if visual:
+		enemy.add_child(EnemyView.new(enemy))
+	_enemies.add_child(enemy)
+	enemy.reset(start)
 
 
 ## Server only: spawns a player on every peer.

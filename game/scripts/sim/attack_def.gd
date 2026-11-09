@@ -18,8 +18,20 @@ extends Resource
 @export var parryable := true
 ## Next attack in the combo when attack is pressed again during recover; empty ends it.
 @export var next: StringName = &""
+## Enemies: where the hit area is centered, metres ahead of the attacker's center (a slam lands
+## in front of the boss), and how many bolts the strike fires instead of hitting (0: melee).
+@export var offset := 0.0
+@export var bolts := 0
+## Bolts: fan width in degrees and speed in m/s.
+@export var spread_degrees := 0.0
+@export var bolt_speed := 16.0
 ## Animation in the KayKit rig, stretched to windup + active + recover.
 @export var animation: StringName = &"1H_Melee_Attack_Slice_Diagonal"
+
+
+## Hits in an area (reach and arc) during its active window.
+func melee() -> bool:
+	return bolts == 0 and reach > 0.0
 
 
 func windup_ticks() -> int:

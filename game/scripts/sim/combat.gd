@@ -91,10 +91,10 @@ static func enemy_on_segment(from_node: Node, from: Vector3, to: Vector3) -> Ene
 		var enemy := node as Enemy
 		if not enemy.alive():
 			continue
-		var foot := enemy.global_position + enemy.up() * Enemy.RADIUS
-		var head := enemy.global_position + enemy.up() * (Enemy.HEIGHT - Enemy.RADIUS)
+		var foot := enemy.global_position + enemy.up() * enemy.radius
+		var head := enemy.global_position + enemy.up() * (enemy.height - enemy.radius)
 		var closest := Geometry3D.get_closest_points_between_segments(from, to, foot, head)
-		if closest[0].distance_to(closest[1]) > Enemy.RADIUS:
+		if closest[0].distance_to(closest[1]) > enemy.radius:
 			continue
 		var distance := from.distance_to(closest[0])
 		if distance < best_distance:

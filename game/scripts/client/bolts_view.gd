@@ -1,22 +1,28 @@
 class_name BoltsView
 extends Node3D
-## A player's bolts in flight (PLAN §4.5): glowing plasma darts with a particle trail, drawn
-## from the player's bolt state and moved on between ticks along their velocity, with a burst
-## where one ends.
+## Bolts in flight (PLAN §4.5), a player's or an enemy's: glowing plasma darts with a particle
+## trail, drawn from the shooter's bolt state (bolt_pos, bolt_vel, bolt_life) and moved on
+## between ticks along their velocity, with a burst where one ends.
 
-var player: SimPlayer
+const PLAYER_COLOR := Color(0.2, 0.9, 1.0)
+const ENEMY_COLOR := Color(1.0, 0.3, 0.9)
+
+## A SimPlayer or an Enemy: anything with the three bolt arrays.
+var shooter: Node3D
+var color := PLAYER_COLOR
 var _darts: Array[Node3D] = []
 var _was_flying := PackedInt32Array()
 
 
-func _init(of: SimPlayer) -> void:
-	player = of
+func _init(of: Node3D, tint := PLAYER_COLOR) -> void:
+	shooter = of
+	color = tint
 	name = "Bolts"
 	top_level = true
 
 
 func _ready() -> void:
-	for i in SimPlayer.MAX_BOLTS:
+	for i in (shooter.get("bolt_life") as PackedInt32Array).size():
 		_darts.append(_make_dart())
 		_was_flying.append(0)
 
@@ -30,9 +36,9 @@ func _make_dart() -> Node3D:
 	capsule.height = 1.1
 	var glow := StandardMaterial3D.new()
 	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	glow.albedo_color = Color(0.6, 1.0, 1.0)
+	glow.albedo_color = color.lightened(0.5)
 	glow.emission_enabled = true
-	glow.emission = Color(0.2, 0.9, 1.0)
+	glow.emission = color
 	glow.emission_energy_multiplier = 6.0
 	capsule.material = glow
 	core.mesh = capsule
@@ -52,8 +58,8 @@ func _make_dart() -> Node3D:
 	process.scale_min = 0.6
 	process.scale_max = 1.0
 	var fade := Gradient.new()
-	fade.set_color(0, Color(0.4, 1.0, 1.0, 0.9))
-	fade.set_color(1, Color(0.1, 0.4, 1.0, 0.0))
+	fade.set_color(0, Color(color.lightened(0.3), 0.9))
+	fade.set_color(1, Color(color.darkened(0.5), 0.0))
 	var ramp := GradientTexture1D.new()
 	ramp.gradient = fade
 	process.color_ramp = ramp
@@ -66,7 +72,7 @@ func _make_dart() -> Node3D:
 	mote.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mote.vertex_color_use_as_albedo = true
 	mote.emission_enabled = true
-	mote.emission = Color(0.2, 0.8, 1.0)
+	mote.emission = color
 	mote.emission_energy_multiplier = 3.0
 	quad.material = mote
 	trail.draw_pass_1 = quad
@@ -77,19 +83,22 @@ func _make_dart() -> Node3D:
 
 func _process(_delta: float) -> void:
 	var ahead := NetworkTime.tick_factor * NetworkTime.ticktime
-	for i in SimPlayer.MAX_BOLTS:
+	var life: PackedInt32Array = shooter.get("bolt_life")
+	var positions: PackedVector3Array = shooter.get("bolt_pos")
+	var velocities: PackedVector3Array = shooter.get("bolt_vel")
+	for i in _darts.size():
 		var dart := _darts[i]
-		var flying := player.bolt_life[i] > 0
+		var flying := life[i] > 0
 		if flying:
-			var velocity := player.bolt_vel[i]
-			var at := player.bolt_pos[i] + velocity * ahead
+			var velocity := velocities[i]
+			var at := positions[i] + velocity * ahead
 			var axis_up := Vector3.UP if absf(velocity.normalized().y) < 0.99 else Vector3.RIGHT
 			dart.global_transform = Transform3D(Basis.looking_at(velocity, axis_up), at)
 		elif _was_flying[i] > 0:
-			_burst(player.bolt_pos[i])
+			_burst(positions[i])
 		dart.visible = flying
 		(dart.get_node("Trail") as GPUParticles3D).emitting = flying
-		_was_flying[i] = player.bolt_life[i]
+		_was_flying[i] = life[i]
 
 
 func _burst(at: Vector3) -> void:
@@ -110,9 +119,9 @@ func _burst(at: Vector3) -> void:
 	var mote := StandardMaterial3D.new()
 	mote.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mote.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	mote.albedo_color = Color(0.5, 1.0, 1.0)
+	mote.albedo_color = color.lightened(0.5)
 	mote.emission_enabled = true
-	mote.emission = Color(0.3, 0.9, 1.0)
+	mote.emission = color
 	mote.emission_energy_multiplier = 5.0
 	quad.material = mote
 	sparks.draw_pass_1 = quad

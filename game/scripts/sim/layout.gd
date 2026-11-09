@@ -23,6 +23,14 @@ const RETURN_PAD_SPEED := 17.0
 
 ## Training dummies: position and whether it only takes hits (true) or also swings back.
 const DUMMIES := [[Vector3(-4.0, 0.0, -10.0), true], [Vector3(4.0, 0.0, -10.0), false]]
+## The encounter, south of the spawn in front of the long wall: melee mobs, the ranged mob
+## (true), and where the Warden rises. All face north, toward the spawn.
+const MOBS := [
+	[Vector3(-6.0, 0.0, 24.0), false],
+	[Vector3(6.0, 0.0, 24.0), false],
+	[Vector3(0.0, 0.0, 33.0), true]
+]
+const BOSS := Vector3(0.0, 0.0, 30.0)
 const SPAWN_RADIUS := 3.0
 const MAX_PLAYERS := 10
 

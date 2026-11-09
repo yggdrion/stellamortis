@@ -22,7 +22,7 @@ func _rollback_tick(delta: float, _tick: int, _is_fresh: bool) -> void:
 		Action.IDLE:
 			var target := nearest_player(NOTICE)
 			if target:
-				_turn_toward(target.global_position, delta)
+				_turn_toward(target.global_position, TURN_RATE, delta)
 				var in_reach := (
 					target.global_position.distance_to(global_position) < def.reach + 0.5
 				)
@@ -44,9 +44,4 @@ func _rollback_tick(delta: float, _tick: int, _is_fresh: bool) -> void:
 			if action_time >= Combat.ticks(down_time):
 				health = max_health
 				_set_action(Action.IDLE)
-	global_basis = SimPlayer.frame(up(), facing)
-
-
-func _turn_toward(point: Vector3, delta: float) -> void:
-	var to := SimPlayer._tangent(point - global_position, up())
-	facing = SimPlayer._tangent(facing.slerp(to, minf(1.0, delta * TURN_RATE)), up())
+	_orient()

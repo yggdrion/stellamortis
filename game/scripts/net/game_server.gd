@@ -12,6 +12,8 @@ var net: Net
 var solo := false
 ## Debug: where players spawn instead of the ring around the origin (--spawn=x,y,z).
 var spawn_at: Variant = null
+## Debug: start with the mobs dead, so the Warden rises at once (--encounter=boss).
+var skip_to_boss := false
 
 var _world: World
 var _names := {}
@@ -32,6 +34,9 @@ func _init() -> void:
 func start(port: int) -> void:
 	_world = World.new(false)
 	add_child(_world)
+	if skip_to_boss:
+		for mob in _world.encounter.mobs:
+			mob.take_hit(1000000.0)
 	var peer := ENetMultiplayerPeer.new()
 	var err := peer.create_server(port, MAX_PLAYERS)
 	if err != OK:

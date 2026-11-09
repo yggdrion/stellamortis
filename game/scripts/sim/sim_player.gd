@@ -225,6 +225,11 @@ func step(
 		Action.ROLL:
 			horizontal_target = action_dir * t.roll_speed
 			accel = 1000.0
+	# A gravity well drags the body toward its center: walking out is slow, sprints and rolls
+	# get away. Its pull turns into a drift speed (well_drag seconds of its acceleration).
+	var pull := Gravity.pull(self, global_position)
+	if pull != Vector3.ZERO and action != Action.DEAD:
+		horizontal_target += (pull - up * pull.dot(up)) * t.well_drag
 
 	var vertical := up * velocity.dot(up)
 	var horizontal := velocity - vertical
@@ -407,7 +412,7 @@ func _defend(t: Tuning) -> void:
 		if not enemy.striking():
 			continue
 		var def := enemy.attack_def()
-		var origin := enemy.center()
+		var origin := enemy.strike_origin()
 		if not Combat.in_arc(
 			origin, enemy.facing, enemy.up(), def.reach, def.arc_degrees, center(), RADIUS
 		):
@@ -416,6 +421,28 @@ func _defend(t: Tuning) -> void:
 			continue
 		_take(enemy, def, t)
 		return
+	if not dodging():
+		_catch_bolts(t)
+
+
+## Enemy bolts reaching this body: the first one hits (blocks work, parries don't) and ends.
+## Rolling through them is safe and leaves them flying.
+func _catch_bolts(t: Tuning) -> void:
+	var foot := global_position + up * RADIUS
+	var head := global_position + up * (HEIGHT - RADIUS)
+	for node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		for i in enemy.bolt_life.size():
+			if enemy.bolt_life[i] <= 0:
+				continue
+			var at := enemy.bolt_pos[i]
+			var closest := Geometry3D.get_closest_point_to_segment(at, foot, head)
+			if closest.distance_to(at) > RADIUS + Enemy.BOLT_RADIUS:
+				continue
+			enemy.bolt_life[i] = 0
+			_mutate(enemy)
+			_take(enemy, enemy.shot_def(), t)
+			return
 
 
 func _take(enemy: Enemy, def: AttackDef, t: Tuning) -> void:
@@ -453,7 +480,7 @@ func _strike() -> void:
 		if swing_hits & bit or not enemy.alive():
 			continue
 		if Combat.in_arc(
-			center(), facing, up, def.reach, def.arc_degrees, enemy.center(), Enemy.RADIUS
+			center(), facing, up, def.reach, def.arc_degrees, enemy.center(), enemy.radius
 		):
 			swing_hits |= bit
 			enemy.take_hit(def.damage)

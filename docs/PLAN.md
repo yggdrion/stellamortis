@@ -25,12 +25,12 @@ Out (for the PoC): inventory, loot, crafting, persistence, procedural world, bui
 
 | Area | Choice |
 |---|---|
-| Engine | Godot 4.7, latest 4.7.x patch (jotra pins 4.7.2), pinned with a checksum like jotra (`tools/install.py`), Forward+ renderer, Jolt physics |
+| Engine | Godot 4.7, latest 4.7.x patch (4.7.2 now), pinned with a checksum (`tools/install.py`), Forward+ renderer, Jolt physics |
 | Language | GDScript, statically typed everywhere (typed arrays and dictionaries) for speed and checks, lint with gdtoolkit |
 | Tests | gdUnit4 (game), `bun test` (lobby) |
-| Lobby | TypeScript on Bun, moved over from jotra's `lobby/` (jotra is retired, 2026-11-09); it takes over jotra's lobby + coturn deployment on the gvm host |
+| Lobby | TypeScript on Bun, no runtime deps (`lobby/`), with coturn (`deploy/lobby/`), deployed on the gvm host |
 | Netcode | [netfox](https://github.com/foxssake/netfox) (MIT), pinned to a main commit (`tools/install.py`): shared network tick, client-side prediction with server-side rollback, tick interpolation; later lag compensation for hits |
-| NAT traversal | WebRTC (`webrtc_native` GDExtension) + coturn, as in jotra |
+| NAT traversal | WebRTC (`webrtc_native` GDExtension) + coturn |
 | Dedicated | headless Linux export in Docker, run locally |
 | Art | CC0 rigged and animated packs (Quaternius, KayKit), sources and licenses in `docs/RESOURCES.md` |
 
@@ -64,14 +64,12 @@ Server and network:
 One executable, three ways to run the server:
 
 ```
-SOLO        client ──spawns──> headless server (--mode=solo, localhost ENet, 1 player)
-HOST        client ──spawns──> headless server (--mode=host) ──registers room──> lobby ──code──> friends join via WebRTC
-DEDICATED   docker: headless server (--mode=dedicated, ENet on a public UDP port)
+SOLO        client ──spawns──> headless server (--solo, localhost ENet, 1 player)
+HOST        client ──spawns──> headless server (--solo --lobby=URL) ──opens room──> lobby ──code──> host and friends join via WebRTC
+DEDICATED   headless server (--server --port=N, ENet on a public UDP port)
 ```
 
-The client never runs gameplay rules itself; solo is a server with one player. There is one codebase for solo and multiplayer. The pattern is jotra's (`GameServer`, `--owner`, `--room-file`, server process opens the lobby room).
-
-A `Transport` creates the `MultiplayerPeer` (ENet or WebRTC). Gameplay code sees only peers, RPCs and the protocol.
+The client never runs gameplay rules itself; solo is a server with one player. There is one codebase for solo and multiplayer. `GameServer` makes the `MultiplayerPeer` (ENet, or WebRTC when it has a lobby URL), `GameClient` joins by address or by room code. Gameplay code sees only peers, RPCs and the protocol.
 
 ### 4.2 Sim and view
 
@@ -87,9 +85,18 @@ netfox does the netcode (decided 2026-11-09, replacing M0's own prediction code)
 - Server: when late input arrives, it rolls back to that tick and resimulates. Owning client: predicts its own player from its input and resimulates from each server state. Other players are not simulated on clients; they show the server's state, smoothed by a `TickInterpolator`.
 - Movement code runs in `_rollback_tick`, scaled by `NetworkTime.physics_factor` around `move_and_slide`. Godot's own physics interpolation is off, `TickInterpolator` does that job.
 - Players are spawned by the server through a `MultiplayerSpawner` once the client's clock is synced (`NetworkTime.is_client_synced`), so late joiners get everyone.
-- Our own RPCs (`Net`): hello with protocol version and name, reject, ping, server stats.
+- Our own RPCs (`Net`): hello with protocol version and name, reject, ping, server stats, the room code.
 - Hits (later milestones): player melee and projectiles go through netfox rollback and lag compensation, enemy attacks are resolved on the server, so i-frames, block and parry are checked there against the player's rolled back state. Details are worked out in M2/M3.
 - Testing latency: `tools/lag_proxy.py` delays every UDP packet (netfox's too), with optional jitter and loss.
+
+### 4.7 Lobby and player host
+
+Built in M6 (section number out of order so the earlier references stay valid):
+
+- `lobby/`: TypeScript on Bun, no runtime deps, Docker container. WebSocket `/ws`, `/healthz`, Prometheus `/metrics` (`stellamortis_lobby_*`). Room codes of 8 letters without ambiguous ones; relays WebRTC offer, answer and ICE candidates verbatim and never sees gameplay. Mints time-limited coturn credentials (REST scheme, the shared secret stays on the server host). Rooms stay open while the game server runs (it pings every 20 s, the lobby drops a room after 60 s without one), so friends can join any time; up to 10 guests waiting per room, 5 join attempts per 10 s per socket. Star topology: each guest connects only to the server (WebRTC peer 1), the server makes one offer per guest. Lobby protocol 1 (`PROTOCOL` in `lobby/src/server.ts`, `LobbyClient.PROTOCOL`), apart from `Net.PROTOCOL_VERSION`, so game-only changes need no lobby redeploy. Logs one JSON line per room event, never signal data, credentials or addresses.
+- coturn as STUN plus TURN relay fallback (`deploy/lobby/turnserver.conf`, 3478, relay ports 49160–49259, `total-quota` 100, no relaying into private networks).
+- Game: `net/lobby_client.gd` for both sides, with a join trace in `user://logs/join-<role>.log` (`net/join_log.gd`) and readable failure reasons per stage (lobby, signaling, ICE). `--server --lobby=URL [--room-file=PATH]` opens a room on a `WebRTCMultiplayerPeer` server and writes the code to the file; if the lobby is lost later it opens a new room after 10 s (players already in stay). `--host` spawns that server as `--solo` (it exits when the last player leaves, or after 60 s without anyone), waits for the code and joins it by code like any friend: one peer type per `MultiplayerAPI`, so in player host everyone uses WebRTC. `--join=CODE` joins a room, `--lobby=URL` picks the lobby (default `wss://lobby.r4b2.de/ws`). The server sends the code to every player (`Net.room`); the HUD shows it top right and F2 copies it. F3 shows the ICE candidate types the server offered and whether TURN was used (inferred: Godot exposes no WebRTC stats).
+- Checks: `bun test` (lobby), and the network test's WebRTC run: a local lobby, a `--host` bot and a bot joining by code, plus a join with a wrong code that must fail with the lobby's reason. `--relay-only` (debug) makes a client send and accept only relay candidates; with `deploy/lobby/docker-compose.local.yml` (lobby on 8080, coturn on 127.0.0.1) a friend joined through TURN only (2026-11-09).
 
 ### 4.4 Gravity
 
@@ -141,9 +148,9 @@ game/        Godot project
   net/       transport, lobby client, protocol, snapshots
   data/      .tres tuning, attacks, enemies
   tests/     gdUnit4
-lobby/       Bun lobby/signaling server (moved from jotra), tests, Dockerfile
+lobby/       Bun lobby/signaling server, tests, Dockerfile
 deploy/      docker-compose for dedicated server, lobby + coturn
-tools/       install, run, test, export scripts (adapted from jotra)
+tools/       install, run, test, export scripts
 docs/        PLAN.md, RESOURCES.md
 ```
 
@@ -151,21 +158,21 @@ docs/        PLAN.md, RESOURCES.md
 
 | # | Name | Done when | Status |
 |---|---|---|---|
-| M0 | Skeleton | Tooling copied from jotra (pinned Godot, gdUnit4, lint); client spawns a local server in solo; capsule player moves with prediction and reconciliation (netfox since 2026-11-09); third-person camera; a second client joins by IP; two clients see each other move smoothly at 100 ms simulated latency | Done (2026-11-09), v0.1.x |
+| M0 | Skeleton | Tooling (pinned Godot, gdUnit4, lint); client spawns a local server in solo; capsule player moves with prediction and reconciliation (netfox since 2026-11-09); third-person camera; a second client joins by IP; two clients see each other move smoothly at 100 ms simulated latency | Done (2026-11-09), v0.1.x |
 | M1 | Gravity zones | `Gravity.sample` with zones; low-g and high-g zones; walk all the way around the asteroid with a steady camera; jump pad to the asteroid; tests for sampling and zone priority | Done (2026-11-09), v0.2.0 |
 | M2 | Melee + defense | Stamina, roll with i-frames, light combo, heavy, block, parry; a training dummy that swings on a timer to test i-frames and parry; animated player model (CC0); graphics presets | Done (2026-11-09), v0.3.0 |
 | M3 | Ranged | Aim mode, crosshair, charged bolt simulated on the server and falling with local gravity; hits the dummy; weapon switching | Done (2026-11-09), v0.4.0 |
 | M4 | Lock-on | Toggle, target switch, strafe and roll relative to target, works on the asteroid | Done (2026-11-09), v0.5.0 |
 | M5 | Encounter | 3 mobs with telegraphed attacks, boss with phases and gravity well, death and respawn, wipe reset, HUD (health, stamina, boss bar) | Done (2026-11-09), v0.6.0 |
-| M6 | Lobby | `lobby/` and `deploy/lobby/` moved from jotra into this repo, renamed to stellamortis, jotra-only parts dropped (its telemetry push), lobby protocol restarted at 1; `lobby_client.gd` and the WebRTC transport ported; `--host` spawns the server with a lobby room, host and friends join by code via WebRTC (TURN relay when direct fails); `bun test` in `tools/check.py`; works against a local lobby + coturn compose | Planned |
+| M6 | Lobby | `lobby/` (Bun, lobby protocol 1) and `deploy/lobby/` (lobby + coturn) in this repo; `net/lobby_client.gd` and the WebRTC transport; `--host` spawns the server with a lobby room, host and friends join by code via WebRTC (TURN relay when direct fails); `bun test` and a WebRTC run in `tools/check.py`; works against a local lobby + coturn compose | Done (2026-11-09), v0.7.0 |
 | M7 | 10 players | Headless bots fill a game to 10; server holds 30 tps; bandwidth per peer measured; state packets fit netfox's 508 byte limit again (since M3's bolt slots a player's state snapshot is 520–590 bytes and netfox warns it may be dropped) | Planned |
-| M8 | Lobby deploy | Replace jotra's lobby + coturn on the gvm host with stellamortis' `deploy/lobby/`: stop the `jotra-lobby` stack, start ours on the same ports (3478, relay 49160-49259) and the same Caddy route `lobby.r4b2.de` (gvm's Caddyfile: container alias and comment), reuse or rotate `TURN_SECRET`; old jotra builds stop working, which is fine; host and friends join by code from different networks, one through TURN. Touches the gvm host, so it needs a go-ahead before deploying | Planned |
+| M8 | Lobby deploy | Run `deploy/lobby/` on the gvm host in place of the lobby + coturn stack there today: stop that stack, start ours on the same ports (3478, relay 49160-49259) and the Caddy route `lobby.r4b2.de` (gvm's Caddyfile: container alias `stellamortis-lobby` and comment), reuse or rotate `TURN_SECRET`; host and friends join by code from different networks, one through TURN. Touches the gvm host, so it needs a go-ahead before deploying | Planned |
 | M9 | Frame pacing | Settings to turn vsync off and, as an alternative, cap the frame rate (`Engine.max_fps`, e.g. 60/120/144/unlimited), saved with the graphics preset; F3 shows the cap. Later, not relevant for the PoC | Later |
 | M10 | Wooting analog | Analog movement from Wooting keyboards through the Wooting Analog SDK (GDExtension or a small native bridge): WASD depth becomes `PlayerControls.move` length, so walk speed follows key pressure; digital keys stay the fallback when no Wooting device or SDK is present. Later, not relevant for the PoC | Later |
 
 ## 7. Open questions
 
-- M8: keep `lobby.r4b2.de` (default) or move to a stellamortis subdomain. jotra's other gvm services (download page and telemetry at `jotra.r4b2.de`) are out of scope; retire them separately.
+- M8: keep `lobby.r4b2.de` (default) or move to a stellamortis subdomain. Other services on the gvm host that are not ours are out of scope.
 - Exact CC0 packs: answered in M2 (KayKit Adventurers and Skeletons, `docs/RESOURCES.md`).
 
 ## 8. Open items to clarify after the last milestone
@@ -176,15 +183,20 @@ Testing and verification:
 
 - Nobody has play-tested M2 (melee, defense), M3 (crossbow), M4 (lock-on) or M5 (encounter) by hand yet; all of it is covered only by gdUnit4 tests, the headless network test and screenshots. Numbers (damage, windups, ranges, boss health, well strength) are first guesses.
 - The gravity well's look (shell and motes) and the phase 2 Warden were never seen in a screenshot; only the mobs, the rising Warden and its volley were.
+- Player host was only tried on one machine (direct, and forced through a local coturn with `--relay-only`); joining from another network through the public lobby and TURN is M8.
 - The headless network test only has bots walking, fighting the dummies and toggling lock-on; nothing in it fights the encounter, so its netcode (mob chases, boss phases, enemy bolts against prediction) is untested under lag.
 
 Network and performance:
+
+- In player host the host's own server is a child process of the host's client: when the host quits, the game ends for everyone in the room. Host migration is out of scope; confirm that this is fine.
 
 - netfox warns that state snapshots exceed its 508 byte packet limit (`Buffer of 520–590 bytes ... may be dropped`) since M3's player bolt slots; M5 adds enemy bolt slots (the Warden has 10). Planned for M7: shrink or split the state.
 - Server tick loop with one local headless bot: about 5 ms at M4 and 7–9 ms at M5 (rollback resimulates walking enemies with `move_and_slide`; both processes on one machine). The 1.6 ms noted at M2 came from a smaller setup. Watch in M7 with 10 players.
 - Snapshots as packed `PackedByteArray`s (§3.1) were replaced by netfox's own serialization; revisit only if bandwidth in M7 asks for it.
 
 Design decisions to confirm:
+
+- Hosting and joining by code need the command line (`--host`, `--join=CODE`); exported builds start solo. A small start menu (solo, host, join by code) would make player host usable from the release zips.
 
 - MMB moved from heavy attack to lock-on in M4 (heavy is Q only). Lock-on also takes over mouse look: sideways flicks switch targets.
 - The Warden's gravity well drags players (`Gravity.pull`) instead of being a real gravity zone in `Gravity.sample`: players don't tilt toward it and bolts don't bend around it. A real zone would make the arena briefly a tiny planet around the boss.
@@ -204,4 +216,4 @@ Planned in §3.1 and not built yet:
 - Sound: there is no audio at all (the plan mentions telegraph sounds).
 - Shader baker for exports and a check that ubershaders avoid hitches in the release builds.
 
-Later milestones not started: M6 lobby, M7 10 players, M8 lobby deploy (needs a go-ahead, touches gvm), M9 frame pacing, M10 Wooting analog.
+Later milestones not started: M7 10 players, M8 lobby deploy (needs a go-ahead, touches gvm), M9 frame pacing, M10 Wooting analog.

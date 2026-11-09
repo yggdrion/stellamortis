@@ -2,7 +2,7 @@
 
 `docs/PLAN.md` is the source of truth for scope, design, architecture and milestones; read it before starting work. Setup, run and check commands are in `README.md`.
 
-Stellamortis reuses patterns and code from `../jotra` (lobby, transport, tooling, the "client always spawns a server" design). jotra is retired (2026-11-09): read its code before writing a new version, move what we need, and don't keep anything working for jotra. M8 replaces its lobby + coturn on the gvm host.
+The lobby (`lobby/`) and its deployment (`deploy/lobby/`) live in this repo; M8 deploys them on the gvm host.
 
 Record every third-party asset in `docs/RESOURCES.md` (source, commit, license) when adding it.
 
@@ -16,8 +16,9 @@ Every commit is a semantic commit (`type(scope): summary`, Conventional Commits;
 
 Keep this section current when a milestone finishes or what's next changes.
 
-- **Done:** M0 skeleton, release pipeline, netfox, M1 gravity zones, M2 melee + defense, M3 ranged, M4 lock-on, M5 encounter (all 2026-11-09). M2–M5 not play-tested by hand yet.
-- **Next:** M6 lobby.
+- **Done:** M0 skeleton, release pipeline, netfox, M1 gravity zones, M2 melee + defense, M3 ranged, M4 lock-on, M5 encounter, M6 lobby (all 2026-11-09). M2–M6 not play-tested by hand yet.
+- **Next:** M7 10 players.
+- **Lobby (M6):** `lobby/` (Bun; `bun test` via `tools/run_lobby_tests.py`), `deploy/lobby/` (compose for gvm, `docker-compose.local.yml` for a local lobby + coturn). Game: `net/lobby_client.gd`, `net/join_log.gd`; `GameServer.lobby_url`/`room_file` (WebRTC server, room code), `GameClient.join_room`, `main.gd` `--host`/`--join=CODE`/`--lobby=URL`/`--relay-only`. `Net.room` sends the code; HUD shows it, F2 copies. The network test has a WebRTC run through a local lobby (host bot, friend bot, wrong code). Lobby protocol (`LobbyClient.PROTOCOL`) is separate from `Net.PROTOCOL_VERSION`.
 - **Open items:** `docs/PLAN.md` §8 collects everything left open or decided on the way, to clarify after the last milestone. Add to it whenever a milestone leaves something open.
 - **Encounter (M5):** `sim/encounter.gd` (phases MOBS/BOSS/CLEARED, wipe reset, rolled back), `sim/mob.gd` (melee or ranged, leash), `sim/warden.gd` (sweep, slam, volley, phase 2 well via `Gravity.pull`). All enemies exist from the start on every peer (`World._add_encounter`, indices after the dummies); the encounter hides (`Enemy.Action.HIDDEN`), wakes and `reset()`s them, never spawns. `Enemy` has walking (`_walk`), attack flow (`_advance_attack`, `_on_strike`) and bolt slots (`make_bolts`, `_fire`, `_fly_bolts`; `Enemy.ACTOR_STATE`); players take enemy bolts in `SimPlayer._catch_bolts`. `AttackDef.offset` moves an attack's area forward (slam), `bolts` makes it a shot. `EnemyView` picks the skeleton per enemy kind; `BoltsView` draws any shooter's bolts. `tests/encounter_test.gd`. `--encounter=boss` skips the mobs.
 - **Lock-on (M4):** `SimPlayer.target` (an `Enemy.index`, `LockOn.NONE` = -1) in `STATE`; `SimPlayer._update_lock` handles the `LOCK`/`SWITCH_LEFT`/`SWITCH_RIGHT` input bits; picking, switching and holding are pure functions in `sim/lock_on.gd`. While locked, `look_forward` is the direction to the target, not the camera yaw. Client: `GameClient._show_lock` sets `CameraRig.locked` (the rig turns itself, mouse motion becomes flick switches) and `EnemyView.set_locked` (stencil outline via `CharacterModel.outline`, dot). `tests/lock_test.gd`. MMB is lock-on now (heavy is Q only). `--bot --bot-plan=lock` locks and strafes for screenshots. netfox warns state packets exceed 508 bytes (since M3's bolts); fix in M7.

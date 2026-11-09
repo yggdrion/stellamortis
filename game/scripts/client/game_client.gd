@@ -27,6 +27,8 @@ var server_tick_ms := 0.0
 
 var _world: World
 var _rig: CameraRig
+## Set by leave(): the disconnect that follows is ours, not a lost server.
+var _leaving := false
 var _overlay: DebugOverlay
 var _started_ms := 0
 ## Bot: peer id -> where it first saw that player; ids it saw move are in _seen_moved.
@@ -75,7 +77,24 @@ func join(host: String, port: int) -> void:
 		func() -> void: net.hello.rpc_id(1, Net.PROTOCOL_VERSION, player_name)
 	)
 	multiplayer.connection_failed.connect(func() -> void: left.emit("Could not reach the server"))
-	multiplayer.server_disconnected.connect(func() -> void: left.emit("The server closed"))
+	multiplayer.server_disconnected.connect(
+		func() -> void:
+			if not _leaving:
+				left.emit("The server closed")
+	)
+
+
+## Disconnects cleanly and waits a moment, so the server drops the peer before it would send
+## to a closed connection (it logged "Unable to send packet" when a client just quit).
+func leave() -> void:
+	var peer := multiplayer.multiplayer_peer as ENetMultiplayerPeer
+	if peer == null or peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
+		return
+	_leaving = true
+	# No more input packets onto the closing connection.
+	NetworkTime.stop()
+	peer.get_peer(1).peer_disconnect_later()
+	await get_tree().create_timer(0.3).timeout
 
 
 func player_count() -> int:
@@ -136,6 +155,7 @@ func _check_bot() -> void:
 	if _seen_moved.size() + 1 < bot_expect:
 		return
 	print("%s: saw %d others move, ping %d ms" % [player_name, _seen_moved.size(), ping_ms])
+	await leave()
 	get_tree().quit(0)
 
 

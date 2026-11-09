@@ -30,7 +30,9 @@ def start(*cmd):
 server = start("--server", f"--port={PORT}")
 time.sleep(1.0)
 bots = [
-    start("--bot", "--expect=2", "--duration=6", f"--connect=127.0.0.1:{PROXY_PORT}", f"--name=bot{i}")
+    # Staggered, so the two never quit in the same instant: the server would then tell the
+    # second about the first leaving after its connection closed ("Unable to send packet").
+    start("--bot", "--expect=2", f"--duration={6 + 3 * i}", f"--connect=127.0.0.1:{PROXY_PORT}", f"--name=bot{i}")
     for i in range(2)
 ]
 deadline = time.time() + TIMEOUT

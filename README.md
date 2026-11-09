@@ -21,6 +21,9 @@ Installs gdtoolkit and pre-commit (a venv), the pinned Godot (`.godot-version`, 
     python tools/dev.py 2 --lag=100          # headless server + 2 windowed clients through a 100 ms lag proxy
     python tools/lag_proxy.py 17778 17777 150 --jitter=20   # lag proxy on its own
 
+Sounds come from Kenney's CC0 packs and our own synthesized ones (`python tools/make_sounds.py`
+regenerates them); the volume is in Settings.
+
 With Discord running, your Discord status shows the mode, where you are, the party size and the
 time played (on Linux and macOS it needs `nc`, `ncat` or `socat` installed).
 

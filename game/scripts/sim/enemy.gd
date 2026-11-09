@@ -15,6 +15,7 @@ const GROUP := &"enemies"
 const STATE := ["transform", "facing", "health", "action", "action_time", "parried", "quiet_time"]
 ## State of enemies that walk and shoot (Mob, Warden).
 const ACTOR_STATE := ["velocity", "attack", "bolt_pos", "bolt_vel", "bolt_life"]
+const BOLTS := ["bolt_pos", "bolt_vel", "bolt_life"]
 ## How close a bolt must pass a body's axis to hit it, on top of the body's radius.
 const BOLT_RADIUS := 0.2
 
@@ -50,7 +51,21 @@ var bolt_vel := PackedVector3Array()
 ## Ticks left in flight, 0 for a free slot.
 var bolt_life := PackedInt32Array()
 
+## The packed groups netfox synchronizes (the synced list in networked()).
+var net_combat: PackedByteArray:
+	get:
+		return Wire.pack(self, _combat_fields)
+	set(value):
+		Wire.unpack(self, _combat_fields, value)
+var net_bolts: PackedByteArray:
+	get:
+		return Wire.pack(self, BOLTS)
+	set(value):
+		Wire.unpack(self, BOLTS, value)
+
 var _shape: CollisionShape3D
+## The rolled back fields besides transform, velocity and bolts, packed into net_combat.
+var _combat_fields: Array = []
 
 
 func _init() -> void:
@@ -81,14 +96,27 @@ func make_bolts(slots: int) -> void:
 		bolt_life.append(0)
 
 
-## Server-owned, predicted on clients. Call before adding it to the tree, on every peer.
+## Server-owned, predicted on clients. Call before adding it to the tree, on every peer. state
+## is every rolled back field (Enemy.STATE, plus ACTOR_STATE and subclass fields); netfox
+## synchronizes them as transform, velocity, net_combat and net_bolts (Wire.pack).
 func networked(state: Array) -> void:
+	var synced := ["transform", "net_combat"]
+	_combat_fields = []
+	for field: String in state:
+		if field == "velocity":
+			synced.append(field)
+		elif field in BOLTS:
+			if not "net_bolts" in synced:
+				synced.append("net_bolts")
+		elif field != "transform":
+			_combat_fields.append(field)
 	var rollback := RollbackSynchronizer.new()
 	rollback.name = "Rollback"
 	rollback.root = self
 	rollback.enable_prediction = true
-	for property: String in state:
+	for property: String in synced:
 		rollback.state_properties.append(":" + property)
+	rollback.set_schema(Wire.schema(synced))
 	add_child(rollback)
 
 

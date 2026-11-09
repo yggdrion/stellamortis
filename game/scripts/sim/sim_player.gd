@@ -27,7 +27,9 @@ const GROUP := &"players"
 ## Bolts in flight per player: fixed slots, so they roll back with the player's state.
 const MAX_BOLTS := 4
 const HEAVY_ATTACK := 3
-## State netfox records, sends and rolls back. transform covers position and orientation.
+## The rolled back state. transform covers position and orientation. netfox synchronizes it as
+## SYNCED: transform and velocity as they are, the rest packed in groups (Wire.pack), one
+## property each, because netfox's cost grows with the number of synced properties.
 const STATE := [
 	"transform",
 	"velocity",
@@ -57,6 +59,27 @@ const STATE := [
 	"bolt_damage",
 	"target",
 ]
+const MOTION := ["up", "ref_forward", "facing", "grounded", "action_dir"]
+const COMBAT := [
+	"health",
+	"stamina",
+	"stamina_wait",
+	"action",
+	"action_time",
+	"action_length",
+	"attack",
+	"swing_hits",
+	"queued",
+	"queued_age",
+	"last_buttons",
+	"invulnerable",
+	"respawns",
+	"weapon",
+	"charge",
+	"target",
+]
+const BOLTS := ["bolt_pos", "bolt_vel", "bolt_life", "bolt_damage"]
+const SYNCED := ["transform", "velocity", "net_motion", "net_combat", "net_bolts"]
 
 var peer_id := 0
 var player_name := ""
@@ -105,6 +128,23 @@ var bolt_damage := PackedFloat32Array()
 ## The locked enemy's Enemy.index, LockOn.NONE when not locked.
 var target := LockOn.NONE
 
+## The packed groups netfox synchronizes (SYNCED).
+var net_motion: PackedByteArray:
+	get:
+		return Wire.pack(self, MOTION)
+	set(value):
+		Wire.unpack(self, MOTION, value)
+var net_combat: PackedByteArray:
+	get:
+		return Wire.pack(self, COMBAT)
+	set(value):
+		Wire.unpack(self, COMBAT, value)
+var net_bolts: PackedByteArray:
+	get:
+		return Wire.pack(self, BOLTS)
+	set(value):
+		Wire.unpack(self, BOLTS, value)
+
 
 func _init() -> void:
 	add_to_group(GROUP)
@@ -140,10 +180,13 @@ func networked(owner_peer: int, interpolate: bool) -> void:
 	rollback.name = "Rollback"
 	rollback.root = self
 	rollback.enable_input_broadcast = false
-	for property: String in STATE:
+	for property: String in SYNCED:
 		rollback.state_properties.append(":" + property)
 	for property: String in PlayerControls.INPUT:
 		rollback.input_properties.append("Controls:" + property)
+	var schema := Wire.schema(SYNCED)
+	schema.merge(Wire.schema(PlayerControls.INPUT, "Controls"))
+	rollback.set_schema(schema)
 	add_child(rollback)
 	if interpolate:
 		var interpolator := TickInterpolator.new()

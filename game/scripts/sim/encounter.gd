@@ -30,6 +30,7 @@ func networked() -> void:
 	rollback.enable_prediction = true
 	for property: String in STATE:
 		rollback.state_properties.append(":" + property)
+	rollback.set_schema(Wire.schema(STATE))
 	add_child(rollback)
 
 

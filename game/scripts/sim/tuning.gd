@@ -46,6 +46,20 @@ static var _data: Tuning
 @export var input_buffer := 0.3
 @export var death_time := 3.0
 
+@export_group("Crossbow")
+## Seconds to a full draw; charge scales bolt speed, damage and stamina.
+@export var draw_time := 0.9
+@export var bolt_speed_min := 22.0
+@export var bolt_speed_max := 55.0
+@export var bolt_damage_min := 10.0
+@export var bolt_damage_max := 38.0
+@export var bolt_stamina_min := 6.0
+@export var bolt_stamina_max := 18.0
+@export var shoot_recover := 0.3
+@export var bolt_life := 3.0
+## Walk speed while aiming or drawing.
+@export var aim_speed := 3.0
+
 
 static func data() -> Tuning:
 	if _data == null:

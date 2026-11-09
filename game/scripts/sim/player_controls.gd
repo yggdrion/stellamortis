@@ -7,13 +7,17 @@ extends Node
 enum Buttons { JUMP = 1, SPRINT = 2, ATTACK = 4, HEAVY = 8, BLOCK = 16, ROLL = 32 }
 
 ## The input properties netfox sends.
-const INPUT := ["move", "yaw", "buttons"]
+const INPUT := ["move", "yaw", "pitch", "buttons", "weapon"]
 
 ## x right, y forward, length at most 1, relative to the look direction.
 var move := Vector2.ZERO
 ## Radians around the player's up, from its reference forward (SimPlayer.ref_forward).
 var yaw := 0.0
+## Camera pitch in radians, for aiming.
+var pitch := 0.0
 var buttons := 0
+## The weapon the player wants out (SimPlayer.Weapon).
+var weapon := 0
 ## Called on the owning peer before each tick loop to fill move, yaw and buttons.
 var reader: Callable
 

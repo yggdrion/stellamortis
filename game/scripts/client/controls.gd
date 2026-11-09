@@ -13,6 +13,8 @@ const KEYS := {
 	&"roll": [KEY_CTRL, KEY_C],
 	&"toggle_debug": [KEY_F3],
 	&"graphics": [KEY_F4],
+	&"weapon_1": [KEY_1],
+	&"weapon_2": [KEY_2],
 	&"toggle_fullscreen": [KEY_F11],
 	&"release_mouse": [KEY_ESCAPE],
 }
@@ -21,6 +23,7 @@ const MOUSE := {
 	&"block": [MOUSE_BUTTON_RIGHT],
 	&"heavy": [MOUSE_BUTTON_MIDDLE],
 	&"roll": [MOUSE_BUTTON_XBUTTON1],
+	&"weapon_next": [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN],
 }
 const MOUSE_SENSITIVITY := 0.0025
 

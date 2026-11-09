@@ -13,9 +13,14 @@ var bot := false
 var bot_expect := 1
 ## Bot: seconds to run at least.
 var bot_duration := 5.0
+## Bot: "" walks and runs through everything; "shoot" stands, aims where the camera looks and
+## fires full draws (screenshots).
+var bot_plan := ""
 ## Saves a PNG of the screen here after screenshot_delay seconds, then quits (visual checks).
 var screenshot_path := ""
 var screenshot_delay := 4.0
+## How many screenshots, 50 ms apart (PATH gets _0, _1, ... before .png when more than one).
+var screenshot_frames := 1
 ## A preset name for this run only (--graphics), "" for the saved one.
 var graphics := ""
 ## Camera yaw and pitch in degrees to start with (screenshots), null for the default.
@@ -34,6 +39,8 @@ var _leaving := false
 var _overlay: DebugOverlay
 var _hud: Hud
 var _started_ms := 0
+## The weapon picked with 1, 2 or the wheel (SimPlayer.Weapon).
+var _wanted_weapon := 0
 ## Bot: peer id -> where it first saw that player; ids it saw move are in _seen_moved.
 var _first_seen := {}
 var _seen_moved := {}
@@ -128,6 +135,8 @@ func _on_player_spawned(player: SimPlayer) -> void:
 
 func _read_controls(controls: PlayerControls) -> void:
 	controls.yaw = _rig.yaw
+	controls.pitch = _rig.pitch
+	controls.weapon = _wanted_weapon
 	controls.move = Vector2.ZERO
 	controls.buttons = 0
 	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
@@ -151,10 +160,30 @@ func _read_controls(controls: PlayerControls) -> void:
 ## network test exercises combat and rollback too.
 func _bot_controls(controls: PlayerControls) -> void:
 	var seconds := (Time.get_ticks_msec() - _started_ms) / 1000.0
+	if bot_plan == "shoot":
+		controls.move = Vector2.ZERO
+		controls.yaw = _rig.yaw
+		controls.pitch = _rig.pitch
+		controls.weapon = SimPlayer.Weapon.CROSSBOW
+		var b := PlayerControls.Buttons
+		controls.buttons = b.BLOCK | (b.ATTACK if fmod(seconds, 1.4) < 1.0 else 0)
+		_rig.aiming = true
+		return
 	controls.move = Vector2(0.0, 1.0)
 	controls.yaw = fposmod(seconds * 0.8 + me.peer_id % 7, TAU)
 	var b := PlayerControls.Buttons
 	controls.buttons = [b.JUMP, b.ATTACK, 0, b.HEAVY, b.ROLL, b.BLOCK, 0][int(seconds * 2.0) % 7]
+	# Every other 4 s with the crossbow: draws on ATTACK, aims on BLOCK.
+	controls.weapon = int(seconds / 4.0) % 2
+
+
+func _process(_delta: float) -> void:
+	if me != null and not bot:
+		_rig.aiming = (
+			me.weapon == SimPlayer.Weapon.CROSSBOW
+			and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+			and (Input.is_action_pressed(&"block") or me.action == SimPlayer.Action.DRAW)
+		)
 
 
 func _each_second() -> void:
@@ -183,9 +212,14 @@ func _check_bot() -> void:
 func _take_screenshot() -> void:
 	_overlay.visible = true
 	await get_tree().create_timer(screenshot_delay).timeout
-	await RenderingServer.frame_post_draw
-	get_viewport().get_texture().get_image().save_png(screenshot_path)
-	print("Saved ", screenshot_path)
+	for i in screenshot_frames:
+		await RenderingServer.frame_post_draw
+		var path := screenshot_path
+		if screenshot_frames > 1:
+			path = screenshot_path.get_basename() + "_%d.png" % i
+		get_viewport().get_texture().get_image().save_png(path)
+		print("Saved ", path)
+		await get_tree().create_timer(0.05).timeout
 	get_tree().quit()
 
 
@@ -199,6 +233,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event is InputEventMouseButton and event.is_pressed() and me != null:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	elif event.is_action_pressed(&"weapon_1"):
+		_wanted_weapon = SimPlayer.Weapon.SWORD
+	elif event.is_action_pressed(&"weapon_2"):
+		_wanted_weapon = SimPlayer.Weapon.CROSSBOW
+	elif event.is_action_pressed(&"weapon_next"):
+		_wanted_weapon = 1 - _wanted_weapon
 	elif event.is_action_pressed(&"graphics"):
 		Graphics.cycle(get_viewport(), _world.arena)
 	elif event.is_action_pressed(&"toggle_debug"):

@@ -33,7 +33,7 @@ var quiet_time := 0
 
 
 func _init() -> void:
-	collision_layer = SimPlayer.LAYER_WORLD
+	collision_layer = SimPlayer.LAYER_ENEMIES
 	collision_mask = SimPlayer.LAYER_WORLD
 	var shape := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()

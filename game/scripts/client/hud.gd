@@ -3,14 +3,17 @@ extends CanvasLayer
 ## Health and stamina bars, the death notice and a controls hint (PLAN §4.5).
 
 const HINT := (
-	"LMB attack   Q / MMB heavy   RMB block (tap just before a hit: parry)\n"
-	+ "Ctrl / C roll   Shift sprint   Space jump   F3 debug   F4 graphics"
+	"Sword: LMB attack   Q / MMB heavy   RMB block (just before a hit: parry)\n"
+	+ "Crossbow: RMB aim   hold LMB to draw, release to shoot\n"
+	+ "1 / 2 / wheel weapon   Ctrl / C roll   Shift sprint   Space jump   F3 debug   F4 graphics"
 )
 
 var player: SimPlayer
 var _health: ProgressBar
 var _stamina: ProgressBar
 var _dead: Label
+var _weapon: Label
+var _crosshair: Crosshair
 
 
 func _ready() -> void:
@@ -36,6 +39,15 @@ func _ready() -> void:
 	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	add_child(hint)
+
+	_weapon = Label.new()
+	_weapon.add_theme_font_size_override("font_size", 15)
+	box.add_child(_weapon)
+	box.move_child(_weapon, 0)
+
+	_crosshair = Crosshair.new()
+	_crosshair.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	add_child(_crosshair)
 
 	_dead = Label.new()
 	_dead.text = "You died"
@@ -72,3 +84,29 @@ func _process(_delta: float) -> void:
 	_stamina.max_value = t.max_stamina
 	_stamina.value = player.stamina
 	_dead.visible = player.action == SimPlayer.Action.DEAD
+	var crossbow := player.weapon == SimPlayer.Weapon.CROSSBOW
+	_weapon.text = "[2] Crossbow" if crossbow else "[1] Sword and shield"
+	_crosshair.visible = crossbow and player.action != SimPlayer.Action.DEAD
+	var draw := 0.0
+	if player.action == SimPlayer.Action.DRAW:
+		draw = clampf(float(player.action_time) / Combat.ticks(t.draw_time), 0.0, 1.0)
+	_crosshair.charge = draw
+
+
+## A dot with a ring that fills while the crossbow is drawn.
+class Crosshair:
+	extends Control
+
+	var charge := 0.0:
+		set(value):
+			if value != charge:
+				charge = value
+				queue_redraw()
+
+	func _draw() -> void:
+		draw_circle(Vector2.ZERO, 2.5, Color(1, 1, 1, 0.9))
+		draw_arc(Vector2.ZERO, 14.0, 0.0, TAU, 48, Color(1, 1, 1, 0.25), 2.0, true)
+		if charge > 0.0:
+			var full := charge >= 1.0
+			var color := Color(0.4, 1.0, 1.0) if full else Color(1, 1, 1, 0.9)
+			draw_arc(Vector2.ZERO, 14.0, -PI / 2.0, -PI / 2.0 + TAU * charge, 48, color, 3.0, true)

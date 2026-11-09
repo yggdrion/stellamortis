@@ -1,33 +1,44 @@
 class_name CharacterModel
 extends Node3D
 ## A KayKit character (CC0, docs/RESOURCES.md) scaled to our 1.8 m bodies and turned to face -Z,
-## with props in its hand slots. play_timed() shows an action at a given progress, so the pose
-## always follows the rolled back state instead of running its own clock.
+## with props in its hand slots (held: name -> [bone, scene path]). play_timed() shows an
+## action at a given progress, so the pose always follows the rolled back state instead of
+## running its own clock.
 
 const SCALE := 0.85
 
 var animation: AnimationPlayer
 var skeleton: Skeleton3D
+## Props by name, to show and hide them.
+var props := {}
 var _meshes: Array[MeshInstance3D] = []
 var _flash: StandardMaterial3D
 var _flash_left := 0.0
 var _looping: StringName = &""
 
 
-func _init(scene_path: String, props: Dictionary) -> void:
+func _init(scene_path: String, held: Dictionary) -> void:
 	var model := (load(scene_path) as PackedScene).instantiate() as Node3D
 	model.scale = Vector3.ONE * SCALE
 	model.rotation.y = PI
 	add_child(model)
 	animation = model.find_children("*", "AnimationPlayer", true, false)[0]
 	skeleton = model.find_children("*", "Skeleton3D", true, false)[0]
+	# The packs put every weapon of the character in its hand slots, all visible: drop them,
+	# we attach our own props below.
+	for slot in model.find_children("handslot*", "BoneAttachment3D", true, false):
+		for prop in slot.get_children():
+			slot.remove_child(prop)
+			prop.free()
 	for node in model.find_children("*", "MeshInstance3D", true, false):
 		_meshes.append(node)
-	for bone: String in props:
+	for prop: String in held:
 		var slot := BoneAttachment3D.new()
-		slot.bone_name = bone
+		slot.bone_name = held[prop][0]
 		skeleton.add_child(slot)
-		slot.add_child((load(props[bone]) as PackedScene).instantiate())
+		var node := (load(held[prop][1]) as PackedScene).instantiate() as Node3D
+		slot.add_child(node)
+		props[prop] = node
 	_flash = StandardMaterial3D.new()
 	_flash.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_flash.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -57,6 +68,10 @@ func play_timed(clip: StringName, progress: float, length_seconds: float) -> voi
 
 
 ## Tints the whole body for a moment (hit, parry, telegraph).
+func show_prop(prop: String, shown: bool) -> void:
+	(props[prop] as Node3D).visible = shown
+
+
 func flash(color: Color, seconds: float) -> void:
 	_flash.albedo_color = color
 	_flash_left = seconds

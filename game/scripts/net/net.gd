@@ -13,7 +13,7 @@ signal server_stats_received(tps: float, tick_ms: float, tick_avg_ms: float)
 
 ## Bump on any change to the RPCs here or to what netfox synchronizes (SimPlayer.STATE,
 ## PlayerControls) or to what both sides simulate (Layout, Gravity, Tuning).
-const PROTOCOL_VERSION := 4
+const PROTOCOL_VERSION := 5
 
 @rpc("any_peer", "reliable")
 func hello(version: int, player_name: String) -> void:

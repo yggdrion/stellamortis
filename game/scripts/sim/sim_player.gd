@@ -9,7 +9,8 @@ extends CharacterBody3D
 ## back exactly. Enemy swings are checked here, in the defender's tick (_defend): when a dodge
 ## input arrives late, the server resimulates this player and the dodge still counts.
 
-enum Action { NONE, ATTACK, ROLL, BLOCK, STAGGER, DEAD }
+enum Action { NONE, ATTACK, ROLL, BLOCK, STAGGER, DEAD, DRAW, SHOOT }
+enum Weapon { SWORD, CROSSBOW }
 ## What a press waits for in the input buffer.
 enum Queued { NOTHING, LIGHT, HEAVY, ROLL }
 
@@ -19,8 +20,12 @@ const RADIUS := 0.4
 ## prediction needs no other players in its physics world.
 const LAYER_WORLD := 1
 const LAYER_PLAYERS := 2
+## Enemies block players but not bolt and aim rays (those test enemies geometrically).
+const LAYER_ENEMIES := 4
 
 const GROUP := &"players"
+## Bolts in flight per player: fixed slots, so they roll back with the player's state.
+const MAX_BOLTS := 4
 const HEAVY_ATTACK := 3
 ## State netfox records, sends and rolls back. transform covers position and orientation.
 const STATE := [
@@ -44,6 +49,12 @@ const STATE := [
 	"last_buttons",
 	"invulnerable",
 	"respawns",
+	"weapon",
+	"charge",
+	"bolt_pos",
+	"bolt_vel",
+	"bolt_life",
+	"bolt_damage",
 ]
 
 var peer_id := 0
@@ -82,12 +93,25 @@ var last_buttons := 0
 var invulnerable := 0
 ## Counts deaths, so views know to snap instead of interpolating to the spawn.
 var respawns := 0
+var weapon := Weapon.SWORD
+## How far the last bolt was drawn (0..1), for its look.
+var charge := 0.0
+var bolt_pos := PackedVector3Array()
+var bolt_vel := PackedVector3Array()
+## Ticks left in flight, 0 for a free slot.
+var bolt_life := PackedInt32Array()
+var bolt_damage := PackedFloat32Array()
 
 
 func _init() -> void:
 	add_to_group(GROUP)
 	collision_layer = LAYER_PLAYERS
-	collision_mask = LAYER_WORLD
+	collision_mask = LAYER_WORLD | LAYER_ENEMIES
+	for i in MAX_BOLTS:
+		bolt_pos.append(Vector3.ZERO)
+		bolt_vel.append(Vector3.ZERO)
+		bolt_life.append(0)
+		bolt_damage.append(0.0)
 	floor_snap_length = 0.3
 	floor_max_angle = deg_to_rad(50.0)
 	var shape := CollisionShape3D.new()
@@ -136,11 +160,13 @@ func place(feet: Vector3) -> void:
 
 
 func _rollback_tick(delta: float, _tick: int, _is_fresh: bool) -> void:
-	step(controls.move, controls.yaw, controls.buttons, delta)
+	step(controls.move, controls.yaw, controls.buttons, delta, controls.pitch, controls.weapon)
 
 
 ## One tick of movement and combat from one input.
-func step(move: Vector2, yaw: float, buttons: int, delta: float) -> void:
+func step(
+	move: Vector2, yaw: float, buttons: int, delta: float, pitch := 0.0, wanted_weapon := -1
+) -> void:
 	var t := Tuning.data()
 	var gravity := Gravity.sample(global_position)
 	var strength := gravity.length()
@@ -157,11 +183,18 @@ func step(move: Vector2, yaw: float, buttons: int, delta: float) -> void:
 	last_buttons = buttons
 	_count_down(t)
 	_buffer(pressed, t)
-	_advance_action(buttons, wish, look_forward, t)
+	if action == Action.NONE and wanted_weapon >= 0 and wanted_weapon != weapon:
+		weapon = wanted_weapon as Weapon
+		queued = Queued.NOTHING
+	_advance_action(buttons, wish, look_forward, t, yaw, pitch)
+	var aiming := weapon == Weapon.CROSSBOW and buttons & PlayerControls.Buttons.BLOCK != 0
 
 	var horizontal_target := Vector3.ZERO
 	var accel := t.ground_accel if grounded else t.air_accel
 	match action:
+		Action.NONE when aiming:
+			horizontal_target = wish * t.aim_speed
+			facing = look_forward
 		Action.NONE:
 			var sprinting := (
 				buttons & PlayerControls.Buttons.SPRINT != 0 and move.y > 0.3 and stamina > 0.0
@@ -169,6 +202,9 @@ func step(move: Vector2, yaw: float, buttons: int, delta: float) -> void:
 			if sprinting:
 				_spend(t.sprint_stamina * delta, t)
 			horizontal_target = wish * (t.sprint_speed if sprinting else t.walk_speed)
+		Action.DRAW, Action.SHOOT:
+			horizontal_target = wish * t.aim_speed
+			facing = look_forward
 		Action.BLOCK:
 			horizontal_target = wish * t.block_speed
 			facing = look_forward
@@ -197,7 +233,7 @@ func step(move: Vector2, yaw: float, buttons: int, delta: float) -> void:
 	velocity /= NetworkTime.physics_factor
 	grounded = is_on_floor()
 
-	if action == Action.NONE and wish.length_squared() > 0.01:
+	if action == Action.NONE and not aiming and wish.length_squared() > 0.01:
 		facing = facing.slerp(wish.normalized(), minf(1.0, delta * t.turn_rate))
 	facing = _tangent(facing, up)
 	_orient()
@@ -206,6 +242,7 @@ func step(move: Vector2, yaw: float, buttons: int, delta: float) -> void:
 		_defend(t)
 	if action == Action.ATTACK:
 		_strike()
+	_fly_bolts(delta)
 
 
 ## In the roll's invulnerable window.
@@ -252,37 +289,11 @@ func _buffer(pressed: int, t: Tuning) -> void:
 
 
 ## Ends finished actions and starts the buffered one when the current action allows it.
-func _advance_action(buttons: int, wish: Vector3, look_forward: Vector3, t: Tuning) -> void:
-	match action:
-		Action.DEAD:
-			if action_time >= Combat.ticks(t.death_time):
-				_respawn(t)
-			return
-		Action.STAGGER:
-			if action_time < action_length:
-				return
-			_set_action(Action.NONE)
-		Action.ROLL:
-			if action_time < Combat.ticks(t.roll_time):
-				return
-			_set_action(Action.NONE)
-		Action.ATTACK:
-			var def := Combat.player_attack(attack)
-			var in_recover := action_time >= def.active_end_ticks()
-			if in_recover and queued == Queued.ROLL:
-				_set_action(Action.NONE)
-			elif in_recover and queued == Queued.LIGHT and def.next != &"":
-				_start_attack(Combat.PLAYER_ATTACKS.find(def.next), look_forward, t)
-				return
-			elif action_time >= def.total_ticks():
-				_set_action(Action.NONE)
-			else:
-				return
-		Action.BLOCK:
-			if buttons & PlayerControls.Buttons.BLOCK == 0 or queued != Queued.NOTHING:
-				_set_action(Action.NONE)
-			else:
-				return
+func _advance_action(
+	buttons: int, wish: Vector3, look_forward: Vector3, t: Tuning, yaw: float, pitch: float
+) -> void:
+	if _keep_acting(buttons, look_forward, t, yaw, pitch):
+		return
 	# Free to act.
 	if queued == Queued.ROLL and stamina > 0.0:
 		queued = Queued.NOTHING
@@ -290,12 +301,55 @@ func _advance_action(buttons: int, wish: Vector3, look_forward: Vector3, t: Tuni
 		action_dir = wish.normalized() if wish.length_squared() > 0.01 else facing
 		facing = action_dir
 		_set_action(Action.ROLL)
+	elif weapon == Weapon.CROSSBOW:
+		if queued == Queued.LIGHT and stamina > 0.0:
+			queued = Queued.NOTHING
+			_set_action(Action.DRAW)
+		elif queued == Queued.HEAVY:
+			queued = Queued.NOTHING
 	elif queued == Queued.LIGHT and stamina > 0.0:
 		_start_attack(0, look_forward, t)
 	elif queued == Queued.HEAVY and stamina > 0.0:
 		_start_attack(HEAVY_ATTACK, look_forward, t)
 	elif buttons & PlayerControls.Buttons.BLOCK and grounded:
 		_set_action(Action.BLOCK)
+
+
+## Runs the current action on: true while it goes on (or chained into the next swing or the
+## shot), false once it ended and the player is free to start another.
+func _keep_acting(buttons: int, look_forward: Vector3, t: Tuning, yaw: float, pitch: float) -> bool:
+	var busy := true
+	match action:
+		Action.DEAD:
+			if action_time >= Combat.ticks(t.death_time):
+				_respawn(t)
+		Action.STAGGER:
+			busy = action_time < action_length
+		Action.ROLL:
+			busy = action_time < Combat.ticks(t.roll_time)
+		Action.ATTACK:
+			var def := Combat.player_attack(attack)
+			var in_recover := action_time >= def.active_end_ticks()
+			if in_recover and queued == Queued.ROLL:
+				busy = false
+			elif in_recover and queued == Queued.LIGHT and def.next != &"":
+				_start_attack(Combat.PLAYER_ATTACKS.find(def.next), look_forward, t)
+			else:
+				busy = action_time < def.total_ticks()
+		Action.DRAW:
+			if queued == Queued.ROLL:
+				busy = false
+			elif buttons & PlayerControls.Buttons.ATTACK == 0:
+				_shoot(yaw, pitch, t)
+		Action.SHOOT:
+			busy = action_time < Combat.ticks(t.shoot_recover)
+		Action.BLOCK:
+			busy = buttons & PlayerControls.Buttons.BLOCK != 0 and queued == Queued.NOTHING
+		_:
+			busy = false
+	if not busy and action != Action.NONE:
+		_set_action(Action.NONE)
+	return busy
 
 
 func _start_attack(index: int, look_forward: Vector3, t: Tuning) -> void:
@@ -374,6 +428,50 @@ func _strike() -> void:
 			swing_hits |= bit
 			enemy.take_hit(def.damage)
 			_mutate(enemy)
+
+
+## Releases the drawn bolt toward what the crosshair is on (Combat.aim_target).
+func _shoot(yaw: float, pitch: float, t: Tuning) -> void:
+	charge = clampf(float(action_time) / Combat.ticks(t.draw_time), 0.0, 1.0)
+	_set_action(Action.SHOOT)
+	var slot := bolt_life.find(0)
+	if slot < 0:
+		slot = 0
+	var right := facing.cross(up)
+	var muzzle := global_position + up * 1.3 + facing * 0.4 + right * 0.15
+	var target := Combat.aim_target(self, yaw, pitch)
+	bolt_pos[slot] = muzzle
+	bolt_vel[slot] = (
+		(target - muzzle).normalized() * lerpf(t.bolt_speed_min, t.bolt_speed_max, charge)
+	)
+	bolt_life[slot] = Combat.ticks(t.bolt_life)
+	bolt_damage[slot] = lerpf(t.bolt_damage_min, t.bolt_damage_max, charge)
+	_spend(lerpf(t.bolt_stamina_min, t.bolt_stamina_max, charge), t)
+
+
+## Moves this player's bolts one tick under the gravity where they are, and ends them on the
+## first wall or enemy they reach.
+func _fly_bolts(delta: float) -> void:
+	for i in MAX_BOLTS:
+		if bolt_life[i] <= 0:
+			continue
+		bolt_life[i] -= 1
+		var from := bolt_pos[i]
+		var velocity_now := bolt_vel[i] + Gravity.sample(from) * delta
+		var to := from + velocity_now * delta
+		bolt_vel[i] = velocity_now
+		bolt_pos[i] = to
+		var enemy := Combat.enemy_on_segment(self, from, to)
+		if enemy:
+			enemy.take_hit(bolt_damage[i])
+			_mutate(enemy)
+			bolt_pos[i] = Combat.closest_on_segment(from, to, enemy.center())
+			bolt_life[i] = 0
+			continue
+		var wall := Combat.ray(self, from, to)
+		if not wall.is_empty():
+			bolt_pos[i] = wall.position
+			bolt_life[i] = 0
 
 
 func _respawn(t: Tuning) -> void:

@@ -22,7 +22,7 @@ var _was_parried := false
 func _init(of: Enemy) -> void:
 	enemy = of
 	name = "View"
-	_model = CharacterModel.new(MODEL, {"handslot.r": BLADE})
+	_model = CharacterModel.new(MODEL, {"blade": ["handslot.r", BLADE]})
 	add_child(_model)
 	_add_arc()
 	_add_bar()

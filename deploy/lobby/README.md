@@ -12,8 +12,8 @@ UDP.
 | `lobby` (built from `lobby/`) | `/ws`, `/healthz` through gvm's Caddy | `/metrics` stays internal |
 | `coturn` | 3478 TCP/UDP, relay UDP 49160–49259 | host network; credentials minted by the lobby from `TURN_SECRET`; metrics on `127.0.0.1:9641` |
 
-Deploying it is milestone M8 (PLAN §6) and needs a go-ahead first: it replaces the stack that
-holds these ports and the Caddy route today.
+Deployed in milestone M8 (PLAN §6). The gvm host is shared, so changes there need the owner's
+go-ahead.
 
 ## First setup
 

@@ -5,6 +5,7 @@ Without a platform it exports the one it runs on (what tools/check.py does).
 """
 
 import platform
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -46,6 +47,13 @@ except OSError:  # no git on PATH
     commit = ""
 build_id = GAME / "build_id.txt"
 build_id.write_text(commit or "dev")
+# The macOS bundle version comes from VERSION; the preset file is put back after the export.
+presets = GAME / "export_presets.cfg"
+presets_text = presets.read_text()
+version = (ROOT / "VERSION").read_text().strip()
+presets.write_text(
+    re.sub(r'^(application/(short_)?version)=".*"$', rf'\1="{version}"', presets_text, flags=re.M)
+)
 try:
     cmd = [godot_bin, "--headless", "--export-release", preset, str(out / file)]
     code = subprocess.run(cmd, check=False, cwd=GAME).returncode
@@ -58,6 +66,7 @@ try:
         fail(f"Export of {preset} failed (exit {code})")
 finally:
     build_id.unlink()
+    presets.write_text(presets_text)
 # Godot can exit 0 after a failed export, so check the result.
 if not (out / file).exists() or (out / file).stat().st_size == 0:
     fail(f"Export of {preset} produced no {out / file}")

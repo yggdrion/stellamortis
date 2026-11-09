@@ -43,8 +43,11 @@ playing.
 Every push to `main` runs `.github/workflows/release.yml`: `tools/check.py` on Linux, then
 `tools/export.py` on a Linux, Windows and macOS runner each (macOS: universal app, ad-hoc signed,
 not notarized, so Gatekeeper asks once: right click, Open). The exports are kept as workflow
-artifacts for 3 days and published as a GitHub Release `v<VERSION>.<run number>` with
-`stellamortis-linux.zip`, `stellamortis-windows.zip` and `stellamortis-macos.zip`. Bump `VERSION`
-to start a new minor version.
+artifacts for 3 days and published as a GitHub Release `v<VERSION>.<patch>` with
+`stellamortis-linux.zip`, `stellamortis-windows.zip` and `stellamortis-macos.zip`.
+
+Versions: every milestone is a minor version. The commit that finishes milestone Mn sets
+`VERSION` to `0.<n+1>` (M1 done: `0.2`), so its release is `v0.<n+1>.0`; every push after it
+until the next milestone is a patch (`v0.2.1`, `v0.2.2`, ...).
 
     python tools/export.py           # local export for this platform into build/<platform>/

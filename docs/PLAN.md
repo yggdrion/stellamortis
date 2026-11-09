@@ -140,8 +140,8 @@ docs/        PLAN.md, RESOURCES.md
 
 | # | Name | Done when | Status |
 |---|---|---|---|
-| M0 | Skeleton | Tooling copied from jotra (pinned Godot, gdUnit4, lint); client spawns a local server in solo; capsule player moves with prediction and reconciliation (netfox since 2026-11-09); third-person camera; a second client joins by IP; two clients see each other move smoothly at 100 ms simulated latency | Done (2026-11-09) |
-| M1 | Gravity zones | `Gravity.sample` with zones; low-g and high-g zones; walk all the way around the asteroid with a steady camera; jump pad to the asteroid; tests for sampling and zone priority | Done (2026-11-09) |
+| M0 | Skeleton | Tooling copied from jotra (pinned Godot, gdUnit4, lint); client spawns a local server in solo; capsule player moves with prediction and reconciliation (netfox since 2026-11-09); third-person camera; a second client joins by IP; two clients see each other move smoothly at 100 ms simulated latency | Done (2026-11-09), v0.1.x |
+| M1 | Gravity zones | `Gravity.sample` with zones; low-g and high-g zones; walk all the way around the asteroid with a steady camera; jump pad to the asteroid; tests for sampling and zone priority | Done (2026-11-09), v0.2.0 |
 | M2 | Melee + defense | Stamina, roll with i-frames, light combo, heavy, block, parry; a training dummy that swings on a timer to test i-frames and parry; animated player model (CC0) | Planned |
 | M3 | Ranged | Aim mode, crosshair, charged bolt simulated on the server and falling with local gravity; hits the dummy | Planned |
 | M4 | Lock-on | Toggle, target switch, strafe and roll relative to target, works on the asteroid | Planned |

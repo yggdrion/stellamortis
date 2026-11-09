@@ -8,6 +8,8 @@ var _label: Label
 
 func _ready() -> void:
 	layer = 10
+	# Render times are only measured on request; it costs little, so always on.
+	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
 	visible = false
 	_label = Label.new()
 	_label.position = Vector2(12, 12)
@@ -21,14 +23,24 @@ func _process(_delta: float) -> void:
 	if not visible or client == null:
 		return
 	var lines := PackedStringArray()
+	var viewport := get_viewport().get_viewport_rid()
 	(
 		lines
 		. append(
 			(
-				"FPS %d   frame %.2f ms   draw calls %d"
+				(
+					"FPS %d   frame %.2f ms (incl. vsync wait)   render CPU %.2f ms   GPU %.2f ms"
+					+ "   physics %.2f ms   draw calls %d"
+				)
 				% [
 					Engine.get_frames_per_second(),
 					Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+					(
+						RenderingServer.get_frame_setup_time_cpu()
+						+ RenderingServer.viewport_get_measured_render_time_cpu(viewport)
+					),
+					RenderingServer.viewport_get_measured_render_time_gpu(viewport),
+					Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
 					Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
 				]
 			)

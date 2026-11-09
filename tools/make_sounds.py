@@ -1,4 +1,4 @@
-"""Synthesizes the sounds no CC0 pack had (PLAN §6 M14): sword swooshes, a crossbow twang, the
+"""Synthesizes the sounds no CC0 pack had (PLAN §6 M14): a crossbow twang, the
 telegraph cue, embers, the portal hum and travel shimmer, the gravity well rumble, a jump pad
 whoom, and ambience loops (wind for the keep and the Barrows, torch crackle). Standard library
 only; the output is checked in, so run this only to change a sound:
@@ -55,20 +55,6 @@ class Filter:
         self.band += f * high
         return self.low, self.band, high
 
-
-def swoosh(seed: int, length: float, low: float, high: float) -> list[float]:
-    """Noise through a band pass sweeping up then down: a blade cutting air."""
-    rng = random.Random(seed)
-    band = Filter()
-    n = int(length * RATE)
-    out = []
-    for i in range(n):
-        t = i / RATE
-        p = t / length
-        cutoff = low + (high - low) * math.sin(math.pi * p) ** 1.5
-        _, b, _ = band.step(rng.uniform(-1, 1), cutoff, 2.5)
-        out.append(b * math.sin(math.pi * p) ** 2)
-    return out
 
 
 def twang(seed: int) -> list[float]:
@@ -218,10 +204,6 @@ def crossfade_loop(samples: list[float], seconds: float) -> list[float]:
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    for i in range(3):
-        write(f"swing_{i}", swoosh(10 + i, 0.32 + 0.04 * i, 500 + 80 * i, 2600 + 300 * i))
-    write("swing_heavy", swoosh(20, 0.55, 250, 1500))
-    write("swing_giant", swoosh(21, 0.8, 120, 900))
     write("twang", twang(30))
     write("telegraph", telegraph(40, 0.6, 70))
     write("telegraph_giant", telegraph(41, 0.9, 42))

@@ -1,0 +1,5 @@
+swing_*.ogg: "20 Sword Sound Effects (Attacks and Clashes)" by StarNinjas,
+https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes, CC0 1.0
+(https://creativecommons.org/publicdomain/zero/1.0/). Trimmed and loudness-normalized.
+
+hit_*.ogg, hurt_*.ogg: mixed from Kenney's RPG Audio and Impact Sounds (kenney.nl), CC0 1.0.

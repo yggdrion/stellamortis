@@ -275,7 +275,10 @@ func _sounds() -> void:
 			Sounds.play(self, &"telegraph_giant" if giant else &"telegraph", -4.0)
 		a.STRIKE:
 			if enemy.attack_def().melee():
-				Sounds.play(self, &"swing_giant" if giant else &"swing")
+				if giant:
+					Sounds.play(self, &"swing_heavy", 2.0, 0.7)
+				else:
+					Sounds.play(self, &"swing")
 			else:
 				Sounds.play(self, &"ember")
 		a.DOWN:

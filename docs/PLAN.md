@@ -235,7 +235,7 @@ Moved to milestones:
 
 - Outfits (2026-11-09, after M13): to check in M15 how the rangers, squires and the dead look in a fight (outfit clipping in the UAL clips, the hood and hair, the weapon grips on the new hands, the hit flash on several stacked meshes).
 
-- M14 to check in M15: listen to every sound (the synthesized ones were never heard while building: swooshes, twang, telegraphs, embers, hum, wind, fire), the mix (ambience, torches and footsteps against combat), 3D falloff, the volume slider.
+- M14 to check in M15: listen to every sound (the synthesized ones were never heard while building: twang, telegraphs, embers, hum, wind, fire), the mix (ambience, torches and footsteps against combat), 3D falloff, the volume slider. Swings and hits were replaced on 2026-11-10 (StarNinjas recordings, slash hits from Kenney) after the user disliked the first ones; check they land.
 
 Still open (§3.1, not in a milestone yet):
 

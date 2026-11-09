@@ -2,22 +2,23 @@ class_name Sounds
 extends RefCounted
 ## Sound (PLAN §6 M14): named sounds with variants, played as positional one-shots on the node
 ## they come from, loops for torches, portals and the Warden's well, a 2D ambience per planet and
-## UI clicks. Kenney's CC0 packs give footsteps, impacts, cloth and UI; tools/make_sounds.py
-## synthesizes the rest (swooshes, the twang, telegraphs, embers, hums, wind, fire). Views call
+## UI clicks. Kenney's CC0 packs give footsteps, impacts, cloth and UI; blades/ holds recorded
+## sword swings (StarNinjas, CC0) and slash hits layered from Kenney; tools/make_sounds.py
+## synthesizes the rest (the twang, telegraphs, embers, hums, wind, fire). Views call
 ## these when the state they show changes; headless processes play nothing.
 
 const KENNEY := "res://assets/sounds/kenney/"
 const SYNTH := "res://assets/sounds/synth/"
+const BLADES := "res://assets/sounds/blades/"
 const BUSES := [&"Effects", &"Ambience", &"UI"]
 ## Sound name -> its files (one is picked at random each time).
 static var library := {
 	&"step_grass": _numbered(KENNEY + "footstep_grass_%03d.ogg", 5),
 	&"step_stone": _numbered(KENNEY + "footstep_concrete_%03d.ogg", 5),
-	&"swing": _numbered(SYNTH + "swing_%d.wav", 3),
-	&"swing_heavy": [SYNTH + "swing_heavy.wav"],
-	&"swing_giant": [SYNTH + "swing_giant.wav"],
-	&"hit": _numbered(KENNEY + "impactPunch_medium_%03d.ogg", 3),
-	&"hurt": _numbered(KENNEY + "impactPunch_heavy_%03d.ogg", 3),
+	&"swing": _numbered(BLADES + "swing_%d.ogg", 4),
+	&"swing_heavy": _numbered(BLADES + "swing_heavy_%d.ogg", 4),
+	&"hit": _numbered(BLADES + "hit_%d.ogg", 3),
+	&"hurt": _numbered(BLADES + "hurt_%d.ogg", 3),
 	&"block": _numbered(KENNEY + "impactPlank_medium_%03d.ogg", 3),
 	&"parry": [KENNEY + "impactBell_heavy_000.ogg"],
 	&"clang": _numbered(KENNEY + "impactMetal_heavy_%03d.ogg", 2),

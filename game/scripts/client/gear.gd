@@ -1,87 +1,124 @@
 class_name Gear
 extends RefCounted
-## What players and training mannequins wear and hold (PLAN §4.5): a dark armored suit with
-## glowing seams and visor, a monomolecular blade, a hard-light shield and a slug revolver.
-## Built in code apart from the revolver (Quaternius Sci-Fi Essentials, CC0); every prop's
-## origin is the grip, and its long axis is local +Y (the hand bone's axis toward the fingers).
+## What players and enemies wear and hold (PLAN §3.2, M12): knights in worn steel over dark
+## leather with a great helm, a steel sword, the MegaKit's round wooden shield and a crossbow;
+## the dead in bone and rags with ember eyes and rusted blades. Built in code apart from the
+## shield (Quaternius Fantasy Props MegaKit, CC0). Every prop's origin is the grip, its long axis
+## local +Y (the hand bone's axis toward the fingers).
 
-const REVOLVER := "res://assets/quaternius/guns/Gun_Revolver.gltf"
-const ACCENT := Color(0.25, 0.85, 1.0)
-
-
-## The suit: matte dark armor for the body, the accent color glowing at the joints.
-static func suit(accent := ACCENT, armor := Color(0.16, 0.17, 0.19)) -> Array[Material]:
-	var plates := StandardMaterial3D.new()
-	plates.albedo_color = armor
-	plates.metallic = 0.35
-	plates.roughness = 0.45
-	plates.clearcoat_enabled = true
-	plates.clearcoat = 0.4
-	plates.clearcoat_roughness = 0.3
-	var seams := StandardMaterial3D.new()
-	seams.albedo_color = accent.darkened(0.6)
-	seams.emission_enabled = true
-	seams.emission = accent
-	seams.emission_energy_multiplier = 2.5
-	return [plates, seams]
+const SHIELD := "res://assets/quaternius/props/Shield_Wooden.gltf"
+## Enemy eyes and shots.
+const EMBER := Color(1.0, 0.35, 0.1)
+const STEEL := Color(0.62, 0.63, 0.65)
+const IRON := Color(0.16, 0.16, 0.17)
+const LEATHER := Color(0.2, 0.14, 0.1)
 
 
-## A glowing visor strip across the face, for the head bone.
-static func visor(accent := ACCENT) -> Node3D:
-	var mesh := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = Vector3(0.15, 0.035, 0.05)
-	mesh.mesh = box
-	mesh.material_override = _glow(accent, 4.0)
-	mesh.position = Vector3(0, 0.1, 0.085)
-	mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	return mesh
+## A knight: plate for the body, leather at the joints (the mannequin's second surface).
+static func armor(plate := STEEL, joints := LEATHER) -> Array[Material]:
+	# Half metal: full metal mirrors the black night sky and goes black.
+	var plates := _metal(plate, 0.45)
+	plates.metallic = 0.45
+	var leather := StandardMaterial3D.new()
+	leather.albedo_color = joints
+	leather.roughness = 0.85
+	return [plates, leather]
 
 
-## A long single edged blade with a glowing edge.
-static func blade(accent := ACCENT) -> Node3D:
+## The dead: grey-green bone for the body, rotten cloth at the joints.
+static func bones() -> Array[Material]:
+	var bone := StandardMaterial3D.new()
+	bone.albedo_color = Color(0.46, 0.47, 0.4)
+	bone.roughness = 0.9
+	var rags := StandardMaterial3D.new()
+	rags.albedo_color = Color(0.11, 0.1, 0.08)
+	rags.roughness = 1.0
+	return [bone, rags]
+
+
+## A rounded bascinet: a dome over a short cylinder, a dark eye slit and a nasal ridge, for
+## the head bone.
+static func helm(plate := STEEL) -> Node3D:
 	var root := Node3D.new()
-	var dark := _metal(Color(0.12, 0.12, 0.13), 0.3)
-	root.add_child(_box(Vector3(0.035, 0.2, 0.035), Vector3(0, 0.0, 0), dark))
-	root.add_child(_box(Vector3(0.13, 0.03, 0.05), Vector3(0, 0.11, 0), dark))
-	root.add_child(
-		_box(Vector3(0.05, 0.85, 0.012), Vector3(0, 0.55, 0), _metal(Color(0.5, 0.52, 0.55), 0.2))
-	)
-	root.add_child(_box(Vector3(0.008, 0.82, 0.016), Vector3(0.028, 0.55, 0), _glow(accent, 5.0)))
+	var steel := _metal(plate, 0.4)
+	steel.metallic = 0.5
+	var shell := MeshInstance3D.new()
+	var can := CylinderMesh.new()
+	can.top_radius = 0.135
+	can.bottom_radius = 0.14
+	can.height = 0.17
+	can.material = steel
+	shell.mesh = can
+	shell.position = Vector3(0, 0.06, 0.01)
+	root.add_child(shell)
+	var dome := MeshInstance3D.new()
+	var cap := SphereMesh.new()
+	cap.radius = 0.135
+	cap.height = 0.17
+	cap.is_hemisphere = true
+	cap.material = steel
+	dome.mesh = cap
+	dome.position = Vector3(0, 0.145, 0.01)
+	root.add_child(dome)
+	root.add_child(_box(Vector3(0.19, 0.022, 0.03), Vector3(0, 0.1, 0.135), _metal(IRON, 0.9)))
+	root.add_child(_box(Vector3(0.022, 0.13, 0.025), Vector3(0, 0.06, 0.145), steel))
 	return root
 
 
-## A hard-light disc on a forearm emitter; set_shield() brightens it while blocking.
-static func shield(accent := ACCENT) -> Node3D:
+## Two ember eyes, for the head bone of the dead.
+static func eyes(color := EMBER) -> Node3D:
 	var root := Node3D.new()
-	root.add_child(
-		_box(Vector3(0.07, 0.22, 0.06), Vector3.ZERO, _metal(Color(0.1, 0.1, 0.11), 0.4))
-	)
-	var disc := MeshInstance3D.new()
-	disc.name = "Disc"
-	var quad := QuadMesh.new()
-	quad.size = Vector2(0.7, 0.7)
-	disc.mesh = quad
-	var material := ShaderMaterial.new()
-	material.shader = load("res://shaders/energy_shield.gdshader")
-	material.set_shader_parameter("tint", accent)
-	disc.material_override = material
-	disc.rotation.y = PI / 2.0
-	disc.position = Vector3(0.06, 0.0, 0.0)
-	disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	root.add_child(disc)
+	for x: float in [-0.035, 0.035]:
+		var eye := MeshInstance3D.new()
+		var ball := SphereMesh.new()
+		ball.radius = 0.016
+		ball.height = 0.032
+		ball.material = _glow(color, 6.0)
+		eye.mesh = ball
+		eye.position = Vector3(x, 0.09, 0.09)
+		eye.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(eye)
 	return root
 
 
-static func set_shield(shield_node: Node3D, raised: bool) -> void:
-	var disc := shield_node.get_node("Disc") as MeshInstance3D
-	(disc.material_override as ShaderMaterial).set_shader_parameter(
-		"strength", 1.0 if raised else 0.35
+## A straight double edged sword; rust for the dead's.
+static func sword(blade_color := Color(0.62, 0.63, 0.65), length := 0.85) -> Node3D:
+	var root := Node3D.new()
+	root.add_child(_box(Vector3(0.035, 0.18, 0.035), Vector3.ZERO, _plain(LEATHER, 0.8)))
+	root.add_child(_box(Vector3(0.05, 0.05, 0.05), Vector3(0, -0.11, 0), _metal(IRON, 0.5)))
+	root.add_child(_box(Vector3(0.2, 0.03, 0.04), Vector3(0, 0.1, 0), _metal(IRON, 0.5)))
+	root.add_child(
+		_box(
+			Vector3(0.055, length, 0.01),
+			Vector3(0, 0.12 + length / 2.0, 0),
+			_metal(blade_color, 0.3)
+		)
 	)
+	return root
 
 
-static func revolver() -> Node3D:
-	return CharacterModel.prop(REVOLVER)
+## The round wooden shield, its face turned outward from the forearm.
+static func shield() -> Node3D:
+	var node := CharacterModel.prop(SHIELD)
+	node.rotation = Vector3(0, PI / 2.0, 0)
+	node.position = Vector3(0.08, 0.0, 0.0)
+	return node
+
+
+## A crossbow: wooden stock along the hand, a steel bow across its front and the string.
+static func crossbow() -> Node3D:
+	var root := Node3D.new()
+	var wood := _plain(Color(0.3, 0.2, 0.12), 0.7)
+	root.add_child(_box(Vector3(0.05, 0.62, 0.06), Vector3(0, 0.2, 0.02), wood))
+	var steel := _metal(STEEL, 0.4)
+	for side: float in [-1.0, 1.0]:
+		var limb := _box(Vector3(0.3, 0.025, 0.025), Vector3(side * 0.15, 0.46, 0.03), steel)
+		limb.rotation.z = side * -0.25
+		root.add_child(limb)
+	root.add_child(
+		_box(Vector3(0.58, 0.006, 0.006), Vector3(0, 0.38, 0.03), _plain(Color.BLACK, 1))
+	)
+	return root
 
 
 static func _box(size: Vector3, at: Vector3, material: Material) -> MeshInstance3D:
@@ -97,14 +134,21 @@ static func _box(size: Vector3, at: Vector3, material: Material) -> MeshInstance
 static func _metal(color: Color, roughness: float) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
-	material.metallic = 0.9
+	material.metallic = 0.85
+	material.roughness = roughness
+	return material
+
+
+static func _plain(color: Color, roughness: float) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
 	material.roughness = roughness
 	return material
 
 
 static func _glow(color: Color, energy: float) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
-	material.albedo_color = color.darkened(0.7)
+	material.albedo_color = color.darkened(0.5)
 	material.emission_enabled = true
 	material.emission = color
 	material.emission_energy_multiplier = energy

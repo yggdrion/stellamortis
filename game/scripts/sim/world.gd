@@ -101,7 +101,7 @@ func _spawn_player(data: Array) -> Node:
 	var body := SimPlayer.new()
 	body.player_name = player_name
 	body.networked(peer_id, visual)
-	body.place(data[2])
+	body.place(data[2], Vector3.BACK)
 	if visual:
 		var own := peer_id == multiplayer.get_unique_id()
 		body.add_child(PlayerView.new(body, not own))

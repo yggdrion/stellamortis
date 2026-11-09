@@ -113,7 +113,7 @@ var queued_age := 0
 var last_buttons := 0
 ## Ticks left in which enemy swings pass through (after being hit).
 var invulnerable := 0
-## Counts deaths, so views know to snap instead of interpolating to the spawn.
+## Counts deaths and portal jumps, so views know to snap instead of interpolating.
 var respawns := 0
 var weapon := Weapon.SWORD
 ## How far the last bolt was drawn (0..1), for its look.
@@ -192,11 +192,11 @@ func networked(owner_peer: int, interpolate: bool) -> void:
 		add_child(interpolator)
 
 
-## Puts the body's feet at a point, standing along the local gravity.
-func place(feet: Vector3) -> void:
+## Puts the body's feet at a point, standing along the local gravity and looking along forward.
+func place(feet: Vector3, forward := Vector3.FORWARD) -> void:
 	var gravity := Gravity.sample(feet)
 	up = -gravity.normalized() if gravity.length_squared() > 0.000001 else Vector3.UP
-	ref_forward = _tangent(Vector3.FORWARD, up)
+	ref_forward = _tangent(forward, up)
 	facing = ref_forward
 	global_transform = Transform3D(SimPlayer.frame(up, facing), feet)
 
@@ -286,6 +286,7 @@ func step(
 
 	if action != Action.DEAD:
 		_defend(t)
+		_use_portal()
 	if action == Action.ATTACK:
 		_strike()
 	_fly_bolts(delta)
@@ -545,11 +546,24 @@ func _fly_bolts(delta: float) -> void:
 			bolt_life[i] = 0
 
 
+## Steps through a portal the player stands in (a victory portal only once the Warden fell).
+func _use_portal() -> void:
+	var portal := Layout.portal_at(global_position)
+	if portal == null or (portal.needs_victory and not Encounter.won(self)):
+		return
+	velocity = Vector3.ZERO
+	place(Layout.ring_point(portal.to, peer_id), portal.facing)
+	respawns += 1
+	queued = Queued.NOTHING
+	_set_action(Action.NONE)
+
+
+## Back at the keep (PLAN §6 M12: dying sends players home; a wipe empties the realm).
 func _respawn(t: Tuning) -> void:
 	health = t.max_health
 	stamina = t.max_stamina
 	velocity = Vector3.ZERO
-	place(Layout.spawn_point(peer_id))
+	place(Layout.spawn_point(peer_id), Vector3.BACK)
 	respawns += 1
 	_set_action(Action.NONE)
 

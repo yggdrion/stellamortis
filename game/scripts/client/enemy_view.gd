@@ -1,13 +1,13 @@
 class_name EnemyView
 extends Node3D
-## How an enemy looks (PLAN §4.5, §4.6): a model posed from its state (training mannequins in a
-## pale suit, a four legged walker, an eye drone and, for the Warden, a big six legged walker;
-## robots from Quaternius, CC0), with the telegraph that makes dodging fair: an orange glow
-## building up over the windup and the swing's area drawn on the ground. Parries flash yellow,
-## hits pop damage numbers, a bar shows health (the Warden's is on the HUD), bolts glow red, the
-## Warden's gravity well is a pulsing shell with motes falling in.
+## How an enemy looks (PLAN §4.5, §4.6, §3.2): the UAL figure posed from its state, dressed by
+## Gear: training squires in tarnished plate, the dead in bone and rags with ember eyes (rusted
+## swords, or crossbows for the ranged ones), and the Warden, a giant dead knight in black iron.
+## The telegraph makes dodging fair: an orange glow building up over the windup and the swing's
+## area drawn on the ground. Parries flash yellow, hits pop damage numbers, a bar shows health
+## (the Warden's is on the HUD), embers fly as their shots, the Warden's well is a pulsing shell
+## with motes falling in.
 
-const ROBOTS := "res://assets/quaternius/robots/"
 ## Clips per model: idle, walk, hit, down (powering off or dying), rise (down played backwards).
 ## down_time: how long the down clip runs (seconds).
 const HUMAN_CLIPS := {
@@ -17,17 +17,30 @@ const HUMAN_CLIPS := {
 	"down": &"Death01",
 	"down_time": 1.6
 }
-const ROBOT_CLIPS := {
-	"idle": &"Idle", "walk": &"Walk", "hit": &"Hit", "down": &"TurnOff", "down_time": 0.6
+const UNDEAD_CLIPS := {
+	"idle": &"Zombie_Idle",
+	"walk": &"Zombie_Walk_Fwd",
+	"hit": &"Hit_Chest",
+	"down": &"Death01",
+	"down_time": 1.6
 }
-const DRONE_CLIPS := {
-	"idle": &"Idle", "walk": &"Idle", "hit": &"Hit", "down": &"BackFlip", "down_time": 1.0
+const ARCHER_CLIPS := {
+	"idle": &"Pistol_Idle",
+	"walk": &"Walk",
+	"hit": &"Hit_Chest",
+	"down": &"Death01",
+	"down_time": 1.6
 }
-## Pale suit and orange seams for the training mannequins.
-const DUMMY_ARMOR := Color(0.55, 0.56, 0.58)
-const DUMMY_ACCENT := Color(1.0, 0.5, 0.15)
-## Hover height of the drone's center.
-const DRONE_LIFT := 1.3
+const WARDEN_CLIPS := {
+	"idle": &"Sword_Idle",
+	"walk": &"Walk",
+	"hit": &"Hit_Knockback",
+	"down": &"Death01",
+	"down_time": 2.0
+}
+## Tarnished plate for the training squires, black iron for the Warden.
+const SQUIRE_PLATE := Color(0.42, 0.39, 0.34)
+const RUST := Color(0.3, 0.17, 0.1)
 const TELEGRAPH := Color(1.0, 0.45, 0.1)
 ## Moving faster than this (m/s) plays the walk.
 const WALKING := 0.4
@@ -48,7 +61,7 @@ var _well_material: ShaderMaterial
 var _motes: GPUParticles3D
 var _last_health := -1.0
 var _was_parried := false
-var _clips := ROBOT_CLIPS
+var _clips := HUMAN_CLIPS
 
 
 func _init(of: Enemy) -> void:
@@ -64,33 +77,42 @@ func _init(of: Enemy) -> void:
 		_add_well()
 
 
-## Which model at which size, with its clips. Robots light up their emission maps (eyes,
-## vents); the textures ship with the pack but the glTF files don't reference them.
+## Which figure in which gear, at which size, with its clips.
 func _make_model() -> CharacterModel:
+	var human := CharacterModel.HUMAN
 	var model: CharacterModel
 	if enemy is Warden:
-		model = CharacterModel.new(ROBOTS + "Enemy_Trilobite.gltf", {}, enemy.height / 2.5)
-		model.light_up(load(ROBOTS + "T_Enemies_Large_Emissive.png"), 6.0)
-		return model
-	if enemy is Mob and (enemy as Mob).ranged:
-		_clips = DRONE_CLIPS
-		model = CharacterModel.new(ROBOTS + "Enemy_EyeDrone.gltf", {}, 0.8, DRONE_LIFT)
-		model.light_up(load(ROBOTS + "T_Enemies_Emissive.png"), 6.0)
+		_clips = WARDEN_CLIPS
+		model = (
+			CharacterModel
+			. new(
+				human,
+				{
+					"sword": ["RightHand", Gear.sword(Gear.IRON.lightened(0.15), 1.3)],
+					"helm": ["Head", Gear.helm(Gear.IRON)],
+					"eyes": ["Head", Gear.eyes()],
+				},
+				enemy.height / SimPlayer.HEIGHT
+			)
+		)
+		var iron := Gear.armor(Gear.IRON, Color(0.08, 0.06, 0.05))
+		model.skin(iron[0], {1: iron[1]})
 		return model
 	if enemy is Mob:
-		model = CharacterModel.new(ROBOTS + "Enemy_QuadShell.gltf", {}, 1.1)
-		model.light_up(load(ROBOTS + "T_Enemies_Emissive.png"), 6.0)
+		var ranged := (enemy as Mob).ranged
+		_clips = ARCHER_CLIPS if ranged else UNDEAD_CLIPS
+		var weapon := Gear.crossbow() if ranged else Gear.sword(RUST, 0.7)
+		model = CharacterModel.new(
+			human, {"weapon": ["RightHand", weapon], "eyes": ["Head", Gear.eyes()]}
+		)
+		var bones := Gear.bones()
+		model.skin(bones[0], {1: bones[1]})
 		return model
-	_clips = HUMAN_CLIPS
 	model = CharacterModel.new(
-		CharacterModel.HUMAN,
-		{
-			"blade": ["RightHand", Gear.blade(DUMMY_ACCENT)],
-			"visor": ["Head", Gear.visor(DUMMY_ACCENT)]
-		}
+		human, {"sword": ["RightHand", Gear.sword()], "helm": ["Head", Gear.helm(SQUIRE_PLATE)]}
 	)
-	var suit := Gear.suit(DUMMY_ACCENT, DUMMY_ARMOR)
-	model.skin(suit[0], {1: suit[1]})
+	var plate := Gear.armor(SQUIRE_PLATE)
+	model.skin(plate[0], {1: plate[1]})
 	return model
 
 
@@ -223,7 +245,7 @@ func _add_well() -> void:
 
 
 func _process(_delta: float) -> void:
-	visible = enemy.action != Enemy.Action.HIDDEN
+	visible = enemy.action != Enemy.Action.HIDDEN and Arena.shows(enemy.global_position)
 	if _last_health >= 0.0 and enemy.health < _last_health and enemy.alive():
 		_model.flash(Color(1, 1, 1, 0.6), 0.1)
 		_pop_number(_last_health - enemy.health, enemy.parried)
@@ -264,8 +286,6 @@ func _pose() -> void:
 			_arcs[def.resource_path] = _arc_meshes(def)
 		_arc.mesh = _arcs[def.resource_path][0]
 		_edge.mesh = _arcs[def.resource_path][1]
-	if _clips == DRONE_CLIPS and enemy.action != Enemy.Action.DOWN:
-		_model.lift(DRONE_LIFT)
 	match enemy.action:
 		Enemy.Action.WINDUP:
 			var progress := time / windup
@@ -293,8 +313,6 @@ func _pose() -> void:
 			var down: float = _clips["down_time"]
 			var fallen := time / Combat.ticks(down)
 			_model.play_timed(_clips["down"], fallen, down)
-			if _clips == DRONE_CLIPS:
-				_model.lift(lerpf(DRONE_LIFT, 0.45, clampf(fallen, 0.0, 1.0)))
 		Enemy.Action.RISE:
 			var rise := Combat.ticks(Warden.RISE_TIME)
 			_model.play_timed(_clips["down"], time / rise, Warden.RISE_TIME, true)

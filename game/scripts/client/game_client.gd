@@ -251,6 +251,8 @@ func _bot_controls(controls: PlayerControls) -> void:
 
 func _process(_delta: float) -> void:
 	_hud.room = room
+	if me != null:
+		_world.arena.show_planet(Layout.on_hub(me.global_position))
 	if me != null and not bot:
 		_rig.aiming = (
 			me.weapon == SimPlayer.Weapon.CROSSBOW
@@ -273,7 +275,7 @@ func _check_bot() -> void:
 		if other and other.global_position.distance_to(_first_seen[id]) > 2.0:
 			_seen_moved[id] = true
 	var seconds := (Time.get_ticks_msec() - _started_ms) / 1000.0
-	if seconds < bot_duration or me == null or me.global_position.length() < 4.0:
+	if seconds < bot_duration or me == null or me.global_position.distance_to(Layout.HUB) < 4.0:
 		return
 	if _seen_moved.size() + 1 < bot_expect:
 		return

@@ -2,7 +2,7 @@ extends GdUnitTestSuite
 ## The M5 encounter with the real world (arena, dummies, mobs, Warden): mobs chase and hit,
 ## the ranged mob's bolts hit and can be rolled through, killing the mobs raises the Warden
 ## with health for the player count, its slam hits in front only, phase 2 speeds it up and its
-## well pulls, a fallen Warden restarts the encounter and a wipe resets it.
+## well pulls, a fallen Warden opens the portal home, and an empty realm resets.
 
 const DELTA := 1.0 / 30.0
 const B := PlayerControls.Buttons
@@ -156,25 +156,54 @@ func test_phase_two_speeds_up_and_the_well_pulls() -> void:
 	assert_float(player.global_position.distance_to(boss.global_position)).is_less(start - 3.0)
 
 
-func test_a_fallen_warden_restarts_the_encounter() -> void:
+func test_a_fallen_warden_opens_the_portal_home() -> void:
 	_kill_mobs()
 	await _run(Combat.ticks(Warden.RISE_TIME) + 2)
 	_players[0].place(Vector3(0, 0, -30))
 	_boss().take_hit(100000.0)
 	await _run(1)
 	assert_int(_world.encounter.phase).is_equal(Encounter.Phase.CLEARED)
-	await _run(Combat.ticks(Encounter.RESTART_AFTER) + 1)
+	assert_bool(Encounter.won(_world)).is_true()
+	# It stays open: no timer starts the realm over while players are in it.
+	await _run(Combat.ticks(25.0))
+	assert_int(_world.encounter.phase).is_equal(Encounter.Phase.CLEARED)
+	var portal := Layout.portals()[2]
+	_players[0].place(portal.position)
+	await _run(1)
+	assert_bool(Layout.on_hub(_players[0].global_position)).is_true()
+	# The realm is empty now, so it resets for the next visit.
+	await _run(1)
 	assert_int(_world.encounter.phase).is_equal(Encounter.Phase.MOBS)
 	assert_int(_world.encounter.mobs_left()).is_equal(3)
 	assert_int(_boss().action).is_equal(Enemy.Action.HIDDEN)
 
 
-func test_a_wipe_resets_the_encounter() -> void:
+func test_the_victory_portal_is_shut_before_the_warden_falls() -> void:
+	_players[0].place(Layout.portals()[2].position)
+	await _run(2)
+	assert_bool(Layout.on_hub(_players[0].global_position)).is_false()
+
+
+func test_the_keep_gate_leads_to_the_realm_and_the_home_portal_back() -> void:
+	var player := _players[0]
+	player.place(Layout.portals()[0].position)
+	await _run(1)
+	assert_float(player.global_position.distance_to(Layout.REALM_ARRIVAL)).is_less(
+		Layout.SPAWN_RADIUS + 0.5
+	)
+	assert_int(player.respawns).is_equal(1)
+	player.place(Layout.portals()[1].position)
+	await _run(1)
+	assert_bool(Layout.on_hub(player.global_position)).is_true()
+
+
+func test_a_wipe_sends_everyone_home_and_resets_the_realm() -> void:
 	_mob(0).take_hit(10000.0)
-	await _run(Combat.ticks(Encounter.WIPE_GRACE) + 1)
+	await _run(2)
 	_players[0].health = 0.0
 	_players[0].action = SimPlayer.Action.DEAD
 	_players[0].action_time = 0
-	await _run(1)
+	await _run(Combat.ticks(Tuning.data().death_time) + 2)
+	assert_bool(Layout.on_hub(_players[0].global_position)).is_true()
 	assert_int(_world.encounter.mobs_left()).is_equal(3)
-	assert_int(_world.encounter.phase_time).is_less(2)
+	assert_int(_world.encounter.phase).is_equal(Encounter.Phase.MOBS)

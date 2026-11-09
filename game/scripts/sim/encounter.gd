@@ -1,26 +1,32 @@
 class_name Encounter
 extends Node
-## The PoC fight (PLAN §4.6): three mobs, then the Warden rises; when it falls the arena rests
-## and starts over. If every player is dead at once, it resets to the start. Rolled back like the
-## enemies (netfox, prediction), so clients show phase changes without waiting for the server.
+## The realm's fight (PLAN §4.6, §6 M12): three mobs, then the Warden rises; when it falls a
+## portal home opens. Once nobody is left in the realm (they went home, or all died and woke at
+## the keep), it resets for the next visit. Rolled back like the enemies (netfox, prediction), so
+## clients show phase changes without waiting for the server.
 
 enum Phase { MOBS, BOSS, CLEARED }
 
-const STATE := ["phase", "phase_time"]
-## Seconds after the Warden falls before the encounter starts over.
-const RESTART_AFTER := 20.0
-## A wipe only counts this long after a reset, so players still lying dead from the wipe don't
-## reset it again.
-const WIPE_GRACE := 4.0
+const STATE := ["phase", "phase_time", "occupied"]
+const GROUP := &"encounter"
 
 var phase := Phase.MOBS
 var phase_time := 0
+## Someone was in the realm last tick; when the last one leaves, the realm resets.
+var occupied := false
 var mobs: Array[Mob] = []
 var boss: Warden
 
 
 func _init() -> void:
 	name = "Encounter"
+	add_to_group(GROUP)
+
+
+## The Warden is down: the victory portal is open.
+static func won(from_node: Node) -> bool:
+	var encounter := from_node.get_tree().get_first_node_in_group(GROUP) as Encounter
+	return encounter != null and encounter.phase == Phase.CLEARED
 
 
 func networked() -> void:
@@ -44,9 +50,12 @@ func mobs_left() -> int:
 
 func _rollback_tick(_delta: float, _tick: int, _is_fresh: bool) -> void:
 	phase_time += 1
-	if phase_time > Combat.ticks(WIPE_GRACE) and _wiped():
+	var someone := _anyone_in_realm()
+	if occupied and not someone:
+		occupied = false
 		reset()
 		return
+	occupied = someone
 	match phase:
 		Phase.MOBS:
 			if mobs_left() == 0:
@@ -56,9 +65,6 @@ func _rollback_tick(_delta: float, _tick: int, _is_fresh: bool) -> void:
 		Phase.BOSS:
 			if boss.action == Enemy.Action.DOWN:
 				_set_phase(Phase.CLEARED)
-		Phase.CLEARED:
-			if phase_time >= Combat.ticks(RESTART_AFTER):
-				reset()
 
 
 ## Mobs back at their posts, the Warden hidden again.
@@ -76,11 +82,8 @@ func _set_phase(next: Phase) -> void:
 	phase_time = 0
 
 
-func _wiped() -> bool:
-	var players := get_tree().get_nodes_in_group(SimPlayer.GROUP)
-	if players.is_empty():
-		return false
-	for node in players:
-		if (node as SimPlayer).action != SimPlayer.Action.DEAD:
-			return false
-	return true
+func _anyone_in_realm() -> bool:
+	for node in get_tree().get_nodes_in_group(SimPlayer.GROUP):
+		if not Layout.on_hub((node as SimPlayer).global_position):
+			return true
+	return false

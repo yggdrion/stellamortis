@@ -1,10 +1,13 @@
 class_name Layout
 extends RefCounted
-## Where things are in the PoC arena (PLAN §4.4), shared by the server and every client: gravity
-## zones, the asteroid and the jump pads. Arena builds collision and visuals from it, Gravity
-## and SimPlayer read it during simulation.
+## Where things are (PLAN §4.4, §6 M12), shared by the server and every client: the two planets,
+## gravity zones, the asteroid, jump pads and portals. Arena builds collision and visuals from it,
+## Gravity and SimPlayer read it during simulation.
 ##
-## Low-g zone east of the spawn with the asteroid floating above it, high-g zone to the west.
+## The realm (the encounter) sits at the origin: low-g zone east of the arrival with the
+## asteroid floating above it, high-g zone to the west, the dead to the south. The hub, a keep on
+## a plateau of a small planet, floats far above it. Both share one world, so the netcode needs no
+## level loading; clients only show the planet their player is on (Arena.show_planet).
 
 const LOW_G_CENTER := Vector3(40.0, 9.0, 0.0)
 const LOW_G_SIZE := Vector3(30.0, 18.0, 40.0)
@@ -21,8 +24,19 @@ const ASTEROID_G := 7.0
 const GROUND_PAD_SPEED := 12.0
 const RETURN_PAD_SPEED := 17.0
 
-## Training dummies: position and whether it only takes hits (true) or also swings back.
-const DUMMIES := [[Vector3(-4.0, 0.0, -10.0), true], [Vector3(4.0, 0.0, -10.0), false]]
+## The keep's yard floor center. Players spawn and respawn here.
+const HUB := Vector3(0.0, 400.0, -600.0)
+## The yard inside the keep walls (x by z) and the wall height.
+const HUB_YARD := Vector2(40.0, 44.0)
+const HUB_WALL := 7.0
+const HUB_PLANET_RADIUS := 60.0
+## Anything this close to the hub is on the hub planet; everything else is the realm.
+const HUB_REACH := 200.0
+## Training dummies in the keep's yard: position and whether it only takes hits (true) or also
+## swings back.
+const DUMMIES := [[HUB + Vector3(-4.0, 0.0, -10.0), true], [HUB + Vector3(4.0, 0.0, -10.0), false]]
+## The realm's arrival ring (players face the encounter, +Z).
+const REALM_ARRIVAL := Vector3.ZERO
 ## The encounter, south of the spawn in front of the long wall: melee mobs, the ranged mob
 ## (true), and where the Warden rises. All face north, toward the spawn.
 const MOBS := [
@@ -37,6 +51,7 @@ const SPAWN_SLOTS := 10
 
 static var _zones: Array[GravityZone] = []
 static var _pads: Array[JumpPad] = []
+static var _portals: Array[Portal] = []
 
 
 static func gravity_zones() -> Array[GravityZone]:
@@ -62,6 +77,29 @@ static func jump_pads() -> Array[JumpPad]:
 	return _pads
 
 
+## The keep's gate to the realm (south of the spawn), the realm's way home behind the arrival,
+## and the portal that opens where the Warden fell.
+static func portals() -> Array[Portal]:
+	if _portals.is_empty():
+		_portals = [
+			Portal.at(HUB + Vector3(0, 0, 15), REALM_ARRIVAL, Vector3.BACK, "To the Barrows"),
+			Portal.at(Vector3(-10, 0, -3), HUB, Vector3.BACK, "Home"),
+			Portal.at(Vector3(0, 0, 22), HUB, Vector3.BACK, "Home", true),
+		]
+	return _portals
+
+
+static func portal_at(feet: Vector3) -> Portal:
+	for portal in portals():
+		if portal.reaches(feet):
+			return portal
+	return null
+
+
+static func on_hub(point: Vector3) -> bool:
+	return point.distance_to(HUB) < HUB_REACH
+
+
 static func pad_at(feet: Vector3) -> JumpPad:
 	for pad in jump_pads():
 		if pad.reaches(feet):
@@ -69,7 +107,12 @@ static func pad_at(feet: Vector3) -> JumpPad:
 	return null
 
 
-## Where a player (re)spawns: a ring around the origin, by peer id.
+## Where a player (re)spawns: a ring in the keep's yard, by peer id.
 static func spawn_point(peer_id: int) -> Vector3:
+	return ring_point(HUB, peer_id)
+
+
+## A place on the ring around center for this peer (spawns and portal arrivals).
+static func ring_point(center: Vector3, peer_id: int) -> Vector3:
 	var angle := (peer_id % SPAWN_SLOTS) * TAU / SPAWN_SLOTS
-	return Vector3(cos(angle), 0.0, sin(angle)) * SPAWN_RADIUS
+	return center + Vector3(cos(angle), 0.0, sin(angle)) * SPAWN_RADIUS

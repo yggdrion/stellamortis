@@ -1,11 +1,11 @@
 class_name BoltsView
 extends Node3D
-## Bolts in flight (PLAN §4.5), a player's or an enemy's: glowing plasma darts with a particle
-## trail, drawn from the shooter's bolt state (bolt_pos, bolt_vel, bolt_life) and moved on
-## between ticks along their velocity, with a burst where one ends.
+## Bolts in flight (PLAN §4.5), a player's or an enemy's: crossbow bolts with a faint pale
+## streak, or the dead's embers, drawn from the shooter's bolt state (bolt_pos, bolt_vel,
+## bolt_life) and moved on between ticks along their velocity, with a burst where one ends.
 
-const PLAYER_COLOR := Color(0.2, 0.9, 1.0)
-const ENEMY_COLOR := Color(1.0, 0.25, 0.12)
+const PLAYER_COLOR := Color(0.9, 0.85, 0.7)
+const ENEMY_COLOR := Gear.EMBER
 
 ## A SimPlayer or an Enemy: anything with the three bolt arrays.
 var shooter: Node3D

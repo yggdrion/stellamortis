@@ -13,4 +13,4 @@ reach = 0.0
 arc_degrees = 0.0
 lunge = 0.0
 parryable = false
-animation = &"Look"
+animation = &"Spell_Simple_Idle"

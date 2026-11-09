@@ -14,14 +14,15 @@ var _code: LineEdit
 
 
 func _ready() -> void:
-	var column := Menus.screen(self, Color(0.03, 0.04, 0.05))
+	var column := Menus.screen(self, Menus.BACKDROP)
 	_main = VBoxContainer.new()
 	_main.add_theme_constant_override("separation", 10)
 	column.add_child(_main)
 	_main.add_child(Menus.title("STELLAMORTIS", 44))
 	if message != "":
 		var note := Menus.title(message, 18)
-		note.add_theme_color_override("font_color", Color(0.9, 0.55, 0.45))
+		note.add_theme_font_override("font", Menus.body_font())
+		note.add_theme_color_override("font_color", Color(0.85, 0.45, 0.35))
 		note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_main.add_child(note)
 

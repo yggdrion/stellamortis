@@ -3,6 +3,9 @@ extends GdUnitTestSuite
 ## enemies for charge-scaled damage, and stop at walls.
 
 const DELTA := 1.0 / 30.0
+## Where the M2 dummies stood, north of the realm's arrival (they moved to the keep in M12;
+## these tests keep the realm's walls and ground around them).
+const DUMMY_AT := [Vector3(-4.0, 0.0, -10.0), Vector3(4.0, 0.0, -10.0)]
 const B := PlayerControls.Buttons
 const CROSSBOW := SimPlayer.Weapon.CROSSBOW
 
@@ -18,9 +21,7 @@ func before_test() -> void:
 	_dummy = TrainingDummy.new()
 	_dummy.passive = true
 	_world.add_child(_dummy)
-	_dummy.global_transform = Transform3D(
-		SimPlayer.frame(Vector3.UP, Vector3.BACK), Layout.DUMMIES[0][0]
-	)
+	_dummy.global_transform = Transform3D(SimPlayer.frame(Vector3.UP, Vector3.BACK), DUMMY_AT[0])
 	_player = SimPlayer.new()
 	_world.add_child(_player)
 	_player.place(Vector3.ZERO)

@@ -15,4 +15,4 @@ lunge = 0.0
 parryable = false
 bolts = 1
 bolt_speed = 18.0
-animation = &"Attack"
+animation = &"Pistol_Shoot"

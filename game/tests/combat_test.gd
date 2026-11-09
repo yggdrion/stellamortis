@@ -3,6 +3,9 @@ extends GdUnitTestSuite
 ## combos chain, rolls dodge, blocks and parries work, stamina gates actions, death respawns.
 
 const DELTA := 1.0 / 30.0
+## Where the M2 dummies stood, north of the realm's arrival (they moved to the keep in M12;
+## these tests keep the realm's walls and ground around them).
+const DUMMY_AT := [Vector3(-4.0, 0.0, -10.0), Vector3(4.0, 0.0, -10.0)]
 const B := PlayerControls.Buttons
 
 var _world: Node3D
@@ -15,8 +18,8 @@ func before_test() -> void:
 	_world = auto_free(Node3D.new()) as Node3D
 	add_child(_world)
 	_world.add_child(Arena.new(false))
-	_passive = _dummy(0, Layout.DUMMIES[0][0], true)
-	_swinger = _dummy(1, Layout.DUMMIES[1][0], false)
+	_passive = _dummy(0, DUMMY_AT[0], true)
+	_swinger = _dummy(1, DUMMY_AT[1], false)
 	_player = SimPlayer.new()
 	_world.add_child(_player)
 	_player.place(Vector3(0, 0, 0))

@@ -23,12 +23,11 @@ var _flash_left := 0.0
 var _looping: StringName = &""
 
 
-## scale: model units to meters; lift: raises the model (hovering drones).
-func _init(scene_path: String, held: Dictionary, scale_by := 1.0, lift := 0.0) -> void:
+## scale: model units to meters.
+func _init(scene_path: String, held: Dictionary, scale_by := 1.0) -> void:
 	var model := (load(scene_path) as PackedScene).instantiate() as Node3D
 	model.scale = Vector3.ONE * scale_by
 	model.rotation.y = PI
-	model.position.y = lift
 	add_child(model)
 	animation = model.find_children("*", "AnimationPlayer", true, false)[0]
 	skeleton = model.find_children("*", "Skeleton3D", true, false)[0]
@@ -49,11 +48,6 @@ func _init(scene_path: String, held: Dictionary, scale_by := 1.0, lift := 0.0) -
 	_flash.albedo_color = Color(1, 1, 1, 0)
 	for mesh in _meshes:
 		mesh.material_overlay = _flash
-
-
-## Raises the model above its body's feet (a drone's hover height).
-func lift(height: float) -> void:
-	(get_child(0) as Node3D).position.y = height
 
 
 ## A prop from a scene file, for held.
@@ -93,7 +87,7 @@ func light_up(texture: Texture2D, energy: float) -> void:
 ## A looping animation (idle, walk, run), blended in when it changes.
 func loop(clip: StringName, speed := 1.0) -> void:
 	if _looping != clip:
-		# The robot packs export their cycles without a loop flag.
+		# Some clips are exported without a loop flag.
 		var cycle := animation.get_animation(clip)
 		if cycle.loop_mode == Animation.LOOP_NONE:
 			cycle.loop_mode = Animation.LOOP_LINEAR
@@ -103,7 +97,7 @@ func loop(clip: StringName, speed := 1.0) -> void:
 
 
 ## A one-shot clip shown at progress 0..1 of its length (stretched to the action's length).
-## reverse plays it backwards (a robot powering up from its power-down clip).
+## reverse plays it backwards (the Warden rising from its fall).
 func play_timed(clip: StringName, progress: float, length_seconds: float, reverse := false) -> void:
 	var clip_length := animation.get_animation(clip).length
 	if animation.current_animation != clip or _looping != &"":

@@ -50,7 +50,7 @@ func _process(_delta: float) -> void:
 		lines
 		. append(
 			(
-				"ping %d ms   netfox rtt %d ms   tick %d   server %.1f tps, tick loop max %.2f ms"
+				"ping %d ms   netfox rtt %d ms   tick %d   server %.1f tps, tick loop %.2f avg %.2f max ms"
 				% [
 					client.ping_ms,
 					NetworkTime.remote_rtt * 1000.0,
@@ -81,5 +81,14 @@ func _process(_delta: float) -> void:
 				)
 			)
 		)
-	lines.append("%s, %s" % [RenderingServer.get_video_adapter_name(), OS.get_name()])
+	lines.append(
+		(
+			"%s, %s   graphics %s (F4)"
+			% [
+				RenderingServer.get_video_adapter_name(),
+				OS.get_name(),
+				Graphics.NAMES[Graphics.preset]
+			]
+		)
+	)
 	_label.text = "\n".join(lines)

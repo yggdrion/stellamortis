@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AttackDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/attack_def.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+windup = 0.25
+active = 0.12
+recover = 0.33
+damage = 18.0
+stamina = 12.0
+reach = 2.3
+arc_degrees = 110.0
+lunge = 2.0
+next = &"light_2"
+animation = &"1H_Melee_Attack_Slice_Diagonal"

@@ -7,7 +7,6 @@ extends Node
 const MAX_PLAYERS := 10
 ## A solo server exits when its player leaves, or if nobody joined within this many seconds.
 const SOLO_JOIN_TIMEOUT := 20.0
-const SPAWN_RADIUS := 3.0
 
 var net: Net
 var solo := false
@@ -21,6 +20,8 @@ var _started_ms := 0
 var _loop_began := 0
 var _stats_ticks := 0
 var _stats_ms := 0.0
+var _stats_sum_ms := 0.0
+var _stats_loops := 0
 var _stats_at := 0
 
 
@@ -56,14 +57,22 @@ func _process(_delta: float) -> void:
 
 
 func _track_stats() -> void:
-	_stats_ms = maxf(_stats_ms, (Time.get_ticks_usec() - _loop_began) / 1000.0)
+	var took := (Time.get_ticks_usec() - _loop_began) / 1000.0
+	_stats_ms = maxf(_stats_ms, took)
+	_stats_sum_ms += took
+	_stats_loops += 1
 	var now := Time.get_ticks_msec()
 	if now - _stats_at < 1000:
 		return
+	var average := _stats_sum_ms / maxi(_stats_loops, 1)
 	if not _names.is_empty():
-		net.server_stats.rpc(_stats_ticks * 1000.0 / (now - _stats_at), _stats_ms)
+		net.server_stats.rpc(_stats_ticks * 1000.0 / (now - _stats_at), _stats_ms, average)
+	if OS.has_environment("STELLAMORTIS_SERVER_STATS"):
+		print("tick loop avg %.2f ms max %.2f ms" % [average, _stats_ms])
 	_stats_ticks = 0
 	_stats_ms = 0.0
+	_stats_sum_ms = 0.0
+	_stats_loops = 0
 	_stats_at = now
 
 
@@ -80,8 +89,7 @@ func _on_hello(id: int, version: int, player_name: String) -> void:
 		await NetworkTime.after_client_sync
 		if not _names.has(id):
 			return
-	var angle := (_world.players.get_child_count() % MAX_PLAYERS) * TAU / MAX_PLAYERS
-	var at := Vector3(cos(angle), 0.0, sin(angle)) * SPAWN_RADIUS
+	var at := Layout.spawn_point(id)
 	_world.spawn_player(id, _names[id], spawn_at if spawn_at is Vector3 else at)
 	print("%s joined (%d)" % [_names[id], id])
 

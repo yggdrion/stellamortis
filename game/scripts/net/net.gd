@@ -9,11 +9,11 @@ signal pinged(peer_id: int, sent_ms: int)
 # Client side.
 signal rejected(reason: String)
 signal ponged(sent_ms: int)
-signal server_stats_received(tps: float, tick_ms: float)
+signal server_stats_received(tps: float, tick_ms: float, tick_avg_ms: float)
 
 ## Bump on any change to the RPCs here or to what netfox synchronizes (SimPlayer.STATE,
 ## PlayerControls) or to what both sides simulate (Layout, Gravity, Tuning).
-const PROTOCOL_VERSION := 3
+const PROTOCOL_VERSION := 4
 
 @rpc("any_peer", "reliable")
 func hello(version: int, player_name: String) -> void:
@@ -36,5 +36,5 @@ func pong(sent_ms: int) -> void:
 
 
 @rpc("authority", "unreliable")
-func server_stats(tps: float, tick_ms: float) -> void:
-	server_stats_received.emit(tps, tick_ms)
+func server_stats(tps: float, tick_ms: float, tick_avg_ms: float) -> void:
+	server_stats_received.emit(tps, tick_ms, tick_avg_ms)

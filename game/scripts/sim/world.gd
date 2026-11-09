@@ -6,6 +6,7 @@ extends Node3D
 signal player_spawned(player: SimPlayer)
 
 var visual := false
+var arena: Arena
 var players: Node3D
 var _spawner: MultiplayerSpawner
 
@@ -16,7 +17,8 @@ func _init(with_visuals: bool) -> void:
 
 
 func _ready() -> void:
-	add_child(Arena.new(visual))
+	arena = Arena.new(visual)
+	add_child(arena)
 	players = Node3D.new()
 	players.name = "Players"
 	add_child(players)
@@ -25,6 +27,26 @@ func _ready() -> void:
 	_spawner.spawn_path = NodePath("../Players")
 	_spawner.spawn_function = _spawn_player
 	add_child(_spawner)
+	_add_dummies()
+
+
+## The same dummies, same names and order, on every peer (netfox finds them by path).
+func _add_dummies() -> void:
+	var enemies := Node3D.new()
+	enemies.name = "Enemies"
+	add_child(enemies)
+	for i in Layout.DUMMIES.size():
+		var dummy := TrainingDummy.new()
+		dummy.name = "Dummy%d" % i
+		dummy.index = i
+		dummy.passive = Layout.DUMMIES[i][1]
+		dummy.networked(Enemy.STATE)
+		dummy.position = Layout.DUMMIES[i][0]
+		dummy.facing = Vector3.BACK
+		dummy.basis = SimPlayer.frame(Vector3.UP, dummy.facing)
+		if visual:
+			dummy.add_child(EnemyView.new(dummy))
+		enemies.add_child(dummy)
 
 
 ## Server only: spawns a player on every peer.
@@ -45,6 +67,6 @@ func _spawn_player(data: Array) -> Node:
 	body.place(data[2])
 	if visual:
 		var own := peer_id == multiplayer.get_unique_id()
-		body.add_child(PlayerView.new(player_name, peer_id, not own))
+		body.add_child(PlayerView.new(body, not own))
 	player_spawned.emit.call_deferred(body)
 	return body

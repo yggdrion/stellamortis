@@ -6,6 +6,9 @@ extends Node3D
 const SIZE := 160.0
 
 var visual := false
+## Clients only: what Graphics presets adjust.
+var environment: Environment
+var sun: DirectionalLight3D
 
 
 func _init(with_visuals: bool) -> void:
@@ -156,6 +159,8 @@ func _add_environment() -> void:
 	env.volumetric_fog_emission_energy = 1.0
 	var world_env := WorldEnvironment.new()
 	world_env.environment = env
+	environment = env
+	self.sun = sun
 	add_child(world_env)
 
 

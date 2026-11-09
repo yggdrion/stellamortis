@@ -8,6 +8,8 @@ extends Node
 ##   --name=NAME                    player name
 ##   --windowed                     start in a window instead of fullscreen
 ##   --screenshot=PATH              save a PNG of the screen after a few seconds, then quit
+##     [--delay=SECONDS]            how long to wait first (default 4)
+##   --graphics=low|medium|high|ultra   graphics preset for this run (not saved)
 ##   --look=YAW,PITCH               start the camera there (degrees, yaw 0 looks along -Z)
 ##   (none)                         solo: spawns a local --solo server and joins it
 
@@ -41,6 +43,8 @@ func _ready() -> void:
 	client.bot_duration = float(_args.get("duration", "5"))
 	client.player_name = _args.get("name", "player")
 	client.screenshot_path = _args.get("screenshot", "")
+	client.screenshot_delay = float(_args.get("delay", "4"))
+	client.graphics = _args.get("graphics", "")
 	if _args.has("look"):
 		var parts := (_args["look"] as String).split(",")
 		client.look = Vector2(float(parts[0]), float(parts[1]) if parts.size() > 1 else -15.0)

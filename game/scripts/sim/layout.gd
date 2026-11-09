@@ -21,6 +21,11 @@ const ASTEROID_G := 7.0
 const GROUND_PAD_SPEED := 12.0
 const RETURN_PAD_SPEED := 17.0
 
+## Training dummies: position and whether it only takes hits (true) or also swings back.
+const DUMMIES := [[Vector3(-4.0, 0.0, -10.0), true], [Vector3(4.0, 0.0, -10.0), false]]
+const SPAWN_RADIUS := 3.0
+const MAX_PLAYERS := 10
+
 static var _zones: Array[GravityZone] = []
 static var _pads: Array[JumpPad] = []
 
@@ -53,3 +58,9 @@ static func pad_at(feet: Vector3) -> JumpPad:
 		if pad.reaches(feet):
 			return pad
 	return null
+
+
+## Where a player (re)spawns: a ring around the origin, by peer id.
+static func spawn_point(peer_id: int) -> Vector3:
+	var angle := (peer_id % MAX_PLAYERS) * TAU / MAX_PLAYERS
+	return Vector3(cos(angle), 0.0, sin(angle)) * SPAWN_RADIUS

@@ -4,7 +4,10 @@ extends Node
 ## RollbackSynchronizer sends it to the server and replays it during rollback. The owning client
 ## fills it from `reader` before every tick loop.
 
-enum Buttons { JUMP = 1, SPRINT = 2 }
+enum Buttons { JUMP = 1, SPRINT = 2, ATTACK = 4, HEAVY = 8, BLOCK = 16, ROLL = 32 }
+
+## The input properties netfox sends.
+const INPUT := ["move", "yaw", "buttons"]
 
 ## x right, y forward, length at most 1, relative to the look direction.
 var move := Vector2.ZERO

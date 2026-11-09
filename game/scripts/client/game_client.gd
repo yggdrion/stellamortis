@@ -6,8 +6,6 @@ extends Node3D
 
 signal left(reason: String)
 
-const SCREENSHOT_DELAY := 4.0
-
 var net: Net
 var player_name := "player"
 var bot := false
@@ -15,8 +13,11 @@ var bot := false
 var bot_expect := 1
 ## Bot: seconds to run at least.
 var bot_duration := 5.0
-## Saves a PNG of the screen here after SCREENSHOT_DELAY seconds, then quits (visual checks).
+## Saves a PNG of the screen here after screenshot_delay seconds, then quits (visual checks).
 var screenshot_path := ""
+var screenshot_delay := 4.0
+## A preset name for this run only (--graphics), "" for the saved one.
+var graphics := ""
 ## Camera yaw and pitch in degrees to start with (screenshots), null for the default.
 var look: Variant = null
 
@@ -24,12 +25,14 @@ var me: SimPlayer
 var ping_ms := 0
 var server_tps := 0.0
 var server_tick_ms := 0.0
+var server_tick_avg_ms := 0.0
 
 var _world: World
 var _rig: CameraRig
 ## Set by leave(): the disconnect that follows is ours, not a lost server.
 var _leaving := false
 var _overlay: DebugOverlay
+var _hud: Hud
 var _started_ms := 0
 ## Bot: peer id -> where it first saw that player; ids it saw move are in _seen_moved.
 var _first_seen := {}
@@ -44,17 +47,24 @@ func _ready() -> void:
 	_world = World.new(true)
 	add_child(_world)
 	_world.player_spawned.connect(_on_player_spawned)
+	Graphics.load_saved()
+	if graphics != "":
+		Graphics.preset = maxi(0, Graphics.NAMES.find(graphics.capitalize())) as Graphics.Preset
+	Graphics.apply(get_viewport(), _world.arena)
 	_rig = CameraRig.new()
 	add_child(_rig)
+	_hud = Hud.new()
+	add_child(_hud)
 	_overlay = DebugOverlay.new()
 	_overlay.client = self
 	add_child(_overlay)
 	net.rejected.connect(func(reason: String) -> void: left.emit(reason))
 	net.ponged.connect(func(sent: int) -> void: ping_ms = Time.get_ticks_msec() - sent)
 	net.server_stats_received.connect(
-		func(tps: float, tick_ms: float) -> void:
+		func(tps: float, tick_ms: float, tick_avg_ms: float) -> void:
 			server_tps = tps
 			server_tick_ms = tick_ms
+			server_tick_avg_ms = tick_avg_ms
 	)
 	var timer := Timer.new()
 	timer.wait_time = 1.0
@@ -106,6 +116,7 @@ func _on_player_spawned(player: SimPlayer) -> void:
 		_first_seen[player.peer_id] = player.global_position
 		return
 	me = player
+	_hud.player = me
 	me.controls.reader = _bot_controls if bot else _read_controls
 	_rig.target = me
 	if look is Vector2:
@@ -124,16 +135,26 @@ func _read_controls(controls: PlayerControls) -> void:
 	controls.move = Input.get_vector(&"move_left", &"move_right", &"move_back", &"move_forward")
 	if Input.is_action_pressed(&"jump"):
 		controls.buttons |= PlayerControls.Buttons.JUMP
-	if Input.is_action_pressed(&"sprint"):
-		controls.buttons |= PlayerControls.Buttons.SPRINT
+	var held := {
+		&"sprint": PlayerControls.Buttons.SPRINT,
+		&"attack": PlayerControls.Buttons.ATTACK,
+		&"heavy": PlayerControls.Buttons.HEAVY,
+		&"block": PlayerControls.Buttons.BLOCK,
+		&"roll": PlayerControls.Buttons.ROLL,
+	}
+	for action: StringName in held:
+		if Input.is_action_pressed(action):
+			controls.buttons |= held[action]
 
 
-## Walks a circle and jumps now and then.
+## Walks a circle and runs through jump, attack, heavy, roll and block on a rhythm, so the
+## network test exercises combat and rollback too.
 func _bot_controls(controls: PlayerControls) -> void:
 	var seconds := (Time.get_ticks_msec() - _started_ms) / 1000.0
 	controls.move = Vector2(0.0, 1.0)
 	controls.yaw = fposmod(seconds * 0.8 + me.peer_id % 7, TAU)
-	controls.buttons = PlayerControls.Buttons.JUMP if int(seconds * 2.0) % 5 == 0 else 0
+	var b := PlayerControls.Buttons
+	controls.buttons = [b.JUMP, b.ATTACK, 0, b.HEAVY, b.ROLL, b.BLOCK, 0][int(seconds * 2.0) % 7]
 
 
 func _each_second() -> void:
@@ -161,7 +182,7 @@ func _check_bot() -> void:
 
 func _take_screenshot() -> void:
 	_overlay.visible = true
-	await get_tree().create_timer(SCREENSHOT_DELAY).timeout
+	await get_tree().create_timer(screenshot_delay).timeout
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(screenshot_path)
 	print("Saved ", screenshot_path)
@@ -178,5 +199,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event is InputEventMouseButton and event.is_pressed() and me != null:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	elif event.is_action_pressed(&"graphics"):
+		Graphics.cycle(get_viewport(), _world.arena)
 	elif event.is_action_pressed(&"toggle_debug"):
 		_overlay.visible = not _overlay.visible

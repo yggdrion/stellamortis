@@ -11,16 +11,17 @@ Needs Python 3.12+ and git. Safe to re-run:
 
 Installs gdtoolkit and pre-commit (a venv), the pinned Godot (`.godot-version`, checked against
 `tools/godot-<version>.sha512`, into a per-user dir shared by all checkouts, see
-`tools/install.py`), the webrtc-native GDExtension, gdUnit4 and the pre-push hook.
+`tools/install.py`), the webrtc-native GDExtension, netfox (netcode), gdUnit4 and the pre-push hook.
 
 ## Run
 
     python tools/godot.py                    # solo: spawns a local headless server and joins it
     python tools/godot.py -e                 # editor
-    python tools/dev.py 2 --lag=100          # headless server + 2 windowed clients, 100 ms fake latency
+    python tools/dev.py 2 --lag=100          # headless server + 2 windowed clients through a 100 ms lag proxy
+    python tools/lag_proxy.py 17778 17777 150 --jitter=20   # lag proxy on its own
 
 Command line (after `--`, see `game/scripts/boot/main.gd`): `--server --port=N [--solo]`,
-`--connect=host:port`, `--name=NAME`, `--lag=MS`, `--windowed`, `--bot [--expect=N] [--duration=S]`.
+`--connect=host:port`, `--name=NAME`, `--windowed`, `--bot [--expect=N] [--duration=S]`.
 
 Controls: WASD move, mouse look, Shift sprint, Space jump, Esc frees the mouse (click to capture
 again), F3 debug overlay, F11 fullscreen.

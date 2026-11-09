@@ -29,6 +29,7 @@ Out (for the PoC): inventory, loot, crafting, persistence, procedural world, bui
 | Language | GDScript, statically typed everywhere (typed arrays and dictionaries) for speed and checks, lint with gdtoolkit |
 | Tests | gdUnit4 (game), `bun test` (lobby) |
 | Lobby | TypeScript on Bun, copied from jotra `lobby/` (own protocol number, own deployment later) |
+| Netcode | [netfox](https://github.com/foxssake/netfox) (MIT), pinned to a main commit (`tools/install.py`): shared network tick, client-side prediction with server-side rollback, tick interpolation; later lag compensation for hits |
 | NAT traversal | WebRTC (`webrtc_native` GDExtension) + coturn, as in jotra |
 | Dedicated | headless Linux export in Docker, run locally |
 | Art | CC0 rigged and animated packs (Quaternius, KayKit), sources and licenses in `docs/RESOURCES.md` |
@@ -79,17 +80,16 @@ A `Transport` creates the `MultiplayerPeer` (ENet or WebRTC). Gameplay code sees
 
 ### 4.3 Networking
 
-- Server tick 30 Hz. Clients send input (move vector in camera frame, look direction, buttons, tick number) every tick.
-- Own player: predicted with the same `sim/` movement code, reconciled against the server state (replay unacked inputs).
-- The server runs every input it received each tick (up to 8), never extrapolates a missing one, so the client's prediction replays exactly what the server ran. A player whose inputs are late stands still on the server until they arrive. Fine for coop; a speed-hack check can come later.
-- Physics interpolation (project setting) smooths the predicted player between 30 Hz ticks; remote players are interpolated in code.
-- Other players and enemies: interpolated from snapshots about 100 ms behind.
-- Snapshots at 30 Hz: position, up vector, facing, velocity, action state + its start tick, health, stamina. 10 players in one arena need no interest management.
-- Hits:
-  - Player melee: the client reports what its swing hit; the server checks reach, arc, timing and stamina with slack (jotra pattern).
-  - Player projectiles: simulated on the server; the client draws its own bolt at once and snaps to the server one.
-  - Enemy attacks: resolved on the server. I-frames, block and parry are checked there against the action state the server has for that player.
-- Game protocol version is separate from the lobby protocol.
+netfox does the netcode (decided 2026-11-09, replacing M0's own prediction code):
+
+- `NetworkTime` runs one network tick loop at 30 Hz on every peer, synced to the physics tick and to the server's clock. `NetworkEvents` starts it when the server opens or the client connects.
+- Each player is a server-owned `SimPlayer` (state: transform, velocity, up, ref_forward, facing, grounded) with a player-owned `PlayerControls` child (input: move, yaw, buttons). A `RollbackSynchronizer` sends input to the server only (no broadcast) and state from the server, with diff states.
+- Server: when late input arrives, it rolls back to that tick and resimulates. Owning client: predicts its own player from its input and resimulates from each server state. Other players are not simulated on clients; they show the server's state, smoothed by a `TickInterpolator`.
+- Movement code runs in `_rollback_tick`, scaled by `NetworkTime.physics_factor` around `move_and_slide`. Godot's own physics interpolation is off, `TickInterpolator` does that job.
+- Players are spawned by the server through a `MultiplayerSpawner` once the client's clock is synced (`NetworkTime.is_client_synced`), so late joiners get everyone.
+- Our own RPCs (`Net`): hello with protocol version and name, reject, ping, server stats.
+- Hits (later milestones): player melee and projectiles go through netfox rollback and lag compensation, enemy attacks are resolved on the server, so i-frames, block and parry are checked there against the player's rolled back state. Details are worked out in M2/M3.
+- Testing latency: `tools/lag_proxy.py` delays every UDP packet (netfox's too), with optional jitter and loss.
 
 ### 4.4 Gravity
 
@@ -137,7 +137,7 @@ docs/        PLAN.md, RESOURCES.md
 
 | # | Name | Done when | Status |
 |---|---|---|---|
-| M0 | Skeleton | Tooling copied from jotra (pinned Godot, gdUnit4, lint); client spawns a local server in solo; capsule player moves with prediction and reconciliation; third-person camera; a second client joins by IP; two clients see each other move smoothly at 100 ms simulated latency | Done (2026-11-09) |
+| M0 | Skeleton | Tooling copied from jotra (pinned Godot, gdUnit4, lint); client spawns a local server in solo; capsule player moves with prediction and reconciliation (netfox since 2026-11-09); third-person camera; a second client joins by IP; two clients see each other move smoothly at 100 ms simulated latency | Done (2026-11-09) |
 | M1 | Gravity zones | `Gravity.sample` with zones; low-g and high-g zones; walk all the way around the asteroid with a steady camera; jump pad to the asteroid; tests for sampling and zone priority | Planned |
 | M2 | Melee + defense | Stamina, roll with i-frames, light combo, heavy, block, parry; a training dummy that swings on a timer to test i-frames and parry; animated player model (CC0) | Planned |
 | M3 | Ranged | Aim mode, crosshair, charged bolt simulated on the server and falling with local gravity; hits the dummy | Planned |

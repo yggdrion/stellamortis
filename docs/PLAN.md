@@ -180,66 +180,56 @@ docs/        PLAN.md, RESOURCES.md
 | M7 | 6 players | Headless bots fill a game (`tools/run_load_test.py`); server holds 30 tps; bandwidth per player measured; state packets fit netfox's 508 byte limit (netfox schemas). Planned for 10 players; measured, netfox's server rollback holds 6 (§4.3, §8), and the cap is 6 by decision (2026-11-09) | Done (2026-11-09), v0.8.0 |
 | M8 | Lobby deploy | `deploy/lobby/` runs on the gvm host from `/root/stellamortis` (compose project `stellamortis-lobby`) in place of the stack there before, with its `TURN_SECRET`; gvm's Caddy routes `lobby.r4b2.de` (`/ws`, `/healthz`) to `stellamortis-lobby:8080`. coturn runs on the host network: behind Docker's NAT it mapped its own public address to the container's and denied relay to relay as a private peer (403 on CreatePermission). Checked with a host bot and a friend bot forced through the public TURN relay (`--relay-only`) | Done |
 | M9 | Dark sci-fi look | Replace the KayKit fantasy look with grounded sci-fi (§3.2): suited players with blade, hard-light shield and revolver, training mannequins, robot mobs and Warden, PBR arena materials, cold lighting and grade, a restyled HUD | Done |
-| M10 | Combat like Valheim | Combat should feel like Valheim, not Elden Ring. Turn lock-on off for now (input, camera framing, facing toward the target; keep the code behind a setting). Find and fix the moments where the player seems to teleport toward an enemy (suspects: lock-on facing and strafe, roll direction while locked, rollback corrections on attacks). Debug aid: the enemy's ground telegraph is clearly visible through the whole windup (stronger fill and outline, a toggle). Damage numbers on the own player when hit. The death notice says "YOU DIED" (or similar) instead of "SIGNAL LOST" | Planned |
-| M11 | Main menu | A proper start menu instead of booting straight into solo: Solo, Host (opens a room, shows the code), Join by code, Settings (graphics preset, later key bindings), Quit. Escape in game opens a pause menu with Leave. The command line flags keep working for tests | Planned |
-| M12 | Medieval fantasy theme | Refactor the theme: M9's look is too spacey and futuristic. The setting becomes medieval fantasy; space stays as part of it, for example traveling from planet to planet (each planet a realm with its own gravity). Characters, enemies, weapons, arena, sky, HUD and wording change with it; the grounded, not cute, direction of M9 stays. Pick assets first (CC0 fantasy outfits on the UAL rig, fantasy environment kits) | Planned |
-| M13 | Discord Rich Presence | Discord shows the old project's name while the game runs. Add Rich Presence for Stellamortis: a Discord application named Stellamortis (the user creates it and provides the application ID), a GDExtension or IPC client, and the state shown (solo, hosting with player count, in the encounter or boss fight). Check what makes Discord show the old name today (a detected game entry or the old application) | Planned |
-| M14 | Frame pacing | Settings to turn vsync off and, as an alternative, cap the frame rate (`Engine.max_fps`, e.g. 60/120/144/unlimited), saved with the graphics preset; F3 shows the cap. Later, not relevant for the PoC | Later |
-| M15 | Wooting analog | Analog movement from Wooting keyboards through the Wooting Analog SDK (GDExtension or a small native bridge): WASD depth becomes `PlayerControls.move` length, so walk speed follows key pressure; digital keys stay the fallback when no Wooting device or SDK is present. Later, not relevant for the PoC | Later |
-| M16 | Telemetry | Opt-in game telemetry (sessions, joins, connection type, tick and frame times) through the lobby host. Later, not relevant for the PoC | Later |
+| M10 | Combat like Valheim | Combat should feel like Valheim, not Elden Ring. Remove lock-on completely (code, tests, Tab/MMB bindings, camera framing, outline and dot, docs). Attacks and blocks turn the character toward where the camera looks; rolls go in the movement direction (camera forward without input). Find and fix the moments where the player seems to teleport toward an enemy (suspects: facing slerp, roll direction, rollback corrections on attacks). The enemy's ground telegraph is clearly visible through the whole windup (filled area plus a bright outline from the first windup tick, more opaque toward the hit). Damage numbers when the own player is hit pop next to the health bar (blocked hits smaller, grey). The death notice says "YOU DIED". The F3 overlay no longer covers the encounter title | Planned |
+| M11 | Main menu | A start menu instead of booting straight into solo: Solo, Host (opens a room, the code shows in game as today), Join by code (text field), Settings (graphics preset, mouse sensitivity, fullscreen; key bindings later), Player name (saved in `user://settings.cfg`), Quit. Escape in game opens a pause menu (Resume, Settings, Leave to menu, Quit); the game keeps running behind it. When the host quits, friends see "The host left" and return to the menu (no host migration). Plain functional look; M12 restyles it. The command line flags keep working for tests | Planned |
+| M12 | Medieval fantasy theme | Replace M9's sci-fi look with dark, grounded medieval fantasy (worn steel, stone, torches, undead and beasts, muted colors; not cute). Space stays as travel: a home hub (a keep on a small planet) with portals to other planets, each a realm with its own gravity and encounter; one planet is loaded at a time. Replace every M9 piece: knights in armor, swords, round shields, the crossbow back, fantasy mobs and Warden. After the Warden falls: a victory notice and a portal home; the planet resets when the group leaves. A wipe sends everyone back to the hub and resets the planet. Restyle HUD and menus. CC0 packs may be downloaded (Quaternius fantasy outfits on the UAL rig, fantasy environment kits). Fold in the §3.1 rendering items that fit: LightmapGI for static levels, `AreaLight3D` for torches and windows, decals for impacts, `AnimationTree` with blend spaces and foot IK | Planned |
+| M13 | Discord Rich Presence | Discord application "Stellamortis", application ID `1563509032348557382` (public). A logo in the M12 style (SVG, exported 1024×1024 PNG for the app icon and the Rich Presence art, also used as the game icon); the user uploads it in the developer portal. Presence shows the mode (in the menu, Solo, Hosting), the party size (n of 6) and the elapsed time; no room code. Client: a GDExtension or the Discord IPC; skipped when Discord is not running | Planned |
+| M14 | Sound | CC0 sounds: hits, blocks, parries, telegraphs, footsteps, UI, some ambience per planet | Planned |
+| M15 | Test round | One milestone for everything left to verify, after the features are built blind: the user play-tests by hand (solo, with a friend on another network, one player behind a strict NAT without `--relay-only`); the headless network test fights the encounter (mobs, Warden phases, enemy shots) under 100 ms lag; `--host --bot` gives up on its own after `--duration`; screenshots of every enemy state and effect (gravity well, phase 2); numbers (damage, windups, ranges, boss health, well strength) get tuned from the play-test | Planned |
+| M16 | Frame pacing | Settings to turn vsync off and, as an alternative, cap the frame rate (`Engine.max_fps`, e.g. 60/120/144/unlimited), saved with the graphics preset; F3 shows the cap. Later, not relevant for the PoC | Later |
+| M17 | Wooting analog | Analog movement from Wooting keyboards through the Wooting Analog SDK (GDExtension or a small native bridge): WASD depth becomes `PlayerControls.move` length, so walk speed follows key pressure; digital keys stay the fallback when no Wooting device or SDK is present. Later, not relevant for the PoC | Later |
+| M18 | Telemetry | Opt-in game telemetry (sessions, joins, connection type, tick and frame times) through the lobby host. Later, not relevant for the PoC | Later |
 
 ## 7. Open questions
 
-- M8 kept `lobby.r4b2.de`; a stellamortis subdomain is still possible. Other services on the gvm host that are not ours are out of scope.
-- Exact CC0 packs: answered in M2 (KayKit), replaced in M9 (Quaternius, ambientCG; `docs/RESOURCES.md`).
-- M12 theme: what "medieval fantasy with planet travel" means in play (one planet per encounter, a ship or portal hub between them, how gravity differs per planet) and which planet comes first.
-- M13: the Discord application ID, and which details players should see (room code no, player count yes?).
+None open. Answered on the way:
+
+- M8 kept `lobby.r4b2.de`; it stays (no stellamortis subdomain, decided 2026-11-09).
+- Exact CC0 packs: KayKit in M2, Quaternius and ambientCG in M9; M12 picks fantasy packs.
+- M12 planet travel: a hub with portals, one planet loaded at a time (decided 2026-11-09).
+- M13: application ID and what Discord shows are in the M13 row.
 
 ## 8. Open items to clarify after the last milestone
 
-Everything left open, deferred or decided on the way, collected so it can be gone through at the end. Add to it whenever a milestone leaves something open; strike items when they are settled.
+Everything left open, deferred or decided on the way. Add to it whenever a milestone leaves something open; strike items when they are settled. Verification goes to M15: features are built "blind", trusting tests and screenshots, and checked there.
 
-Testing and verification:
+Decided (2026-11-09):
 
-- Nobody has play-tested M2 (melee, defense), M3 (crossbow), M4 (lock-on) or M5 (encounter) by hand yet; all of it is covered only by gdUnit4 tests, the headless network test and screenshots. Numbers (damage, windups, ranges, boss health, well strength) are first guesses.
-- The gravity well's look (shell and motes) and the phase 2 Warden were never seen in a screenshot; only the mobs, the rising Warden and its volley were.
-- Player host through the public lobby was only tried from one machine: a host bot and a friend bot forced through the public TURN relay (`--relay-only`). A friend on another network, and a player behind a strict NAT without `--relay-only`, are untested.
-- A `--host --bot` whose friend never connected kept running past `--duration` until it was killed; the bot should give up on its own.
-- The headless network test only has bots walking, fighting the dummies and toggling lock-on; nothing in it fights the encounter, so its netcode (mob chases, boss phases, enemy bolts against prediction) is untested under lag.
+- Player host: the game ends for everyone when the host quits; no host migration (M11 adds the "The host left" path).
+- 6 players (`GameServer.MAX_PLAYERS`) is enough. Background, for if it ever matters: at 6 the server core is saturated (30 tps on average, worst seconds 21–25), at 8 it fell to 13 tps, at 10 to about 2. The cost is netfox's server-side rollback in GDScript (it diffs and serializes every node for every peer for every resimulated tick); the way to 10 would be a netfox patch that serializes each node once per tick. Sending only the newest resimulated tick breaks remote players.
+- Bandwidth of 30–40 kB/s per player at 6 players (2–3 kB/s back) is fine.
+- The Warden's gravity well stays a drag (`Gravity.pull`), not a real gravity zone.
+- Boss health scales with the players present when it rises; late joiners don't change it.
+- Enemies don't collide with each other.
+- The lobby stays at `lobby.r4b2.de`.
+- Lock-on is removed in M10 (Valheim style combat).
+- After the Warden, and after a wipe, the group goes back to the hub (M12); the 20 s loop and the instant wipe reset go with it.
+- Snapshots go through netfox with our schemas (`net/wire.gd`), not hand-packed arrays as §3.1 planned.
+- The load test stays out of `tools/check.py`; run `python tools/run_load_test.py` by hand after netcode or state changes.
 
-Network and performance:
+Moved to milestones:
 
-- In player host the host's own server is a child process of the host's client: when the host quits, the game ends for everyone in the room. Host migration is out of scope; confirm that this is fine.
+- Start menu with solo, host, join by code: M11.
+- F3 overlay covering the encounter title: M10.
+- Sound: M14.
+- Play-testing, the network test fighting the encounter under lag, a friend on another network, the `--host --bot` hang, unseen effects (gravity well, phase 2, revolver, roll): M15.
+- M9's look notes (mannequin instead of armor, shared robot clips, the unused MegaKit) are replaced by M12.
 
-- Fixed in M7: state packets fit netfox's 508 byte limit again (`net/wire.gd` schemas).
-- The game holds 6 players (`GameServer.MAX_PLAYERS`, a 7th is told the game is full), not the 10 of the brainstorm. At 6 the server core is saturated (tick loops of 50–90 ms that run two ticks at once, 30 tps on average, worst seconds 21–25); at 8 it fell to 13 tps, at 10 to about 2, for good. Simulation is cheap (`--bench`: 2.8 ms per tick with 10 players and all enemies); the cost is netfox's server-side rollback in GDScript: late input from any player (2–5 ticks late, even on localhost) makes it resimulate those ticks, and for every resimulated tick it records the whole state and diffs and serializes every node for every peer (16 ms per tick at 6 players). Ways to 10 players, not taken for now: patch netfox's state sync to serialize each node once per tick and add only the per-peer node id (netfox writes per-peer ids, so it is a real patch, maybe an upstream PR); fewer ticks (20 Hz, coarser rolls and parries); or no server-side rollback for late input (a netcode redesign, less fair dodges under lag). An attempt to only send the newest of the resimulated ticks broke remote players: the server simulates a player only for ticks it has that player's input for, so the resent older ticks are what carry other players' movement.
-- Bandwidth at 6 players: about 30–40 kB/s from the server to each player and 2–3 kB/s back (ENet, measured by the server); a host's upload is about 6 × that. Packing the state into groups (`net_motion`, `net_combat`, `net_bolts`) cut netfox's per-property work but sends a whole group when one field in it changes (`action_time` changes every tick), so bandwidth rose from about 23 to 35 kB/s per player at 4 players. Fine for the PoC; split the groups by how often they change if bandwidth matters.
-- The load test is not part of `tools/check.py` (7 Godot processes, a minute): run `python tools/run_load_test.py` after netcode or state changes.
-- Snapshots are netfox's own serialization with our schemas (`net/wire.gd`), not hand-packed `PackedByteArray`s as §3.1 planned.
+Still open (§3.1, not in a milestone yet):
 
-Design decisions to confirm:
-
-- Hosting and joining by code need the command line (`--host`, `--join=CODE`); exported builds start solo. A small start menu (solo, host, join by code) would make player host usable from the release zips.
-
-- MMB moved from heavy attack to lock-on in M4 (heavy is Q only). Lock-on also takes over mouse look: sideways flicks switch targets.
-- The Warden's gravity well drags players (`Gravity.pull`) instead of being a real gravity zone in `Gravity.sample`: players don't tilt toward it and bolts don't bend around it. A real zone would make the arena briefly a tiny planet around the boss.
-- Boss health scales with the players present when it rises; players joining later don't change it.
-- The encounter loops: 20 s after the Warden falls it starts over. There is no end screen or score.
-- A wipe resets the encounter at once (players still respawn after their 3 s).
-- Enemies don't collide with each other (melee mobs can overlap) and walk only on their own up (mobs stay on the flat ground by their leash; none goes to the asteroid or the gravity zones).
-- The debug overlay (F3) overlaps the encounter title at the top center.
-- M9 look: the player is the UAL mannequin in a suit, not a modeled space suit or armor (no CC0 sci-fi humanoid exists; Quaternius Universal Base Characters is on itch.io only, behind a bot check). Blade, shield, visor are simple meshes built in code.
-- M9 look: robot attack clips are short and shared (slam and sweep both use the Trilobite's `Attack`, the well its `Look`); the rise plays `TurnOff` backwards; the drone has no death clip (back flip and a drop). Telegraphs still read from the glow and the ground arc.
-- M9 look: blade grip, shield placement and the revolver in hand were set by eye from screenshots; the revolver and roll were not seen in a screenshot yet.
-- M9 look: the Quaternius Sci-Fi MegaKit (modular walls, columns, props) is not used yet; the arena is still boxes, with PBR materials.
-
-Planned in §3.1 and not built yet:
-
-- LightmapGI for the static arena, `AreaLight3D` lights on structures, decals for impacts, collision on `GPUParticles3D`, `MultiMeshInstance3D` for rocks and debris, visibility ranges.
-- The compositor screen-space distortion for the gravity well (it is a glowing shell with motes falling in for now).
-- Stencil x-ray for players seen through walls (the stencil outline is used for the lock-on target).
-- `AnimationTree` with blend spaces and foot IK; views use `AnimationPlayer` clips posed from the sim state.
-- Sound: there is no audio at all (the plan mentions telegraph sounds).
+- The compositor screen-space distortion for the gravity well (a glowing shell with motes for now).
+- Stencil x-ray for players seen through walls.
+- Collision on `GPUParticles3D`, `MultiMeshInstance3D` for debris, visibility ranges.
 - Shader baker for exports and a check that ubershaders avoid hitches in the release builds.
 
-Milestones not started: M10 combat like Valheim, M11 main menu, M12 medieval fantasy theme, M13 Discord Rich Presence; Later: M14 frame pacing, M15 Wooting analog, M16 telemetry.
+Milestones not started: M10 combat like Valheim, M11 main menu, M12 medieval fantasy theme, M13 Discord Rich Presence, M14 sound, M15 test round; Later: M16 frame pacing, M17 Wooting analog, M18 telemetry.

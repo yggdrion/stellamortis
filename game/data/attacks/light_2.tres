@@ -11,6 +11,6 @@ damage = 20.0
 stamina = 12.0
 reach = 2.3
 arc_degrees = 130.0
-lunge = 2.0
+lunge = 1.2
 next = &"light_3"
 animation = &"Sword_Regular_B"

@@ -11,5 +11,5 @@ damage = 50.0
 stamina = 28.0
 reach = 2.5
 arc_degrees = 100.0
-lunge = 1.5
+lunge = 1.0
 animation = &"Sword_Attack"

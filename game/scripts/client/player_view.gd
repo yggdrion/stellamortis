@@ -4,9 +4,16 @@ extends Node3D
 ## the revolver, posed from the player's rolled back state every frame, with its bolts, a hit
 ## flash and, for others, a name.
 
+## Per second, how fast the model turns to the body's facing (exponential). The sim snaps the
+## facing when an attack or roll starts; turning the model over a few frames keeps that from
+## looking like a jump.
+const TURN_FOLLOW := 25.0
+
 var player: SimPlayer
 var _model: CharacterModel
 var _last_health := -1.0
+var _turned := Quaternion.IDENTITY
+var _respawns := -1
 
 
 func _init(of: SimPlayer, show_name: bool) -> void:
@@ -39,7 +46,8 @@ func _init(of: SimPlayer, show_name: bool) -> void:
 		add_child(label)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_turn(delta)
 	if _last_health >= 0.0 and player.health < _last_health:
 		_model.flash(Color(1, 0.15, 0.1, 0.55), 0.15)
 	_last_health = player.health
@@ -49,6 +57,17 @@ func _process(_delta: float) -> void:
 	_model.show_prop("crossbow", crossbow)
 	Gear.set_shield(_model.props["shield"], player.action == SimPlayer.Action.BLOCK)
 	_pose()
+
+
+## The model's rotation follows the body's with a short lag (global, so the body's own turn
+## is what gets smoothed); a respawn snaps it.
+func _turn(delta: float) -> void:
+	var body := player.global_basis.get_rotation_quaternion()
+	if _respawns != player.respawns:
+		_respawns = player.respawns
+		_turned = body
+	_turned = _turned.slerp(body, 1.0 - exp(-TURN_FOLLOW * delta)).normalized()
+	_model.quaternion = body.inverse() * _turned
 
 
 func _pose() -> void:

@@ -16,21 +16,16 @@ const KEYS := {
 	&"graphics": [KEY_F4],
 	&"weapon_1": [KEY_1],
 	&"weapon_2": [KEY_2],
-	&"lock": [KEY_TAB],
 	&"toggle_fullscreen": [KEY_F11],
 	&"release_mouse": [KEY_ESCAPE],
 }
 const MOUSE := {
 	&"attack": [MOUSE_BUTTON_LEFT],
 	&"block": [MOUSE_BUTTON_RIGHT],
-	&"lock": [MOUSE_BUTTON_MIDDLE],
 	&"roll": [MOUSE_BUTTON_XBUTTON1],
 	&"weapon_next": [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN],
 }
 const MOUSE_SENSITIVITY := 0.0025
-## Locked: sideways mouse travel (pixels, within FLICK_TIME) that switches the target.
-const FLICK_PIXELS := 120.0
-const FLICK_TIME := 0.25
 
 
 static func setup() -> void:

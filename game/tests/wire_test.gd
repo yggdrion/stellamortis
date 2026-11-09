@@ -49,7 +49,6 @@ func test_player_state_round_trips_and_fits_a_packet() -> void:
 	player.velocity = Vector3(1.5, -9.8, 0.25)
 	player.health = 63.5
 	player.action_time = 4000
-	player.target = -1
 	player.swing_hits = 0b100101
 	player.bolt_pos[2] = Vector3(1, 2, 3)
 	player.bolt_life[2] = 90
@@ -85,7 +84,6 @@ func test_packed_groups_restore_the_player() -> void:
 	player.health = 12.5
 	player.action = SimPlayer.Action.ROLL
 	player.action_time = 300
-	player.target = 3
 	player.bolt_life[1] = 44
 	var motion := player.net_motion
 	var combat := player.net_combat
@@ -98,5 +96,4 @@ func test_packed_groups_restore_the_player() -> void:
 	assert_float(other.health).is_equal(12.5)
 	assert_int(other.action).is_equal(SimPlayer.Action.ROLL)
 	assert_int(other.action_time).is_equal(300)
-	assert_int(other.target).is_equal(3)
 	assert_int(other.bolt_life[1]).is_equal(44)

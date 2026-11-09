@@ -29,7 +29,6 @@ const DUMMY_ACCENT := Color(1.0, 0.5, 0.15)
 ## Hover height of the drone's center.
 const DRONE_LIFT := 1.3
 const TELEGRAPH := Color(1.0, 0.45, 0.1)
-const LOCKED := Color(1.0, 0.85, 0.35)
 ## Moving faster than this (m/s) plays the walk.
 const WALKING := 0.4
 
@@ -37,7 +36,10 @@ var enemy: Enemy
 var _model: CharacterModel
 var _arc: MeshInstance3D
 var _arc_material: StandardMaterial3D
-## Arc meshes by attack id.
+## The bright edge around the area.
+var _edge: MeshInstance3D
+var _edge_material: StandardMaterial3D
+## Fill and edge meshes by attack path: [fill, edge].
 var _arcs := {}
 var _bar: MeshInstance3D
 var _bar_material: ShaderMaterial
@@ -46,8 +48,6 @@ var _well_material: ShaderMaterial
 var _motes: GPUParticles3D
 var _last_health := -1.0
 var _was_parried := false
-var _locked := false
-var _marker: MeshInstance3D
 var _clips := ROBOT_CLIPS
 
 
@@ -58,7 +58,6 @@ func _init(of: Enemy) -> void:
 	add_child(_model)
 	_add_arc()
 	_add_bar()
-	_add_marker()
 	if not enemy.bolt_life.is_empty():
 		add_child(BoltsView.new(enemy, BoltsView.ENEMY_COLOR))
 	if enemy is Warden:
@@ -95,15 +94,6 @@ func _make_model() -> CharacterModel:
 	return model
 
 
-## Marks this enemy as the own player's lock-on target: an outline and a dot on its chest.
-func set_locked(locked: bool) -> void:
-	if locked == _locked:
-		return
-	_locked = locked
-	_marker.visible = locked
-	_model.outline(LOCKED if locked else Color(0, 0, 0, 0))
-
-
 func _add_arc() -> void:
 	_arc_material = StandardMaterial3D.new()
 	_arc_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -115,22 +105,59 @@ func _add_arc() -> void:
 	_arc.position.y = 0.05
 	_arc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_arc)
+	_edge_material = _arc_material.duplicate() as StandardMaterial3D
+	_edge = MeshInstance3D.new()
+	_edge.material_override = _edge_material
+	_edge.position.y = 0.06
+	_edge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_edge)
 
 
-## The ground shape a melee attack hits: a fan of its reach and arc around its origin.
-func _arc_mesh(def: AttackDef) -> ArrayMesh:
-	var mesh := ArrayMesh.new()
-	var points := PackedVector3Array()
+## The ground shape a melee attack hits: a fan of its reach and arc around its origin, and a
+## thin band along its border.
+func _arc_meshes(def: AttackDef) -> Array[ArrayMesh]:
+	var fill := PackedVector3Array()
+	var edge := PackedVector3Array()
 	var half := deg_to_rad(def.arc_degrees) / 2.0
 	var steps := 48
 	var reach := def.reach + SimPlayer.RADIUS
+	var width := 0.12
 	var origin := Vector3(0, 0, -def.offset)
 	for i in steps:
 		var a0 := -half + 2.0 * half * i / steps
 		var a1 := -half + 2.0 * half * (i + 1) / steps
-		points.append(origin)
-		points.append(origin + Vector3(sin(a0), 0, -cos(a0)) * reach)
-		points.append(origin + Vector3(sin(a1), 0, -cos(a1)) * reach)
+		var d0 := Vector3(sin(a0), 0, -cos(a0))
+		var d1 := Vector3(sin(a1), 0, -cos(a1))
+		fill.append_array([origin, origin + d0 * reach, origin + d1 * reach])
+		_quad(
+			edge,
+			origin + d0 * (reach - width),
+			origin + d0 * reach,
+			origin + d1 * reach,
+			origin + d1 * (reach - width)
+		)
+	if def.arc_degrees < 359.0:
+		for side in [-half, half]:
+			var d := Vector3(sin(side), 0, -cos(side))
+			var across := d.cross(Vector3.UP) * width * 0.5
+			_quad(
+				edge,
+				origin - across,
+				origin + across,
+				origin + d * reach + across,
+				origin + d * reach - across
+			)
+	return [_mesh(fill), _mesh(edge)]
+
+
+static func _quad(
+	points: PackedVector3Array, a: Vector3, b: Vector3, c: Vector3, d: Vector3
+) -> void:
+	points.append_array([a, b, c, a, c, d])
+
+
+static func _mesh(points: PackedVector3Array) -> ArrayMesh:
+	var mesh := ArrayMesh.new()
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = points
@@ -149,26 +176,6 @@ func _add_bar() -> void:
 	_bar.position.y = enemy.height + 0.5
 	_bar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_bar)
-
-
-func _add_marker() -> void:
-	var dot := SphereMesh.new()
-	dot.radius = 0.1
-	dot.height = 0.2
-	var material := StandardMaterial3D.new()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	# Transparent, so it draws after the bodies and no_depth_test keeps it on top.
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.no_depth_test = true
-	material.albedo_color = LOCKED
-	material.render_priority = 1
-	_marker = MeshInstance3D.new()
-	_marker.mesh = dot
-	_marker.material_override = material
-	_marker.position.y = enemy.height * 0.6
-	_marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_marker.visible = false
-	add_child(_marker)
 
 
 func _add_well() -> void:
@@ -251,10 +258,12 @@ func _pose() -> void:
 	var total := float(windup + active + Combat.ticks(def.recover))
 	var seconds := total / 30.0
 	_arc_material.albedo_color.a = 0.0
+	_edge_material.albedo_color.a = 0.0
 	if def.melee():
 		if not _arcs.has(def.resource_path):
-			_arcs[def.resource_path] = _arc_mesh(def)
-		_arc.mesh = _arcs[def.resource_path]
+			_arcs[def.resource_path] = _arc_meshes(def)
+		_arc.mesh = _arcs[def.resource_path][0]
+		_edge.mesh = _arcs[def.resource_path][1]
 	if _clips == DRONE_CLIPS and enemy.action != Enemy.Action.DOWN:
 		_model.lift(DRONE_LIFT)
 	match enemy.action:
@@ -262,13 +271,18 @@ func _pose() -> void:
 			var progress := time / windup
 			_model.play_timed(def.animation, time / total, seconds)
 			_model.glow(Color(TELEGRAPH, 0.1 + 0.3 * progress))
+			# Visible from the first windup tick, filling in toward the hit.
 			if def.melee():
-				_arc_material.albedo_color = Color(TELEGRAPH, 0.1 + 0.35 * progress)
+				_arc_material.albedo_color = Color(TELEGRAPH, 0.2 + 0.4 * progress)
+				_edge_material.albedo_color = Color(
+					TELEGRAPH.lightened(0.3), 0.75 + 0.25 * progress
+				)
 		Enemy.Action.STRIKE:
 			_model.play_timed(def.animation, (windup + time) / total, seconds)
 			_model.glow(Color(1, 0.2, 0.1, 0.45))
 			if def.melee():
-				_arc_material.albedo_color = Color(1, 0.2, 0.1, 0.6)
+				_arc_material.albedo_color = Color(1, 0.2, 0.1, 0.65)
+				_edge_material.albedo_color = Color(1, 0.35, 0.2, 1.0)
 		Enemy.Action.RECOVER:
 			_model.play_timed(def.animation, (windup + active + time) / total, seconds)
 			_model.glow(Color(0, 0, 0, 0))

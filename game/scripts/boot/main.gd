@@ -11,8 +11,7 @@ extends Node
 ##   --lobby=URL                    lobby for --host and --join (LobbyClient.DEFAULT_URL)
 ##     [--relay-only]               debug: connect through the TURN relay only
 ##   --bot [--expect=N]             headless test client (see GameClient._check_bot)
-##     [--bot-plan=shoot|lock]      shoot: fire the crossbow where --look points;
-##                                  lock: lock on and strafe around the target
+##     [--bot-plan=shoot]           shoot: fire the crossbow where --look points
 ##     [--duration=SECS]
 ##   --name=NAME                    player name
 ##   --windowed                     start in a window instead of fullscreen

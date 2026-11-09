@@ -1,6 +1,6 @@
 class_name Bench
 extends Node
-## --bench=N: simulates N players (walking, attacking, rolling, locking on, as the bots do) and
+## --bench=N: simulates N players (walking, attacking, rolling, as the bots do) and
 ## every enemy for a few hundred ticks in one process, without the network, and prints what a
 ## tick costs (PLAN M7). The server's tick loop resimulates whole ticks like these whenever
 ## late input arrives, so this is the cost netfox multiplies.

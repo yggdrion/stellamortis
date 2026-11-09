@@ -1,13 +1,13 @@
 class_name Hud
 extends CanvasLayer
-## Health and stamina bars, the death notice, a controls hint (PLAN §4.5), and on top the
-## encounter: machines left, the Warden's bar, the victory notice (PLAN §4.6). Thin flat bars,
-## small spaced capitals in Rajdhani (OFL), muted colors: an instrument readout, not a toy.
+## Health and stamina bars with the damage taken popping next to them, the death notice, a
+## controls hint (PLAN §4.5), and on top the encounter: machines left, the Warden's bar, the
+## victory notice (PLAN §4.6). Thin flat bars, small spaced capitals in Rajdhani (OFL), muted
+## colors: an instrument readout, not a toy.
 
 const HINT := (
 	"Blade: LMB attack   Q heavy   RMB shield (just before a hit: parry)\n"
 	+ "Revolver: RMB aim   hold LMB to charge, release to fire\n"
-	+ "MMB / Tab lock-on (flick the mouse or wheel: switch target)\n"
 	+ "1 / 2 / wheel weapon   Ctrl / C roll   Shift sprint   Space jump   F3 debug   F4 graphics"
 )
 const FONT := "res://assets/fonts/Rajdhani-SemiBold.ttf"
@@ -30,6 +30,8 @@ var _room: Label
 var _notice: Label
 var _notice_left := 0.0
 var _boss_bar: ProgressBar
+var _last_health := -1.0
+var _respawns := -1
 
 
 func _ready() -> void:
@@ -109,7 +111,7 @@ func _ready() -> void:
 	root.add_child(_notice)
 
 	_dead = Label.new()
-	_dead.text = "SIGNAL LOST"
+	_dead.text = "YOU DIED"
 	_dead.add_theme_font_size_override("font_size", 52)
 	_dead.add_theme_constant_override("outline_size", 0)
 	_dead.add_theme_color_override("font_color", Color(0.8, 0.2, 0.16))
@@ -154,6 +156,7 @@ func _process(delta: float) -> void:
 	var t := Tuning.data()
 	_health.max_value = t.max_health
 	_health.value = player.health
+	_show_damage()
 	_stamina.max_value = t.max_stamina
 	_stamina.value = player.stamina
 	_dead.visible = player.action == SimPlayer.Action.DEAD
@@ -165,6 +168,32 @@ func _process(delta: float) -> void:
 		draw = clampf(float(player.action_time) / Combat.ticks(t.draw_time), 0.0, 1.0)
 	_crosshair.charge = draw
 	_show_encounter()
+
+
+## Pops the damage the own player just took next to the health bar: blocked hits smaller and
+## grey. A respawn refills health without popping.
+func _show_damage() -> void:
+	if _respawns != player.respawns:
+		_respawns = player.respawns
+		_last_health = player.health
+	var lost := _last_health - player.health
+	_last_health = player.health
+	if lost < 0.5:
+		return
+	var blocked := player.action == SimPlayer.Action.BLOCK
+	var label := Label.new()
+	label.text = "-%d" % roundi(lost)
+	label.add_theme_font_size_override("font_size", 18 if blocked else 26)
+	label.add_theme_color_override(
+		"font_color", Color(0.6, 0.62, 0.64) if blocked else HEALTH.lightened(0.25)
+	)
+	var bar := _health.get_global_rect()
+	label.position = Vector2(bar.end.x + 12.0 + randf_range(0.0, 16.0), bar.position.y - 14.0)
+	_health.get_parent().get_parent().add_child(label)
+	var tween := label.create_tween().set_parallel()
+	tween.tween_property(label, "position:y", label.position.y - 36.0, 0.9)
+	tween.tween_property(label, "modulate:a", 0.0, 0.6).set_delay(0.4)
+	tween.chain().tween_callback(label.queue_free)
 
 
 func _show_encounter() -> void:

@@ -57,7 +57,6 @@ const STATE := [
 	"bolt_vel",
 	"bolt_life",
 	"bolt_damage",
-	"target",
 ]
 const MOTION := ["up", "ref_forward", "facing", "grounded", "action_dir"]
 const COMBAT := [
@@ -76,7 +75,6 @@ const COMBAT := [
 	"respawns",
 	"weapon",
 	"charge",
-	"target",
 ]
 const BOLTS := ["bolt_pos", "bolt_vel", "bolt_life", "bolt_damage"]
 const SYNCED := ["transform", "velocity", "net_motion", "net_combat", "net_bolts"]
@@ -125,8 +123,6 @@ var bolt_vel := PackedVector3Array()
 ## Ticks left in flight, 0 for a free slot.
 var bolt_life := PackedInt32Array()
 var bolt_damage := PackedFloat32Array()
-## The locked enemy's Enemy.index, LockOn.NONE when not locked.
-var target := LockOn.NONE
 
 ## The packed groups netfox synchronizes (SYNCED).
 var net_motion: PackedByteArray:
@@ -221,11 +217,7 @@ func step(
 
 	var pressed := buttons & ~last_buttons
 	last_buttons = buttons
-	# Locked: input is relative to the direction to the target, not the camera.
-	var locked := _update_lock(pressed, yaw, pitch)
 	var look_forward := ref_forward.rotated(up, yaw)
-	if locked:
-		look_forward = _tangent(locked.center() - center(), up)
 	var look_right := look_forward.cross(up)
 	var wish := look_right * move.x + look_forward * move.y
 	if wish.length_squared() > 1.0:
@@ -240,8 +232,6 @@ func step(
 
 	var horizontal_target := Vector3.ZERO
 	var accel := t.ground_accel if grounded else t.air_accel
-	# Locked and not sprinting: the body keeps facing the target and strafes around it.
-	var strafing := false
 	match action:
 		Action.NONE when aiming:
 			horizontal_target = wish * t.aim_speed
@@ -253,7 +243,6 @@ func step(
 			if sprinting:
 				_spend(t.sprint_stamina * delta, t)
 			horizontal_target = wish * (t.sprint_speed if sprinting else t.walk_speed)
-			strafing = locked != null and not sprinting
 		Action.DRAW, Action.SHOOT:
 			horizontal_target = wish * t.aim_speed
 			facing = look_forward
@@ -290,9 +279,7 @@ func step(
 	velocity /= NetworkTime.physics_factor
 	grounded = is_on_floor()
 
-	if strafing:
-		facing = facing.slerp(look_forward, minf(1.0, delta * t.turn_rate))
-	elif action == Action.NONE and not aiming and wish.length_squared() > 0.01:
+	if action == Action.NONE and not aiming and wish.length_squared() > 0.01:
 		facing = facing.slerp(wish.normalized(), minf(1.0, delta * t.turn_rate))
 	facing = _tangent(facing, up)
 	_orient()
@@ -302,22 +289,6 @@ func step(
 	if action == Action.ATTACK:
 		_strike()
 	_fly_bolts(delta)
-
-
-## Toggles, switches and drops the lock; returns the locked enemy, null when not locked.
-func _update_lock(pressed: int, yaw: float, pitch: float) -> Enemy:
-	var b := PlayerControls.Buttons
-	if action == Action.DEAD:
-		target = LockOn.NONE
-	elif pressed & b.LOCK:
-		target = LockOn.pick(self, yaw, pitch) if target == LockOn.NONE else LockOn.NONE
-	elif target != LockOn.NONE and pressed & (b.SWITCH_LEFT | b.SWITCH_RIGHT):
-		target = LockOn.switch(self, target, 1 if pressed & b.SWITCH_RIGHT else -1)
-	var locked := LockOn.enemy(self, target)
-	if not LockOn.holds(self, locked):
-		target = LockOn.NONE
-		return null
-	return locked
 
 
 ## In the roll's invulnerable window.
@@ -373,8 +344,8 @@ func _advance_action(
 	if queued == Queued.ROLL and stamina > 0.0:
 		queued = Queued.NOTHING
 		_spend(t.roll_stamina, t)
-		# Without a direction: forward, or straight away from a locked target.
-		action_dir = facing if target == LockOn.NONE else -look_forward
+		# Without a direction: where the camera looks (Valheim).
+		action_dir = look_forward
 		if wish.length_squared() > 0.01:
 			action_dir = wish.normalized()
 		facing = action_dir
@@ -539,9 +510,7 @@ func _shoot(yaw: float, pitch: float, t: Tuning) -> void:
 		slot = 0
 	var right := facing.cross(up)
 	var muzzle := global_position + up * 1.3 + facing * 0.4 + right * 0.15
-	# Locked: straight at the target's center (gravity still bends the flight).
-	var locked := LockOn.enemy(self, target)
-	var aim := locked.center() if locked else Combat.aim_target(self, yaw, pitch)
+	var aim := Combat.aim_target(self, yaw, pitch)
 	bolt_pos[slot] = muzzle
 	bolt_vel[slot] = (
 		(aim - muzzle).normalized() * lerpf(t.bolt_speed_min, t.bolt_speed_max, charge)

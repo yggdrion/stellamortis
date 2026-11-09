@@ -12,7 +12,9 @@ func _ready() -> void:
 	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
 	visible = false
 	_label = Label.new()
-	_label.position = Vector2(12, 12)
+	# Below the encounter title and boss bar at the top center (Hud), smaller than the HUD text.
+	_label.position = Vector2(12, 84)
+	_label.add_theme_font_size_override("font_size", 13)
 	_label.add_theme_color_override("font_shadow_color", Color.BLACK)
 	_label.add_theme_constant_override("shadow_offset_x", 1)
 	_label.add_theme_constant_override("shadow_offset_y", 1)

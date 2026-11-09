@@ -122,17 +122,6 @@ func show_prop(name_of: String, shown: bool) -> void:
 	(props[name_of] as Node3D).visible = shown
 
 
-## Outlines the body (lock-on target) with the overlay material's stencil outline; a
-## transparent color turns it off.
-func outline(color: Color) -> void:
-	var on := color.a > 0.0
-	_flash.stencil_mode = (
-		BaseMaterial3D.STENCIL_MODE_OUTLINE if on else BaseMaterial3D.STENCIL_MODE_DISABLED
-	)
-	_flash.stencil_color = color
-	_flash.stencil_outline_thickness = 0.06
-
-
 ## Tints the whole body for a moment (hit, parry, telegraph).
 func flash(color: Color, seconds: float) -> void:
 	_flash.albedo_color = color

@@ -11,5 +11,5 @@ damage = 28.0
 stamina = 16.0
 reach = 2.6
 arc_degrees = 60.0
-lunge = 4.0
+lunge = 2.0
 animation = &"Sword_Regular_C"

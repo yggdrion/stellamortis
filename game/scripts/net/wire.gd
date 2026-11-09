@@ -92,7 +92,6 @@ static func _fill() -> void:
 		"phase_time": counter,
 		"swing_hits": u16,
 		"last_buttons": u16,
-		"target": NetworkSchemas.int8(),
 		"bolt_pos": PackedVectors.new(),
 		"bolt_vel": PackedVectors.new(),
 		"bolt_life": PackedCounters.new(),

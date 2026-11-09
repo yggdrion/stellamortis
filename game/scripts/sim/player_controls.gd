@@ -11,11 +11,6 @@ enum Buttons {
 	HEAVY = 8,
 	BLOCK = 16,
 	ROLL = 32,
-	## Toggles lock-on.
-	LOCK = 64,
-	## Switch the locked target (one-tick pulses from mouse flicks or the wheel).
-	SWITCH_LEFT = 128,
-	SWITCH_RIGHT = 256,
 }
 
 ## The input properties netfox sends.

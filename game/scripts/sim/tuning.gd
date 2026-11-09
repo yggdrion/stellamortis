@@ -63,14 +63,6 @@ static var _data: Tuning
 ## Seconds of a gravity well's pull that become drift toward it (PLAN §4.6).
 @export var well_drag := 0.4
 
-@export_group("Lock-on")
-## Enemies this close can be locked.
-@export var lock_range := 22.0
-## The lock drops beyond this distance.
-@export var lock_keep_range := 30.0
-## Locking picks within this angle of the camera's center (degrees).
-@export var lock_angle := 45.0
-
 
 static func data() -> Tuning:
 	if _data == null:

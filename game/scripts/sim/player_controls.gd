@@ -4,7 +4,19 @@ extends Node
 ## RollbackSynchronizer sends it to the server and replays it during rollback. The owning client
 ## fills it from `reader` before every tick loop.
 
-enum Buttons { JUMP = 1, SPRINT = 2, ATTACK = 4, HEAVY = 8, BLOCK = 16, ROLL = 32 }
+enum Buttons {
+	JUMP = 1,
+	SPRINT = 2,
+	ATTACK = 4,
+	HEAVY = 8,
+	BLOCK = 16,
+	ROLL = 32,
+	## Toggles lock-on.
+	LOCK = 64,
+	## Switch the locked target (one-tick pulses from mouse flicks or the wheel).
+	SWITCH_LEFT = 128,
+	SWITCH_RIGHT = 256,
+}
 
 ## The input properties netfox sends.
 const INPUT := ["move", "yaw", "pitch", "buttons", "weapon"]

@@ -14,7 +14,8 @@ var bot_expect := 1
 ## Bot: seconds to run at least.
 var bot_duration := 5.0
 ## Bot: "" walks and runs through everything; "shoot" stands, aims where the camera looks and
-## fires full draws (screenshots).
+## fires full draws (screenshots); "lock" locks on after a second and strafes right around the
+## target (screenshots).
 var bot_plan := ""
 ## Saves a PNG of the screen here after screenshot_delay seconds, then quits (visual checks).
 var screenshot_path := ""
@@ -41,6 +42,15 @@ var _hud: Hud
 var _started_ms := 0
 ## The weapon picked with 1, 2 or the wheel (SimPlayer.Weapon).
 var _wanted_weapon := 0
+## Locked: the target switch to send with the next input (-1 left, 1 right, 0 none), and the
+## sideways mouse travel collected toward a flick.
+var _switch := 0
+var _flick := 0.0
+var _flick_left := 0.0
+## Seconds after a flick switch in which mouse travel is ignored (one switch per flick).
+var _flick_wait := 0.0
+## The enemy view showing the lock marker.
+var _marked: EnemyView
 ## Bot: peer id -> where it first saw that player; ids it saw move are in _seen_moved.
 var _first_seen := {}
 var _seen_moved := {}
@@ -150,10 +160,19 @@ func _read_controls(controls: PlayerControls) -> void:
 		&"heavy": PlayerControls.Buttons.HEAVY,
 		&"block": PlayerControls.Buttons.BLOCK,
 		&"roll": PlayerControls.Buttons.ROLL,
+		&"lock": PlayerControls.Buttons.LOCK,
 	}
 	for action: StringName in held:
 		if Input.is_action_pressed(action):
 			controls.buttons |= held[action]
+	# A one-tick pulse: the next input lacks the bit, so the sim sees one press.
+	if _switch != 0:
+		controls.buttons |= (
+			PlayerControls.Buttons.SWITCH_RIGHT
+			if _switch > 0
+			else PlayerControls.Buttons.SWITCH_LEFT
+		)
+		_switch = 0
 
 
 ## Walks a circle and runs through jump, attack, heavy, roll and block on a rhythm, so the
@@ -169,21 +188,49 @@ func _bot_controls(controls: PlayerControls) -> void:
 		controls.buttons = b.BLOCK | (b.ATTACK if fmod(seconds, 1.4) < 1.0 else 0)
 		_rig.aiming = true
 		return
+	if bot_plan == "lock":
+		controls.yaw = _rig.yaw
+		controls.pitch = _rig.pitch
+		controls.move = Vector2(1.0, 0.0) if seconds > 1.5 else Vector2.ZERO
+		controls.buttons = PlayerControls.Buttons.LOCK if seconds > 1.0 else 0
+		return
 	controls.move = Vector2(0.0, 1.0)
 	controls.yaw = fposmod(seconds * 0.8 + me.peer_id % 7, TAU)
 	var b := PlayerControls.Buttons
-	controls.buttons = [b.JUMP, b.ATTACK, 0, b.HEAVY, b.ROLL, b.BLOCK, 0][int(seconds * 2.0) % 7]
+	controls.buttons = [b.JUMP, b.ATTACK, b.LOCK, b.HEAVY, b.ROLL, b.BLOCK, 0][
+		int(seconds * 2.0) % 7
+	]
 	# Every other 4 s with the crossbow: draws on ATTACK, aims on BLOCK.
 	controls.weapon = int(seconds / 4.0) % 2
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_flick_left = maxf(0.0, _flick_left - delta)
+	_flick_wait = maxf(0.0, _flick_wait - delta)
+	if _flick_left == 0.0:
+		_flick = 0.0
+	if me != null:
+		_show_lock()
 	if me != null and not bot:
 		_rig.aiming = (
 			me.weapon == SimPlayer.Weapon.CROSSBOW
 			and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 			and (Input.is_action_pressed(&"block") or me.action == SimPlayer.Action.DRAW)
 		)
+
+
+## Points the camera and the lock marker at the own player's target.
+func _show_lock() -> void:
+	var locked := LockOn.enemy(me, me.target)
+	_rig.locked = locked
+	var view := locked.get_node_or_null(^"View") as EnemyView if locked else null
+	if view == _marked:
+		return
+	if _marked and is_instance_valid(_marked):
+		_marked.set_locked(false)
+	if view:
+		view.set_locked(true)
+	_marked = view
 
 
 func _each_second() -> void:
@@ -228,7 +275,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	var motion := event as InputEventMouseMotion
 	if motion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		_rig.look(motion.screen_relative)
+		if _rig.locked:
+			_flick_toward(motion.screen_relative.x)
+		else:
+			_rig.look(motion.screen_relative)
 	elif event.is_action_pressed(&"release_mouse"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event is InputEventMouseButton and event.is_pressed() and me != null:
@@ -237,9 +287,26 @@ func _unhandled_input(event: InputEvent) -> void:
 		_wanted_weapon = SimPlayer.Weapon.SWORD
 	elif event.is_action_pressed(&"weapon_2"):
 		_wanted_weapon = SimPlayer.Weapon.CROSSBOW
+	elif event.is_action_pressed(&"weapon_next") and _rig.locked:
+		var button := event as InputEventMouseButton
+		_switch = 1 if button and button.button_index == MOUSE_BUTTON_WHEEL_DOWN else -1
 	elif event.is_action_pressed(&"weapon_next"):
 		_wanted_weapon = 1 - _wanted_weapon
 	elif event.is_action_pressed(&"graphics"):
 		Graphics.cycle(get_viewport(), _world.arena)
 	elif event.is_action_pressed(&"toggle_debug"):
 		_overlay.visible = not _overlay.visible
+
+
+## Locked: a quick sideways mouse move switches the target that way.
+func _flick_toward(pixels: float) -> void:
+	if _flick_wait > 0.0:
+		return
+	if signf(pixels) != signf(_flick):
+		_flick = 0.0
+	_flick += pixels
+	_flick_left = Controls.FLICK_TIME
+	if absf(_flick) >= Controls.FLICK_PIXELS:
+		_switch = 1 if _flick > 0.0 else -1
+		_flick = 0.0
+		_flick_wait = Controls.FLICK_TIME

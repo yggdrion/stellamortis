@@ -27,10 +27,14 @@ Controls: WASD move, mouse look, Shift sprint, Space jump, Ctrl or C roll, 1, 2 
 switch weapons, Esc frees the mouse (click to capture again), F3 debug overlay, F4 graphics
 preset, F11 fullscreen.
 
-- Sword and shield (1): LMB attack (press again for the combo), Q or middle mouse heavy attack,
-  RMB block (press it just before a hit lands to parry).
+- Sword and shield (1): LMB attack (press again for the combo), Q heavy attack, RMB block (press
+  it just before a hit lands to parry).
 - Crossbow (2): RMB aims over the shoulder, hold LMB to draw (the ring around the crosshair
   fills), release to shoot. Bolts fall with the gravity they fly through.
+- Lock-on: middle mouse or Tab locks the enemy nearest the screen center (again to release). The
+  camera keeps it framed, you strafe around it and face it, rolls go relative to it (no direction:
+  back away). Flick the mouse sideways or turn the wheel to switch to the next enemy that way.
+  With the crossbow out, bolts fly at the locked enemy.
 
 Two training dummies stand north of the spawn: the left one only takes hits, the right one swings
 at you every few seconds. Its windup glows orange and draws its reach on the ground: roll through

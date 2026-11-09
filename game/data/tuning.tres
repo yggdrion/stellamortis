@@ -40,3 +40,6 @@ bolt_stamina_max = 18.0
 shoot_recover = 0.3
 bolt_life = 3.0
 aim_speed = 3.0
+lock_range = 22.0
+lock_keep_range = 30.0
+lock_angle = 45.0

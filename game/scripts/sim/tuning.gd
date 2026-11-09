@@ -60,6 +60,14 @@ static var _data: Tuning
 ## Walk speed while aiming or drawing.
 @export var aim_speed := 3.0
 
+@export_group("Lock-on")
+## Enemies this close can be locked.
+@export var lock_range := 22.0
+## The lock drops beyond this distance.
+@export var lock_keep_range := 30.0
+## Locking picks within this angle of the camera's center (degrees).
+@export var lock_angle := 45.0
+
 
 static func data() -> Tuning:
 	if _data == null:

@@ -3,8 +3,9 @@ extends CanvasLayer
 ## Health and stamina bars, the death notice and a controls hint (PLAN §4.5).
 
 const HINT := (
-	"Sword: LMB attack   Q / MMB heavy   RMB block (just before a hit: parry)\n"
+	"Sword: LMB attack   Q heavy   RMB block (just before a hit: parry)\n"
 	+ "Crossbow: RMB aim   hold LMB to draw, release to shoot\n"
+	+ "MMB / Tab lock-on (flick the mouse or wheel: switch target)\n"
 	+ "1 / 2 / wheel weapon   Ctrl / C roll   Shift sprint   Space jump   F3 debug   F4 graphics"
 )
 

@@ -8,6 +8,7 @@ extends Node3D
 const MODEL := "res://assets/kaykit_skeletons/Skeleton_Warrior.glb"
 const BLADE := "res://assets/kaykit/sword_1handed.gltf"
 const TELEGRAPH := Color(1.0, 0.45, 0.1)
+const LOCKED := Color(1.0, 0.85, 0.35)
 
 var enemy: Enemy
 var _model: CharacterModel
@@ -17,6 +18,8 @@ var _bar: MeshInstance3D
 var _bar_material: ShaderMaterial
 var _last_health := -1.0
 var _was_parried := false
+var _locked := false
+var _marker: MeshInstance3D
 
 
 func _init(of: Enemy) -> void:
@@ -26,6 +29,16 @@ func _init(of: Enemy) -> void:
 	add_child(_model)
 	_add_arc()
 	_add_bar()
+	_add_marker()
+
+
+## Marks this enemy as the own player's lock-on target: an outline and a dot on its chest.
+func set_locked(locked: bool) -> void:
+	if locked == _locked:
+		return
+	_locked = locked
+	_marker.visible = locked
+	_model.outline(LOCKED if locked else Color(0, 0, 0, 0))
 
 
 func _add_arc() -> void:
@@ -68,6 +81,26 @@ func _add_bar() -> void:
 	_bar.position.y = Enemy.HEIGHT + 0.5
 	_bar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_bar)
+
+
+func _add_marker() -> void:
+	var dot := SphereMesh.new()
+	dot.radius = 0.1
+	dot.height = 0.2
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	# Transparent, so it draws after the bodies and no_depth_test keeps it on top.
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.no_depth_test = true
+	material.albedo_color = LOCKED
+	material.render_priority = 1
+	_marker = MeshInstance3D.new()
+	_marker.mesh = dot
+	_marker.material_override = material
+	_marker.position.y = Enemy.HEIGHT * 0.6
+	_marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_marker.visible = false
+	add_child(_marker)
 
 
 func _process(_delta: float) -> void:

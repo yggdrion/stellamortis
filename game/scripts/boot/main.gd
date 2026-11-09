@@ -4,7 +4,8 @@ extends Node
 ##     [--spawn=X,Y,Z]              debug: spawn players there (a solo client passes it on)
 ##   --connect=host:port            client joining a running server over ENet
 ##   --bot [--expect=N]             headless test client (see GameClient._check_bot)
-##     [--bot-plan=shoot]           stand and fire the crossbow where --look points
+##     [--bot-plan=shoot|lock]      shoot: fire the crossbow where --look points;
+##                                  lock: lock on and strafe around the target
 ##     [--duration=SECS]
 ##   --name=NAME                    player name
 ##   --windowed                     start in a window instead of fullscreen

@@ -226,9 +226,10 @@ Moved to milestones:
 - Sound: M14.
 - Play-testing, the network test fighting the encounter under lag, a friend on another network, the `--host --bot` hang, unseen effects (gravity well, phase 2, roll, M10's damage numbers; the telegraph edge was seen in an M12 screenshot), M11's menu round trips (menu, game, Leave to menu, a second game in the same process; a friend seeing "The host left"): M15.
 
+- Platforms in M15: CI exports Linux, Windows and macOS on every release (all green since v0.13.0), but only Linux was run by hand; run the exported Windows and macOS builds (menu, solo, host and join, presence, the spawned local server).
 - M12 to check in M15: portal travel in a networked game (prediction across a 700 m jump, the view snap), the keep from every side, crossbow and shield held right, the undead and Warden clips and gear in a fight, the realm resetting when players come back, the hall's area lights on every preset.
 
-- M13 to check in M15: the presence on a running Discord (Linux with socat, Windows named pipe), the party size updating as friends join, the logo showing once uploaded. For the user: upload `game/assets/logo/stellamortis-1024.png` in the developer portal as the app icon and as a Rich Presence art asset named `logo`.
+- M13 to check in M15: the presence on a running Discord (Linux with socat passed on 2026-11-09: handshake and SET_ACTIVITY; still to see: Windows named pipe, macOS nc), the party size updating as friends join, the logo showing once uploaded. For the user: upload `game/assets/logo/stellamortis-1024.png` in the developer portal as the app icon and as a Rich Presence art asset named `logo`.
 
 Still open (§3.1, not in a milestone yet):
 

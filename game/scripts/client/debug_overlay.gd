@@ -50,12 +50,16 @@ func _process(_delta: float) -> void:
 		lines
 		. append(
 			(
-				"ping %d ms   netfox rtt %d ms   tick %d   server %.1f tps, tick loop %.2f avg %.2f max ms"
+				(
+					"ping %d ms   netfox rtt %d ms   tick %d   server %.1f tps,"
+					+ " tick loop %.2f avg %.2f max ms"
+				)
 				% [
 					client.ping_ms,
 					NetworkTime.remote_rtt * 1000.0,
 					NetworkTime.tick,
 					client.server_tps,
+					client.server_tick_avg_ms,
 					client.server_tick_ms,
 				]
 			)

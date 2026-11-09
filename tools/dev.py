@@ -1,7 +1,7 @@
 """Dev launcher: one headless server plus N windowed clients joining it on localhost.
 
 Usage: python tools/dev.py [clients, default 2] [--lag=MS]
-Clients join as dev1..devN. --lag adds fake round-trip latency on every client.
+Clients join as dev1..devN. --lag routes them through tools/lag_proxy.py with that round trip.
 Closing every client window (or Ctrl+C) stops the server too. For plain solo, run the game
 without arguments instead: python tools/godot.py
 """
@@ -9,6 +9,7 @@ without arguments instead: python tools/godot.py
 import subprocess
 import sys
 
+import lag_proxy
 from _common import GAME, fail, godot, godot_import
 
 PORT = 17777
@@ -28,8 +29,12 @@ def start(*cmd):
 
 
 server = start("--headless", "--", "--server", f"--port={PORT}")
+target = PORT
+if lag:
+    target = PORT + 1
+    lag_proxy.start(target, PORT, int(lag[0].split("=", 1)[1]))
 clients = [
-    start("--", "--windowed", f"--connect=127.0.0.1:{PORT}", f"--name=dev{i + 1}", *lag)
+    start("--", "--windowed", f"--connect=127.0.0.1:{target}", f"--name=dev{i + 1}")
     for i in range(count)
 ]
 try:

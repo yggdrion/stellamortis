@@ -1,10 +1,12 @@
 """Installs the pinned tools; re-running is a no-op once installed.
 
-Usage: python tools/install.py [godot|gdunit4|webrtc|bun|venv|templates]   (default: godot)
+Usage: python tools/install.py [godot|gdunit4|webrtc|netfox|bun|venv|templates]   (default: godot)
 
   godot      Godot from .godot-version into <TOOLS>/godot/<version>/, checked
              against tools/godot-<version>.sha512, plus webrtc. Prints the binary path.
   gdunit4    gdUnit4 into game/addons/gdUnit4 (gitignored).
+  netfox     netfox and netfox.internals (rollback netcode) into game/addons/ (gitignored),
+             from NETFOX_COMMIT, checked against NETFOX_SHA256.
   webrtc     the webrtc-native GDExtension (player host) into game/addons/webrtc_native
              (gitignored); exports ship its library next to the game.
   bun        Bun (the lobby in lobby/) into <TOOLS>/bun/<version>/. Prints the path.
@@ -25,6 +27,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import zipfile
 from pathlib import Path
@@ -32,6 +35,11 @@ from pathlib import Path
 from _common import RELEASES, ROOT, VERSION, download, expected_sum, fail, log
 
 GDUNIT4_VERSION = os.environ.get("GDUNIT4_VERSION", "v6.2.2")
+# netfox (rollback netcode) from a pinned main commit: its last tagged release (v1.35.3,
+# 2025-11) is far behind main. The commit's plugin.cfg says 1.49.4.
+NETFOX_COMMIT = "cf5189d18e98766022c8c1c5e637a6a30c4c3703"
+NETFOX_SHA256 = "e3243b2326f080cec35d67cf4e23ceeabe7b67c3377731ebafed25c9f17f1174"
+NETFOX_ADDONS = ["netfox", "netfox.internals"]
 WEBRTC_VERSION = "1.2.2-stable"
 WEBRTC_SHA256 = "98e9446921740d995bd9ca1be48798dc3c2ceed51e044a25ce18b3cff11f56e5"
 BUN_VERSION = "1.4.4"
@@ -122,6 +130,26 @@ def webrtc():
     log(f"webrtc-native {WEBRTC_VERSION} installed to {dest}")
 
 
+def netfox():
+    marker = ROOT / "game" / "addons" / "netfox" / ".commit"
+    if marker.exists() and marker.read_text().strip() == NETFOX_COMMIT:
+        return
+    with tempfile.TemporaryDirectory() as tmp:
+        log(f"Downloading netfox {NETFOX_COMMIT[:12]}...")
+        archive = Path(tmp) / "netfox.tar.gz"
+        url = f"https://codeload.github.com/foxssake/netfox/tar.gz/{NETFOX_COMMIT}"
+        download(url, archive, "sha256", NETFOX_SHA256)
+        with tarfile.open(archive) as t:
+            t.extractall(tmp, filter="data")
+        src = Path(tmp) / f"netfox-{NETFOX_COMMIT}" / "addons"
+        for name in NETFOX_ADDONS:
+            dest = ROOT / "game" / "addons" / name
+            shutil.rmtree(dest, ignore_errors=True)
+            shutil.copytree(src / name, dest)
+    marker.write_text(NETFOX_COMMIT + "\n")
+    log(f"netfox {NETFOX_COMMIT[:12]} installed to game/addons")
+
+
 def bun():
     system, machine = platform.system(), platform.machine().lower()
     arch = "aarch64" if machine in ("aarch64", "arm64") else "x64"
@@ -187,12 +215,13 @@ def templates():
 
 
 if __name__ == "__main__":
-    tools = {"godot": godot, "gdunit4": gdunit4, "webrtc": webrtc, "bun": bun, "venv": venv, "templates": templates}
+    tools = {"godot": godot, "gdunit4": gdunit4, "webrtc": webrtc, "netfox": netfox, "bun": bun, "venv": venv, "templates": templates}
     which = sys.argv[1] if len(sys.argv) > 1 else "godot"
     if which not in tools or len(sys.argv) > 2:
         fail(f"Usage: python tools/install.py [{'|'.join(tools)}]")
     if which == "godot":
         webrtc()
+        netfox()
     result = tools[which]()
     if result:
         print(result)

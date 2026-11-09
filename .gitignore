@@ -2,6 +2,8 @@
 game/.godot/
 game/addons/gdUnit4/
 game/addons/webrtc_native/
+game/addons/netfox/
+game/addons/netfox.internals/
 *.translation
 export_presets.cfg.local
 

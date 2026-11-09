@@ -61,6 +61,7 @@ def godot():
     import install  # here, not at the top: install imports this module
 
     install.webrtc()
+    install.netfox()
     return os.environ.get("GODOT_BIN") or str(install.godot())
 
 

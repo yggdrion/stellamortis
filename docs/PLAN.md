@@ -93,11 +93,14 @@ netfox does the netcode (decided 2026-11-09, replacing M0's own prediction code)
 
 ### 4.4 Gravity
 
-- Zones are data nodes (`GravityZone`: shape, mode `DIRECTIONAL` or `POINT`, direction or center, strength, priority). `Gravity.sample(pos)` returns the gravity vector at a point; the highest priority zone containing the point wins, the world default is -Y at 9.8 m/s².
+- Zones are data (`GravityZone`: box or sphere, mode `DIRECTIONAL` or `POINT`, direction or center, strength, priority), listed in `Layout`. `Gravity.sample(pos)` returns the gravity vector at a point; the highest priority zone containing the point wins, the world default is -Y at 9.8 m/s².
 - One deterministic function is used by players, enemies and projectiles, on server and client, so predicted arcs and movement match. Godot's physics gravity (`Area3D` overrides) is not used for gameplay.
 - Bodies: `CharacterBody3D` with `up_direction = -gravity.normalized()`. The up vector turns toward the new one over about 0.25 s when crossing zones, so the camera does not snap. Movement is computed in the body's local frame (tangent plane).
 - Camera: orbit and pitch are relative to the player's up vector, so walking around the asteroid keeps the horizon steady.
-- PoC layout: main ground (normal), one low-g zone (about 3 m/s², long jumps), one high-g zone (about 20 m/s², slow, short jumps, heavier bolt drop), one asteroid of about 25 m radius with point gravity, reachable by a low-g jump pad.
+- PoC layout (`sim/layout.gd`): main ground (normal); low-g zone east of the spawn (3 m/s², 30×18×40 m); high-g zone west (22 m/s²); an asteroid of 18 m radius floating above the low-g zone (center 50 m up, point gravity 7 m/s² out to 34 m from its center, overlapping the top of the low-g zone).
+- Jump pads: standing on one and jumping launches along the player's up at the pad's speed (12 m/s on the ground under the asteroid, 17 m/s on the asteroid's bottom pole back down). Jump, not touch, so landing on a pad never relaunches.
+- Turning the up vector uses axis-angle, because slerp is undefined between opposite directions (leaving the asteroid's underside flips up by 180°).
+- Look: zones are tinted `FogVolume`s with rising (low-g) or falling (high-g) GPU particles and a glowing border; space sky shader (`shaders/space_sky.gdshader`) with stars, nebula and a gas giant.
 
 ### 4.5 Combat
 
@@ -138,7 +141,7 @@ docs/        PLAN.md, RESOURCES.md
 | # | Name | Done when | Status |
 |---|---|---|---|
 | M0 | Skeleton | Tooling copied from jotra (pinned Godot, gdUnit4, lint); client spawns a local server in solo; capsule player moves with prediction and reconciliation (netfox since 2026-11-09); third-person camera; a second client joins by IP; two clients see each other move smoothly at 100 ms simulated latency | Done (2026-11-09) |
-| M1 | Gravity zones | `Gravity.sample` with zones; low-g and high-g zones; walk all the way around the asteroid with a steady camera; jump pad to the asteroid; tests for sampling and zone priority | Planned |
+| M1 | Gravity zones | `Gravity.sample` with zones; low-g and high-g zones; walk all the way around the asteroid with a steady camera; jump pad to the asteroid; tests for sampling and zone priority | Done (2026-11-09) |
 | M2 | Melee + defense | Stamina, roll with i-frames, light combo, heavy, block, parry; a training dummy that swings on a timer to test i-frames and parry; animated player model (CC0) | Planned |
 | M3 | Ranged | Aim mode, crosshair, charged bolt simulated on the server and falling with local gravity; hits the dummy | Planned |
 | M4 | Lock-on | Toggle, target switch, strafe and roll relative to target, works on the asteroid | Planned |

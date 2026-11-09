@@ -167,13 +167,14 @@ docs/        PLAN.md, RESOURCES.md
 | M5 | Encounter | 3 mobs with telegraphed attacks, boss with phases and gravity well, death and respawn, wipe reset, HUD (health, stamina, boss bar) | Done (2026-11-09), v0.6.0 |
 | M6 | Lobby | `lobby/` (Bun, lobby protocol 1) and `deploy/lobby/` (lobby + coturn) in this repo; `net/lobby_client.gd` and the WebRTC transport; `--host` spawns the server with a lobby room, host and friends join by code via WebRTC (TURN relay when direct fails); `bun test` and a WebRTC run in `tools/check.py`; works against a local lobby + coturn compose | Done (2026-11-09), v0.7.0 |
 | M7 | 6 players | Headless bots fill a game (`tools/run_load_test.py`); server holds 30 tps; bandwidth per player measured; state packets fit netfox's 508 byte limit (netfox schemas). Planned for 10 players; measured, netfox's server rollback holds 6 (§4.3, §8), and the cap is 6 by decision (2026-11-09) | Done (2026-11-09), v0.8.0 |
-| M8 | Lobby deploy | Run `deploy/lobby/` on the gvm host in place of the lobby + coturn stack there today: stop that stack, start ours on the same ports (3478, relay 49160-49259) and the Caddy route `lobby.r4b2.de` (gvm's Caddyfile: container alias `stellamortis-lobby` and comment), reuse or rotate `TURN_SECRET`; host and friends join by code from different networks, one through TURN. Touches the gvm host, so it needs a go-ahead before deploying | Planned |
+| M8 | Lobby deploy | `deploy/lobby/` runs on the gvm host from `/root/stellamortis` (compose project `stellamortis-lobby`) in place of the stack there before, with its `TURN_SECRET`; gvm's Caddy routes `lobby.r4b2.de` (`/ws`, `/healthz`) to `stellamortis-lobby:8080`. coturn runs on the host network: behind Docker's NAT it mapped its own public address to the container's and denied relay to relay as a private peer (403 on CreatePermission). Checked with a host bot and a friend bot forced through the public TURN relay (`--relay-only`) | Done |
 | M9 | Frame pacing | Settings to turn vsync off and, as an alternative, cap the frame rate (`Engine.max_fps`, e.g. 60/120/144/unlimited), saved with the graphics preset; F3 shows the cap. Later, not relevant for the PoC | Later |
 | M10 | Wooting analog | Analog movement from Wooting keyboards through the Wooting Analog SDK (GDExtension or a small native bridge): WASD depth becomes `PlayerControls.move` length, so walk speed follows key pressure; digital keys stay the fallback when no Wooting device or SDK is present. Later, not relevant for the PoC | Later |
+| M11 | Telemetry | Opt-in game telemetry (sessions, joins, connection type, tick and frame times) through the lobby host. Later, not relevant for the PoC | Later |
 
 ## 7. Open questions
 
-- M8: keep `lobby.r4b2.de` (default) or move to a stellamortis subdomain. Other services on the gvm host that are not ours are out of scope.
+- M8 kept `lobby.r4b2.de`; a stellamortis subdomain is still possible. Other services on the gvm host that are not ours are out of scope.
 - Exact CC0 packs: answered in M2 (KayKit Adventurers and Skeletons, `docs/RESOURCES.md`).
 
 ## 8. Open items to clarify after the last milestone
@@ -184,7 +185,9 @@ Testing and verification:
 
 - Nobody has play-tested M2 (melee, defense), M3 (crossbow), M4 (lock-on) or M5 (encounter) by hand yet; all of it is covered only by gdUnit4 tests, the headless network test and screenshots. Numbers (damage, windups, ranges, boss health, well strength) are first guesses.
 - The gravity well's look (shell and motes) and the phase 2 Warden were never seen in a screenshot; only the mobs, the rising Warden and its volley were.
-- Player host was only tried on one machine (direct, and forced through a local coturn with `--relay-only`); joining from another network through the public lobby and TURN is M8.
+- Player host through the public lobby was only tried from one machine: a host bot and a friend bot forced through the public TURN relay (`--relay-only`). A friend on another network, and a player behind a strict NAT without `--relay-only`, are untested.
+- A `--host --bot` whose friend never connected kept running past `--duration` until it was killed; the bot should give up on its own.
+- The old telemetry collector on the gvm host (compose project in `/root`, no public route since M8) still runs; stop it or reuse it for M11.
 - The headless network test only has bots walking, fighting the dummies and toggling lock-on; nothing in it fights the encounter, so its netcode (mob chases, boss phases, enemy bolts against prediction) is untested under lag.
 
 Network and performance:
@@ -219,4 +222,4 @@ Planned in §3.1 and not built yet:
 - Sound: there is no audio at all (the plan mentions telegraph sounds).
 - Shader baker for exports and a check that ubershaders avoid hitches in the release builds.
 
-Later milestones not started: M8 lobby deploy (needs a go-ahead, touches gvm), M9 frame pacing, M10 Wooting analog.
+Later milestones not started: M9 frame pacing, M10 Wooting analog, M11 telemetry.

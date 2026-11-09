@@ -180,14 +180,20 @@ docs/        PLAN.md, RESOURCES.md
 | M7 | 6 players | Headless bots fill a game (`tools/run_load_test.py`); server holds 30 tps; bandwidth per player measured; state packets fit netfox's 508 byte limit (netfox schemas). Planned for 10 players; measured, netfox's server rollback holds 6 (§4.3, §8), and the cap is 6 by decision (2026-11-09) | Done (2026-11-09), v0.8.0 |
 | M8 | Lobby deploy | `deploy/lobby/` runs on the gvm host from `/root/stellamortis` (compose project `stellamortis-lobby`) in place of the stack there before, with its `TURN_SECRET`; gvm's Caddy routes `lobby.r4b2.de` (`/ws`, `/healthz`) to `stellamortis-lobby:8080`. coturn runs on the host network: behind Docker's NAT it mapped its own public address to the container's and denied relay to relay as a private peer (403 on CreatePermission). Checked with a host bot and a friend bot forced through the public TURN relay (`--relay-only`) | Done |
 | M9 | Dark sci-fi look | Replace the KayKit fantasy look with grounded sci-fi (§3.2): suited players with blade, hard-light shield and revolver, training mannequins, robot mobs and Warden, PBR arena materials, cold lighting and grade, a restyled HUD | Done |
-| M10 | Frame pacing | Settings to turn vsync off and, as an alternative, cap the frame rate (`Engine.max_fps`, e.g. 60/120/144/unlimited), saved with the graphics preset; F3 shows the cap. Later, not relevant for the PoC | Later |
-| M11 | Wooting analog | Analog movement from Wooting keyboards through the Wooting Analog SDK (GDExtension or a small native bridge): WASD depth becomes `PlayerControls.move` length, so walk speed follows key pressure; digital keys stay the fallback when no Wooting device or SDK is present. Later, not relevant for the PoC | Later |
-| M12 | Telemetry | Opt-in game telemetry (sessions, joins, connection type, tick and frame times) through the lobby host. Later, not relevant for the PoC | Later |
+| M10 | Combat like Valheim | Combat should feel like Valheim, not Elden Ring. Turn lock-on off for now (input, camera framing, facing toward the target; keep the code behind a setting). Find and fix the moments where the player seems to teleport toward an enemy (suspects: lock-on facing and strafe, roll direction while locked, rollback corrections on attacks). Debug aid: the enemy's ground telegraph is clearly visible through the whole windup (stronger fill and outline, a toggle). Damage numbers on the own player when hit. The death notice says "YOU DIED" (or similar) instead of "SIGNAL LOST" | Planned |
+| M11 | Main menu | A proper start menu instead of booting straight into solo: Solo, Host (opens a room, shows the code), Join by code, Settings (graphics preset, later key bindings), Quit. Escape in game opens a pause menu with Leave. The command line flags keep working for tests | Planned |
+| M12 | Medieval fantasy theme | Refactor the theme: M9's look is too spacey and futuristic. The setting becomes medieval fantasy; space stays as part of it, for example traveling from planet to planet (each planet a realm with its own gravity). Characters, enemies, weapons, arena, sky, HUD and wording change with it; the grounded, not cute, direction of M9 stays. Pick assets first (CC0 fantasy outfits on the UAL rig, fantasy environment kits) | Planned |
+| M13 | Discord Rich Presence | Discord shows the old project's name while the game runs. Add Rich Presence for Stellamortis: a Discord application named Stellamortis (the user creates it and provides the application ID), a GDExtension or IPC client, and the state shown (solo, hosting with player count, in the encounter or boss fight). Check what makes Discord show the old name today (a detected game entry or the old application) | Planned |
+| M14 | Frame pacing | Settings to turn vsync off and, as an alternative, cap the frame rate (`Engine.max_fps`, e.g. 60/120/144/unlimited), saved with the graphics preset; F3 shows the cap. Later, not relevant for the PoC | Later |
+| M15 | Wooting analog | Analog movement from Wooting keyboards through the Wooting Analog SDK (GDExtension or a small native bridge): WASD depth becomes `PlayerControls.move` length, so walk speed follows key pressure; digital keys stay the fallback when no Wooting device or SDK is present. Later, not relevant for the PoC | Later |
+| M16 | Telemetry | Opt-in game telemetry (sessions, joins, connection type, tick and frame times) through the lobby host. Later, not relevant for the PoC | Later |
 
 ## 7. Open questions
 
 - M8 kept `lobby.r4b2.de`; a stellamortis subdomain is still possible. Other services on the gvm host that are not ours are out of scope.
 - Exact CC0 packs: answered in M2 (KayKit), replaced in M9 (Quaternius, ambientCG; `docs/RESOURCES.md`).
+- M12 theme: what "medieval fantasy with planet travel" means in play (one planet per encounter, a ship or portal hub between them, how gravity differs per planet) and which planet comes first.
+- M13: the Discord application ID, and which details players should see (room code no, player count yes?).
 
 ## 8. Open items to clarify after the last milestone
 
@@ -236,4 +242,4 @@ Planned in §3.1 and not built yet:
 - Sound: there is no audio at all (the plan mentions telegraph sounds).
 - Shader baker for exports and a check that ubershaders avoid hitches in the release builds.
 
-Later milestones not started: M10 frame pacing, M11 Wooting analog, M12 telemetry.
+Milestones not started: M10 combat like Valheim, M11 main menu, M12 medieval fantasy theme, M13 Discord Rich Presence; Later: M14 frame pacing, M15 Wooting analog, M16 telemetry.

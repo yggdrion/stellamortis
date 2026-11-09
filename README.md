@@ -30,7 +30,7 @@ lobby and coturn together with `docker compose -f deploy/lobby/docker-compose.lo
 (`deploy/lobby/README.md`). `--relay-only` forces a client through the TURN relay.
 
 Command line (after `--`, see `game/scripts/boot/main.gd`): `--server --port=N [--solo]`,
-`--connect=host:port`, `--host`, `--join=CODE`, `--lobby=URL`, `--relay-only`, `--encounter=boss`, `--bench=N`, `--name=NAME`, `--windowed`, `--look=YAW,PITCH`, `--spawn=X,Y,Z`, `--delay=S`, `--frames=N`, `--graphics=PRESET`, `--bot-plan=shoot|lock`, `--bot [--expect=N] [--duration=S]`.
+`--connect=host:port`, `--host`, `--join=CODE`, `--lobby=URL`, `--relay-only`, `--encounter=boss`, `--bench=N`, `--name=NAME`, `--windowed`, `--look=YAW,PITCH`, `--spawn=X,Y,Z`, `--delay=S`, `--frames=N`, `--graphics=PRESET`, `--bot-plan=shoot`, `--bot [--expect=N] [--duration=S]`.
 
 Controls: WASD move, mouse look, Shift sprint, Space jump, Ctrl or C roll, 1, 2 or the mouse wheel
 switch weapons, Esc frees the mouse (click to capture again), F3 debug overlay, F4 graphics
@@ -40,13 +40,12 @@ preset, F11 fullscreen.
   hard-light shield (press it just before a hit lands to parry).
 - Revolver (2): RMB aims over the shoulder, hold LMB to charge (the ring around the crosshair
   fills), release to fire. Shots fall with the gravity they fly through.
-- Lock-on: middle mouse or Tab locks the enemy nearest the screen center (again to release). The
-  camera keeps it framed, you strafe around it and face it, rolls go relative to it (no direction:
-  back away). Flick the mouse sideways or turn the wheel to switch to the next enemy that way.
-  With the revolver out, shots fly at the locked enemy.
+- No lock-on (Valheim style): attacks and the shield turn you to where the camera looks, rolls go
+  where you move (no direction: where the camera looks).
 
 Two training mannequins stand north of the spawn: the left one only takes hits, the right one
-swings at you every few seconds. Its windup glows orange and draws its reach on the ground: roll
+swings at you every few seconds. Its windup glows orange and draws its reach on the ground (a
+filled area with a bright edge, from the first windup frame): roll
 through it, block it, or parry it for a stagger and a riposte that hits 2.5 times as hard.
 
 The encounter waits south of the spawn, in front of the long wall: two four legged walkers and

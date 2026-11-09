@@ -32,7 +32,7 @@ Out (for the PoC): inventory, loot, crafting, persistence, procedural world, bui
 | Netcode | [netfox](https://github.com/foxssake/netfox) (MIT), pinned to a main commit (`tools/install.py`): shared network tick, client-side prediction with server-side rollback, tick interpolation; later lag compensation for hits |
 | NAT traversal | WebRTC (`webrtc_native` GDExtension) + coturn |
 | Dedicated | headless Linux export in Docker, run locally |
-| Art | CC0 rigged and animated packs (Quaternius, KayKit), sources and licenses in `docs/RESOURCES.md` |
+| Art | Dark grounded sci-fi (§3.2): CC0 Quaternius models and animations, CC0 ambientCG materials, the Rajdhani font (OFL); sources and licenses in `docs/RESOURCES.md` |
 
 ### 3.1 Rendering and performance
 
@@ -56,6 +56,17 @@ Server and network:
 - The server runs `--headless` (dummy renderer), Jolt physics, fixed 30 Hz tick.
 - Snapshots and inputs are packed `PackedByteArray`s (quantized positions and angles), not dictionaries over RPC.
 - Track frame time and server tick time in the F3 overlay from M0, so performance regressions show up early.
+
+### 3.2 Art direction
+
+Dark, grounded sci-fi (chosen 2026-11-09, replacing the cute fantasy look of KayKit): adult proportions, worn metal, cold light, few saturated colors. Color is reserved for meaning: the players' cyan seams and shots, enemy red, telegraph orange, lock-on gold, the gravity zones' blue and red.
+
+- Players: the Quaternius Universal Animation Library mannequin (UAL1) in a dark armored suit with glowing seams and a visor (`client/gear.gd`), holding a built-in-code blade, a hard-light shield (`shaders/energy_shield.gdshader`, brighter while blocking) and the Sci-Fi Essentials revolver. Animations come from UAL1 and UAL2, both imported with a humanoid `BoneMap` (`assets/quaternius/ual/*_bone_map.tres`) so their bones share names; `CharacterModel` copies the UAL2 clips onto the UAL1 skeleton at runtime.
+- Training mannequins: the same figure in a pale suit with orange seams.
+- Mobs: Sci-Fi Essentials robots: the four legged QuadShell (melee), the EyeDrone (ranged, hovering), the six legged Trilobite as the Warden. Their emission maps (eyes, vents) are added at runtime, since the glTF files ship without them.
+- Arena: tiling ambientCG materials mapped world triplanar (diamond plate deck, weathered panels, plates, two rocks), cold sun, a blue grey fog, a low key grade (contrast up, saturation down), floodlights on the long wall, a pale ice giant in the sky.
+- HUD: thin flat bars, small spaced capitals in Rajdhani, muted colors, a tick crosshair.
+- The gameplay names in code (`Weapon.CROSSBOW`, bolts, mobs) stay; only what players see changed.
 
 ## 4. Architecture
 
@@ -134,7 +145,7 @@ All numbers live in data resources (`game/data/*.tres`), not in code.
 - Boss health scales with player count.
 - A dead player respawns at the start after a few seconds. If everyone is dead, the encounter resets.
 - Built in M5 (`sim/encounter.gd`, `sim/mob.gd`, `sim/warden.gd`, numbers in `data/attacks/mob_*.tres` and `warden_*.tres` and the scripts' constants): every enemy exists on every peer from the start (netfox finds nodes by path), so nothing is spawned during rollback; the encounter only changes their state. Enemy indices: dummies 0–1, mobs 2–4, Warden 5.
-  - Arena: south of the spawn, in front of the long wall. Two melee skeletons (minions with axes, 90 health, 18 damage chop with 0.8 s windup) at (±6, 0, 24), a ranged one (rogue with a crossbow, 70 health, 14 damage bolts every 1.6 s, keeps 7–13 m away) at (0, 0, 33). Mobs notice players within 16 m, chase them within a 24 m leash around their post, walk back when the player leaves it and stay down when killed.
+  - Arena: south of the spawn, in front of the long wall. Two melee mobs (QuadShell walkers since M9, 90 health, 18 damage chop with 0.8 s windup) at (±6, 0, 24), a ranged one (an EyeDrone since M9, 70 health, 14 damage bolts every 1.6 s, keeps 7–13 m away) at (0, 0, 33). Mobs notice players within 16 m, chase them within a 24 m leash around their post, walk back when the player leaves it and stay down when killed.
   - Warden: rises (3 s, unhittable) where the ranged mob stood when the third mob falls, 900 health plus 50% per extra player present at that moment. Moves: sweep (30 damage, 220°, 4.2 m, parryable), slam (40 damage, a 3.2 m circle 2.2 m in front of it, not parryable: roll out), volley (5 bolts in a 50° fan, 16 damage each, blockable). Below half health, phase 2: windups at 70%, faster steps, and every 4th move a gravity well (14 m, 5 s) that drags players toward it (`Gravity.pull`, a `GravityZone` sphere read apart from `Gravity.sample`, so it doesn't turn the player's up vector or bend bolts; `well_drag` 0.4 s of its 11 m/s² becomes drift, so walking out is slow and sprints or rolls escape). The HUD shows its bar; telegraphs are the same orange glow and ground area as the dummies'.
   - Enemy bolts: fixed slots in the enemy's rolled back state (like the players'), aimed up to make up for gravity, ended by walls in the enemy's tick and by players in their own tick (`SimPlayer._catch_bolts`: rolls pass through, blocks reduce, no parry).
   - Phases (`Encounter.Phase`): MOBS, BOSS, CLEARED; 20 s after the Warden falls everything resets. A wipe (every player dead at once, at least 4 s after the last reset) resets to the mobs. The encounter node is rolled back with prediction like the enemies.
@@ -168,14 +179,15 @@ docs/        PLAN.md, RESOURCES.md
 | M6 | Lobby | `lobby/` (Bun, lobby protocol 1) and `deploy/lobby/` (lobby + coturn) in this repo; `net/lobby_client.gd` and the WebRTC transport; `--host` spawns the server with a lobby room, host and friends join by code via WebRTC (TURN relay when direct fails); `bun test` and a WebRTC run in `tools/check.py`; works against a local lobby + coturn compose | Done (2026-11-09), v0.7.0 |
 | M7 | 6 players | Headless bots fill a game (`tools/run_load_test.py`); server holds 30 tps; bandwidth per player measured; state packets fit netfox's 508 byte limit (netfox schemas). Planned for 10 players; measured, netfox's server rollback holds 6 (§4.3, §8), and the cap is 6 by decision (2026-11-09) | Done (2026-11-09), v0.8.0 |
 | M8 | Lobby deploy | `deploy/lobby/` runs on the gvm host from `/root/stellamortis` (compose project `stellamortis-lobby`) in place of the stack there before, with its `TURN_SECRET`; gvm's Caddy routes `lobby.r4b2.de` (`/ws`, `/healthz`) to `stellamortis-lobby:8080`. coturn runs on the host network: behind Docker's NAT it mapped its own public address to the container's and denied relay to relay as a private peer (403 on CreatePermission). Checked with a host bot and a friend bot forced through the public TURN relay (`--relay-only`) | Done |
-| M9 | Frame pacing | Settings to turn vsync off and, as an alternative, cap the frame rate (`Engine.max_fps`, e.g. 60/120/144/unlimited), saved with the graphics preset; F3 shows the cap. Later, not relevant for the PoC | Later |
-| M10 | Wooting analog | Analog movement from Wooting keyboards through the Wooting Analog SDK (GDExtension or a small native bridge): WASD depth becomes `PlayerControls.move` length, so walk speed follows key pressure; digital keys stay the fallback when no Wooting device or SDK is present. Later, not relevant for the PoC | Later |
-| M11 | Telemetry | Opt-in game telemetry (sessions, joins, connection type, tick and frame times) through the lobby host. Later, not relevant for the PoC | Later |
+| M9 | Dark sci-fi look | Replace the KayKit fantasy look with grounded sci-fi (§3.2): suited players with blade, hard-light shield and revolver, training mannequins, robot mobs and Warden, PBR arena materials, cold lighting and grade, a restyled HUD | Done |
+| M10 | Frame pacing | Settings to turn vsync off and, as an alternative, cap the frame rate (`Engine.max_fps`, e.g. 60/120/144/unlimited), saved with the graphics preset; F3 shows the cap. Later, not relevant for the PoC | Later |
+| M11 | Wooting analog | Analog movement from Wooting keyboards through the Wooting Analog SDK (GDExtension or a small native bridge): WASD depth becomes `PlayerControls.move` length, so walk speed follows key pressure; digital keys stay the fallback when no Wooting device or SDK is present. Later, not relevant for the PoC | Later |
+| M12 | Telemetry | Opt-in game telemetry (sessions, joins, connection type, tick and frame times) through the lobby host. Later, not relevant for the PoC | Later |
 
 ## 7. Open questions
 
 - M8 kept `lobby.r4b2.de`; a stellamortis subdomain is still possible. Other services on the gvm host that are not ours are out of scope.
-- Exact CC0 packs: answered in M2 (KayKit Adventurers and Skeletons, `docs/RESOURCES.md`).
+- Exact CC0 packs: answered in M2 (KayKit), replaced in M9 (Quaternius, ambientCG; `docs/RESOURCES.md`).
 
 ## 8. Open items to clarify after the last milestone
 
@@ -210,7 +222,10 @@ Design decisions to confirm:
 - A wipe resets the encounter at once (players still respawn after their 3 s).
 - Enemies don't collide with each other (melee mobs can overlap) and walk only on their own up (mobs stay on the flat ground by their leash; none goes to the asteroid or the gravity zones).
 - The debug overlay (F3) overlaps the encounter title at the top center.
-- Fantasy KayKit characters stand in for space ones (no CC0 space pack found yet).
+- M9 look: the player is the UAL mannequin in a suit, not a modeled space suit or armor (no CC0 sci-fi humanoid exists; Quaternius Universal Base Characters is on itch.io only, behind a bot check). Blade, shield, visor are simple meshes built in code.
+- M9 look: robot attack clips are short and shared (slam and sweep both use the Trilobite's `Attack`, the well its `Look`); the rise plays `TurnOff` backwards; the drone has no death clip (back flip and a drop). Telegraphs still read from the glow and the ground arc.
+- M9 look: blade grip, shield placement and the revolver in hand were set by eye from screenshots; the revolver and roll were not seen in a screenshot yet.
+- M9 look: the Quaternius Sci-Fi MegaKit (modular walls, columns, props) is not used yet; the arena is still boxes, with PBR materials.
 
 Planned in §3.1 and not built yet:
 
@@ -221,4 +236,4 @@ Planned in §3.1 and not built yet:
 - Sound: there is no audio at all (the plan mentions telegraph sounds).
 - Shader baker for exports and a check that ubershaders avoid hitches in the release builds.
 
-Later milestones not started: M9 frame pacing, M10 Wooting analog, M11 telemetry.
+Later milestones not started: M10 frame pacing, M11 Wooting analog, M12 telemetry.

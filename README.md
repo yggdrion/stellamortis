@@ -36,25 +36,25 @@ Controls: WASD move, mouse look, Shift sprint, Space jump, Ctrl or C roll, 1, 2 
 switch weapons, Esc frees the mouse (click to capture again), F3 debug overlay, F4 graphics
 preset, F11 fullscreen.
 
-- Sword and shield (1): LMB attack (press again for the combo), Q heavy attack, RMB block (press
-  it just before a hit lands to parry).
-- Crossbow (2): RMB aims over the shoulder, hold LMB to draw (the ring around the crosshair
-  fills), release to shoot. Bolts fall with the gravity they fly through.
+- Blade and shield (1): LMB attack (press again for the combo), Q heavy attack, RMB raises the
+  hard-light shield (press it just before a hit lands to parry).
+- Revolver (2): RMB aims over the shoulder, hold LMB to charge (the ring around the crosshair
+  fills), release to fire. Shots fall with the gravity they fly through.
 - Lock-on: middle mouse or Tab locks the enemy nearest the screen center (again to release). The
   camera keeps it framed, you strafe around it and face it, rolls go relative to it (no direction:
   back away). Flick the mouse sideways or turn the wheel to switch to the next enemy that way.
-  With the crossbow out, bolts fly at the locked enemy.
+  With the revolver out, shots fly at the locked enemy.
 
-Two training dummies stand north of the spawn: the left one only takes hits, the right one swings
-at you every few seconds. Its windup glows orange and draws its reach on the ground: roll through
-it, block it, or parry it for a stagger and a riposte that hits 2.5 times as hard.
+Two training mannequins stand north of the spawn: the left one only takes hits, the right one
+swings at you every few seconds. Its windup glows orange and draws its reach on the ground: roll
+through it, block it, or parry it for a stagger and a riposte that hits 2.5 times as hard.
 
-The encounter waits south of the spawn, in front of the long wall: two skeletons with axes and
-one with a crossbow. Kill all three and the Warden rises: a big skeleton with a wide sweep (roll
-through it), a slam that hits the ground in front of it (roll out of the circle) and a fan of
-bolts (block or strafe). Below half health it gets faster and opens a gravity well that drags
-you in; sprint or roll out. If everyone dies at once the encounter resets; 20 s after the Warden
-falls it starts over. `--encounter=boss` starts with the mobs dead.
+The encounter waits south of the spawn, in front of the long wall: two four legged walkers and
+an eye drone that shoots. Destroy all three and the Warden powers up: a big six legged walker with
+a wide sweep (roll through it), a slam that hits the ground in front of it (roll out of the
+circle) and a fan of shots (block or strafe). Below half health it goes into overdrive and opens
+a gravity well that drags you in; sprint or roll out. If everyone dies at once the encounter
+resets; 20 s after the Warden falls it starts over. `--encounter=boss` starts with the mobs down.
 
 The low gravity zone (blue, east of the spawn) has a jump pad: stand on it and press Space to fly
 up to the asteroid, walk all the way around it, and use the pad on its underside to come back.

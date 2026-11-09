@@ -1,12 +1,14 @@
 extends Node
 ## Entry point. Picks the role from the user args (after `--`):
 ##   --server --port=N [--solo]     headless game server; --solo: exits with its player
+##     [--spawn=X,Y,Z]              debug: spawn players there (a solo client passes it on)
 ##   --connect=host:port            client joining a running server over ENet
 ##   --bot [--expect=N]             headless test client (see GameClient._check_bot)
 ##     [--duration=SECS]
 ##   --name=NAME                    player name
 ##   --windowed                     start in a window instead of fullscreen
 ##   --screenshot=PATH              save a PNG of the screen after a few seconds, then quit
+##   --look=YAW,PITCH               start the camera there (degrees, yaw 0 looks along -Z)
 ##   (none)                         solo: spawns a local --solo server and joins it
 
 const DEFAULT_PORT := 17777
@@ -23,6 +25,9 @@ func _ready() -> void:
 		var server := GameServer.new()
 		server.net = _net
 		server.solo = _args.has("solo")
+		if _args.has("spawn"):
+			var p := (_args["spawn"] as String).split(",")
+			server.spawn_at = Vector3(float(p[0]), float(p[1]), float(p[2]))
 		add_child(server)
 		server.start(int(_args.get("port", DEFAULT_PORT)))
 		return
@@ -36,6 +41,9 @@ func _ready() -> void:
 	client.bot_duration = float(_args.get("duration", "5"))
 	client.player_name = _args.get("name", "player")
 	client.screenshot_path = _args.get("screenshot", "")
+	if _args.has("look"):
+		var parts := (_args["look"] as String).split(",")
+		client.look = Vector2(float(parts[0]), float(parts[1]) if parts.size() > 1 else -15.0)
 	client.left.connect(_on_left)
 	add_child(client)
 	if _args.has("connect"):
@@ -43,7 +51,10 @@ func _ready() -> void:
 		client.join(parts[0], int(parts[1]) if parts.size() > 1 else DEFAULT_PORT)
 	else:
 		var port := _free_port()
-		_server_pid = _spawn_server(["--solo", "--port=%d" % port])
+		var server_args: PackedStringArray = ["--solo", "--port=%d" % port]
+		if _args.has("spawn"):
+			server_args.append("--spawn=" + _args["spawn"])
+		_server_pid = _spawn_server(server_args)
 		# The server needs a moment to open its port; ENet retries the connect meanwhile.
 		client.join("127.0.0.1", port)
 

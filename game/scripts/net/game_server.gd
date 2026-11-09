@@ -11,6 +11,8 @@ const SPAWN_RADIUS := 3.0
 
 var net: Net
 var solo := false
+## Debug: where players spawn instead of the ring around the origin (--spawn=x,y,z).
+var spawn_at: Variant = null
 
 var _world: World
 var _names := {}
@@ -79,7 +81,8 @@ func _on_hello(id: int, version: int, player_name: String) -> void:
 		if not _names.has(id):
 			return
 	var angle := (_world.players.get_child_count() % MAX_PLAYERS) * TAU / MAX_PLAYERS
-	_world.spawn_player(id, _names[id], Vector3(cos(angle), 0.0, sin(angle)) * SPAWN_RADIUS)
+	var at := Vector3(cos(angle), 0.0, sin(angle)) * SPAWN_RADIUS
+	_world.spawn_player(id, _names[id], spawn_at if spawn_at is Vector3 else at)
 	print("%s joined (%d)" % [_names[id], id])
 
 

@@ -17,6 +17,8 @@ var bot_expect := 1
 var bot_duration := 5.0
 ## Saves a PNG of the screen here after SCREENSHOT_DELAY seconds, then quits (visual checks).
 var screenshot_path := ""
+## Camera yaw and pitch in degrees to start with (screenshots), null for the default.
+var look: Variant = null
 
 var me: SimPlayer
 var ping_ms := 0
@@ -87,6 +89,9 @@ func _on_player_spawned(player: SimPlayer) -> void:
 	me = player
 	me.controls.reader = _bot_controls if bot else _read_controls
 	_rig.target = me
+	if look is Vector2:
+		_rig.yaw = deg_to_rad((look as Vector2).x)
+		_rig.pitch = deg_to_rad((look as Vector2).y)
 	if not bot:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 

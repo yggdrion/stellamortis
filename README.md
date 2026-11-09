@@ -37,26 +37,29 @@ Controls: WASD move, mouse look, Shift sprint, Space jump, Ctrl or C roll, 1, 2 
 switch weapons, Esc pause menu (Resume, Settings, Leave to menu, Quit), F3 debug overlay, F4 graphics
 preset, F11 fullscreen.
 
-- Blade and shield (1): LMB attack (press again for the combo), Q heavy attack, RMB raises the
-  hard-light shield (press it just before a hit lands to parry).
-- Revolver (2): RMB aims over the shoulder, hold LMB to charge (the ring around the crosshair
-  fills), release to fire. Shots fall with the gravity they fly through.
+- Sword and shield (1): LMB attack (press again for the combo), Q heavy attack, RMB raises the
+  shield (press it just before a hit lands to parry).
+- Crossbow (2): RMB aims over the shoulder, hold LMB to draw (the ring around the crosshair
+  fills), release to shoot. Bolts fall with the gravity they fly through.
 - No lock-on (Valheim style): attacks and the shield turn you to where the camera looks, rolls go
   where you move (no direction: where the camera looks).
 
-Two training mannequins stand north of the spawn: the left one only takes hits, the right one
+You start in the keep, a walled yard on a small planet. Two training squires stand north of the
+spawn: the left one only takes hits, the right one
 swings at you every few seconds. Its windup glows orange and draws its reach on the ground (a
 filled area with a bright edge, from the first windup frame): roll
 through it, block it, or parry it for a stagger and a riposte that hits 2.5 times as hard.
 
-The encounter waits south of the spawn, in front of the long wall: two four legged walkers and
-an eye drone that shoots. Destroy all three and the Warden powers up: a big six legged walker with
-a wide sweep (roll through it), a slam that hits the ground in front of it (roll out of the
-circle) and a fan of shots (block or strafe). Below half health it goes into overdrive and opens
-a gravity well that drags you in; sprint or roll out. If everyone dies at once the encounter
-resets; 20 s after the Warden falls it starts over. `--encounter=boss` starts with the mobs down.
+The gate portal at the south end of the yard leads to the Barrows, another planet. There the dead
+walk in front of the barrow wall: two with rusted swords and one with a crossbow. Put all three
+down and the Warden rises, a giant dead knight in black iron, with a wide sweep (roll through it),
+a slam in front of it (roll out of the circle) and a fan of embers (block or strafe). Below half
+health it is enraged and opens a gravity well that drags you in; sprint or roll out. When it falls
+a golden portal home opens where it stood. Dying sends you back to the keep; once nobody is left
+in the Barrows, they reset. The portal beside the arrival also leads home. `--encounter=boss`
+starts with the mobs down.
 
-The low gravity zone (blue, east of the spawn) has a jump pad: stand on it and press Space to fly
+In the Barrows, the low gravity zone (blue, east of the arrival) has a jump pad: stand on it and press Space to fly
 up to the asteroid, walk all the way around it, and use the pad on its underside to come back.
 The red zone to the west has high gravity.
 

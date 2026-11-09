@@ -43,6 +43,8 @@ var relay_only := false
 ## This client opened the room it joins (--host or Host in the menu): when the server goes, it
 ## is not "the host left".
 var hosting := false
+## How the game was started: "solo", "host", "join" or "connect" (Presence shows it).
+var mode := "solo"
 
 var _world: World
 var _rig: CameraRig

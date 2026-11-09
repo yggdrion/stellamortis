@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Stellamortis logo (M13): a downturned sword through a pale star over a crescent moon, on a
+       dark iron seal. Drawn for this project; colors from the M12 look (PLAN §3.2). -->
+  <defs>
+    <radialGradient id="night" cx="50%" cy="42%" r="60%">
+      <stop offset="0" stop-color="#231c18"/>
+      <stop offset="1" stop-color="#070605"/>
+    </radialGradient>
+    <linearGradient id="moon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e6dcc3"/>
+      <stop offset="1" stop-color="#8f8570"/>
+    </linearGradient>
+    <linearGradient id="star" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0dfae"/>
+      <stop offset="1" stop-color="#b39255"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8e9398"/>
+      <stop offset="0.5" stop-color="#e3e6e8"/>
+      <stop offset="1" stop-color="#7d8287"/>
+    </linearGradient>
+    <radialGradient id="ember" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffb070"/>
+      <stop offset="0.35" stop-color="#e5541c"/>
+      <stop offset="1" stop-color="#e5541c" stop-opacity="0"/>
+    </radialGradient>
+    <mask id="crescent">
+      <rect width="1024" height="1024" fill="black"/>
+      <circle cx="512" cy="430" r="300" fill="white"/>
+      <circle cx="585" cy="380" r="275" fill="black"/>
+    </mask>
+    <clipPath id="seal"><circle cx="512" cy="512" r="470"/></clipPath>
+  </defs>
+
+  <!-- Seal -->
+  <circle cx="512" cy="512" r="500" fill="#1b1714"/>
+  <circle cx="512" cy="512" r="470" fill="url(#night)"/>
+  <circle cx="512" cy="512" r="486" fill="none" stroke="#7a6545" stroke-width="16"/>
+  <circle cx="512" cy="512" r="448" fill="none" stroke="#3b3027" stroke-width="5"/>
+
+  <g clip-path="url(#seal)">
+    <!-- A few stars -->
+    <g fill="#d9cfb8" opacity="0.7">
+      <circle cx="250" cy="260" r="5"/><circle cx="790" cy="300" r="4"/><circle cx="300" cy="700" r="3"/>
+      <circle cx="760" cy="690" r="4"/><circle cx="200" cy="470" r="3"/><circle cx="830" cy="500" r="3"/>
+      <circle cx="680" cy="190" r="3"/><circle cx="370" cy="170" r="4"/>
+    </g>
+    <!-- Crescent moon -->
+    <circle cx="512" cy="430" r="300" fill="url(#moon)" mask="url(#crescent)"/>
+  </g>
+
+  <!-- Star behind the sword: four long points, four short -->
+  <g transform="translate(512 440)">
+    <path d="M0,-250 L34,-34 L250,0 L34,34 L0,250 L-34,34 L-250,0 L-34,-34 Z" fill="url(#star)"/>
+    <path d="M0,-120 L24,-24 L120,0 L24,24 L0,120 L-24,24 L-120,0 L-24,-24 Z"
+          fill="url(#star)" transform="rotate(45)"/>
+  </g>
+
+  <!-- Sword, point down -->
+  <g>
+    <!-- blade -->
+    <path d="M482,392 L542,392 L538,800 L512,880 L486,800 Z" fill="url(#steel)" stroke="#2b2a29" stroke-width="6"/>
+    <path d="M506,400 L518,400 L516,780 L508,780 Z" fill="#6c7176"/>
+    <!-- crossguard -->
+    <path d="M362,366 L662,366 L690,388 L662,410 L362,410 L334,388 Z" fill="#3a3633" stroke="#b39255" stroke-width="6"/>
+    <!-- grip -->
+    <rect x="494" y="236" width="36" height="130" rx="6" fill="#4b2f1e" stroke="#241712" stroke-width="5"/>
+    <path d="M494,262 L530,276 M494,292 L530,306 M494,322 L530,336" stroke="#2c1b12" stroke-width="6"/>
+    <!-- pommel -->
+    <circle cx="512" cy="214" r="34" fill="#b39255" stroke="#5a4528" stroke-width="6"/>
+  </g>
+
+  <!-- Ember at the crossguard -->
+  <circle cx="512" cy="388" r="58" fill="url(#ember)"/>
+  <circle cx="512" cy="388" r="14" fill="#ffd2a0"/>
+</svg>

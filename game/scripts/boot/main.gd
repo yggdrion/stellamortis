@@ -38,6 +38,8 @@ var _args := {}
 var _server_pid := 0
 var _client: GameClient
 var _menu: MainMenu
+## Discord Rich Presence, for players only (not bots, servers or screenshots).
+var _presence: Presence
 
 @onready var _net: Net = $Net
 
@@ -63,6 +65,9 @@ func _ready() -> void:
 		server.start(int(_args.get("port", DEFAULT_PORT)))
 		return
 	Controls.setup()
+	if not _args.has("bot") and not _args.has("screenshot"):
+		_presence = Presence.new()
+		add_child(_presence)
 	Settings.load_saved()
 	Graphics.load_saved()
 	if not _args.has("windowed") and not _args.has("bot") and not OS.is_debug_build():
@@ -108,6 +113,7 @@ func _start(mode: String, code := "") -> void:
 	client.graphics = _args.get("graphics", "")
 	client.relay_only = _args.has("relay-only")
 	client.hosting = mode == "host"
+	client.mode = mode
 	if _args.has("look"):
 		var parts := (_args["look"] as String).split(",")
 		client.look = Vector2(float(parts[0]), float(parts[1]) if parts.size() > 1 else -15.0)
@@ -201,6 +207,11 @@ func _stop_server() -> void:
 	if _server_pid > 0:
 		OS.kill(_server_pid)
 		_server_pid = 0
+
+
+func _process(delta: float) -> void:
+	if _presence:
+		_presence.follow(_client, delta)
 
 
 func _exit_tree() -> void:

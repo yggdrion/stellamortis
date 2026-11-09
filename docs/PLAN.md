@@ -28,7 +28,7 @@ Out (for the PoC): inventory, loot, crafting, persistence, procedural world, bui
 | Engine | Godot 4.7, latest 4.7.x patch (jotra pins 4.7.2), pinned with a checksum like jotra (`tools/install.py`), Forward+ renderer, Jolt physics |
 | Language | GDScript, statically typed everywhere (typed arrays and dictionaries) for speed and checks, lint with gdtoolkit |
 | Tests | gdUnit4 (game), `bun test` (lobby) |
-| Lobby | TypeScript on Bun, copied from jotra `lobby/` (own protocol number, own deployment later) |
+| Lobby | TypeScript on Bun, moved over from jotra's `lobby/` (jotra is retired, 2026-11-09); it takes over jotra's lobby + coturn deployment on the gvm host |
 | Netcode | [netfox](https://github.com/foxssake/netfox) (MIT), pinned to a main commit (`tools/install.py`): shared network tick, client-side prediction with server-side rollback, tick interpolation; later lag compensation for hits |
 | NAT traversal | WebRTC (`webrtc_native` GDExtension) + coturn, as in jotra |
 | Dedicated | headless Linux export in Docker, run locally |
@@ -130,7 +130,7 @@ game/        Godot project
   net/       transport, lobby client, protocol, snapshots
   data/      .tres tuning, attacks, enemies
   tests/     gdUnit4
-lobby/       Bun lobby/signaling server (copied from jotra), tests, Dockerfile
+lobby/       Bun lobby/signaling server (moved from jotra), tests, Dockerfile
 deploy/      docker-compose for dedicated server, lobby + coturn
 tools/       install, run, test, export scripts (adapted from jotra)
 docs/        PLAN.md, RESOURCES.md
@@ -146,11 +146,11 @@ docs/        PLAN.md, RESOURCES.md
 | M3 | Ranged | Aim mode, crosshair, charged bolt simulated on the server and falling with local gravity; hits the dummy | Planned |
 | M4 | Lock-on | Toggle, target switch, strafe and roll relative to target, works on the asteroid | Planned |
 | M5 | Encounter | 3 mobs with telegraphed attacks, boss with phases and gravity well, death and respawn, wipe reset, HUD (health, stamina, boss bar) | Planned |
-| M6 | Lobby | `lobby/` copied with its own protocol; host opens a room, friends join by code via WebRTC; local lobby + coturn compose | Planned |
+| M6 | Lobby | `lobby/` and `deploy/lobby/` moved from jotra into this repo, renamed to stellamortis, jotra-only parts dropped (its telemetry push), lobby protocol restarted at 1; `lobby_client.gd` and the WebRTC transport ported; `--host` spawns the server with a lobby room, host and friends join by code via WebRTC (TURN relay when direct fails); `bun test` in `tools/check.py`; works against a local lobby + coturn compose | Planned |
 | M7 | 10 players | Headless bots fill a game to 10; server holds 30 tps; bandwidth per peer measured | Planned |
-| M8 | Lobby deploy | Own lobby + coturn deployed on its own subdomain (needs a go-ahead) | Planned |
+| M8 | Lobby deploy | Replace jotra's lobby + coturn on the gvm host with stellamortis' `deploy/lobby/`: stop the `jotra-lobby` stack, start ours on the same ports (3478, relay 49160-49259) and the same Caddy route `lobby.r4b2.de` (gvm's Caddyfile: container alias and comment), reuse or rotate `TURN_SECRET`; old jotra builds stop working, which is fine; host and friends join by code from different networks, one through TURN. Touches the gvm host, so it needs a go-ahead before deploying | Planned |
 
 ## 7. Open questions
 
-- Subdomain and host for the M8 lobby deployment.
+- M8: keep `lobby.r4b2.de` (default) or move to a stellamortis subdomain. jotra's other gvm services (download page and telemetry at `jotra.r4b2.de`) are out of scope; retire them separately.
 - Exact CC0 packs (pick in M2 when the player model goes in).

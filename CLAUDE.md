@@ -2,7 +2,7 @@
 
 `docs/PLAN.md` is the source of truth for scope, design, architecture and milestones; read it before starting work. Setup, run and check commands are in `README.md`.
 
-Stellamortis reuses patterns and code from `../jotra` (lobby, transport, tooling, the "client always spawns a server" design). Read the matching jotra code before writing a new version of it, but stellamortis is 3D and its gameplay code is new.
+Stellamortis reuses patterns and code from `../jotra` (lobby, transport, tooling, the "client always spawns a server" design). jotra is retired (2026-11-09): read its code before writing a new version, move what we need, and don't keep anything working for jotra. M8 replaces its lobby + coturn on the gvm host.
 
 Use Godot 4.7 (latest 4.7.x patch) and its newest features for performance and visuals (`docs/PLAN.md` §3.1). Check each engine feature against the 4.7 docs and migration guide instead of relying on older Godot 4 habits. A quick way to check that a class, constant or setting exists: a `extends SceneTree` script run with `godot --headless -s`.
 

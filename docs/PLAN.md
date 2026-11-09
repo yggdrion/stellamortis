@@ -187,7 +187,6 @@ Testing and verification:
 - The gravity well's look (shell and motes) and the phase 2 Warden were never seen in a screenshot; only the mobs, the rising Warden and its volley were.
 - Player host through the public lobby was only tried from one machine: a host bot and a friend bot forced through the public TURN relay (`--relay-only`). A friend on another network, and a player behind a strict NAT without `--relay-only`, are untested.
 - A `--host --bot` whose friend never connected kept running past `--duration` until it was killed; the bot should give up on its own.
-- The old telemetry collector on the gvm host (compose project in `/root`, no public route since M8) still runs; stop it or reuse it for M11.
 - The headless network test only has bots walking, fighting the dummies and toggling lock-on; nothing in it fights the encounter, so its netcode (mob chases, boss phases, enemy bolts against prediction) is untested under lag.
 
 Network and performance:

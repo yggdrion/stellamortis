@@ -1,19 +1,27 @@
 class_name MainMenu
 extends CanvasLayer
 ## The start screen (PLAN §6 M11): Solo, Host (a lobby room), Join by code, Settings, the
-## player name, Quit. `message` shows why the last game ended ("The host left").
+## player name, Quit. `message` shows why the last game ended ("The host left"). While a game
+## starts it stays on top and shows the step (joining()), so a failed join (a wrong room code)
+## comes back here with the reason and never shows the world.
 
 ## mode: "solo", "host" or "join" (code set for join).
 signal chosen(mode: String, code: String)
+## Cancel (or Esc) while joining.
+signal cancelled
 
 var message := ""
 var _main: VBoxContainer
 var _settings: SettingsPanel
 var _name: LineEdit
 var _code: LineEdit
+var _joining: VBoxContainer
+var _status: Label
 
 
 func _ready() -> void:
+	# Above the HUD and the pause menu of the game starting behind it.
+	layer = 30
 	var column := Menus.screen(self, Menus.BACKDROP)
 	_main = VBoxContainer.new()
 	_main.add_theme_constant_override("separation", 10)
@@ -50,6 +58,30 @@ func _ready() -> void:
 	_settings.visible = false
 	_settings.closed.connect(_show_settings.bind(false))
 	column.add_child(_settings)
+
+	_joining = VBoxContainer.new()
+	_joining.add_theme_constant_override("separation", 10)
+	_joining.visible = false
+	_status = Menus.title("", 22)
+	_status.add_theme_font_override("font", Menus.body_font())
+	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_joining.add_child(_status)
+	_joining.add_child(Menus.button("Cancel", func() -> void: cancelled.emit()))
+	column.add_child(_joining)
+
+
+## Shows what the starting game is doing instead of the choices, until it is freed.
+func joining(text: String) -> void:
+	_status.text = text
+	_main.visible = false
+	_settings.visible = false
+	_joining.visible = true
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _joining.visible and event.is_action_pressed(&"pause"):
+		get_viewport().set_input_as_handled()
+		cancelled.emit()
 
 
 func _join() -> void:

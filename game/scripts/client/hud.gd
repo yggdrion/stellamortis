@@ -20,6 +20,8 @@ var player: SimPlayer
 var encounter: Encounter
 ## The lobby room code friends join with, "" when not hosting through the lobby.
 var room := ""
+## Stays on screen while set (the connection to the server is silent).
+var warning := ""
 var _health: ProgressBar
 var _stamina: ProgressBar
 var _dead: Label
@@ -29,6 +31,7 @@ var _goal: Label
 var _room: Label
 var _notice: Label
 var _notice_left := 0.0
+var _warning: Label
 var _boss_bar: ProgressBar
 var _last_health := -1.0
 var _respawns := -1
@@ -103,6 +106,11 @@ func _ready() -> void:
 	_notice.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(_notice)
+	_warning = Label.new()
+	_warning.add_theme_font_size_override("font_size", 22)
+	_warning.add_theme_color_override("font_color", Color(0.9, 0.5, 0.38))
+	_warning.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	top.add_child(_warning)
 
 	_dead = Label.new()
 	_dead.text = "YOU DIED"
@@ -146,6 +154,8 @@ func _process(delta: float) -> void:
 		return
 	_notice_left = maxf(0.0, _notice_left - delta)
 	_notice.visible = _notice_left > 0.0
+	_warning.text = warning
+	_warning.visible = warning != ""
 	_room.text = "Room %s  (F2 copies it)" % room if room != "" else ""
 	var t := Tuning.data()
 	_health.max_value = t.max_health

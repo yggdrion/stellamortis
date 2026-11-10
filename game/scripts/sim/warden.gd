@@ -28,7 +28,7 @@ var combo := 0
 
 func _init() -> void:
 	super()
-	set_size(0.9, 3.0)
+	set_size(1.2, 4.2)
 	attacks = [&"warden_sweep", &"warden_slam", &"warden_volley", &"warden_well"]
 	shot_attack = &"warden_volley"
 	max_health = BASE_HEALTH

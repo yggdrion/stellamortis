@@ -110,15 +110,108 @@ static func helm(plate := STEEL) -> Node3D:
 	return root
 
 
+## Two horns curving up and out of the Warden's helm, for the head bone.
+static func horns(size := 1.0) -> Node3D:
+	var root := Node3D.new()
+	var bone := _plain(Color(0.12, 0.1, 0.08), 0.6)
+	for side: float in [-1.0, 1.0]:
+		var at := Vector3(side * 0.12, 0.16, 0.0)
+		var tilt := 0.0
+		# Three tapering segments, each bent further out and up: a curved horn.
+		for i in 3:
+			var segment := MeshInstance3D.new()
+			var cone := CylinderMesh.new()
+			cone.bottom_radius = 0.045 - 0.013 * i
+			cone.top_radius = 0.045 - 0.013 * (i + 1) if i < 2 else 0.0
+			cone.height = 0.14
+			cone.material = bone
+			segment.mesh = cone
+			tilt += 0.55 - 0.25 * i
+			segment.rotation = Vector3(-0.25, 0.0, -side * tilt)
+			var along := segment.basis.y * cone.height
+			segment.position = at + along / 2.0
+			at += along
+			root.add_child(segment)
+	root.scale = Vector3.ONE * size
+	root.position.y = 0.16 * (1.0 - size)
+	return root
+
+
+## A crown of iron spikes around the helm, for the head bone.
+static func crown(plate := IRON) -> Node3D:
+	var root := Node3D.new()
+	var iron := _metal(plate.lightened(0.1), 0.5)
+	for i in 7:
+		var angle := PI * (i / 6.0 - 0.5) * 0.9
+		var spike := MeshInstance3D.new()
+		var cone := CylinderMesh.new()
+		cone.bottom_radius = 0.018
+		cone.top_radius = 0.0
+		cone.height = 0.11 if i % 2 == 0 else 0.07
+		cone.material = iron
+		spike.mesh = cone
+		var out := Vector3(sin(angle), 0.0, cos(angle))
+		spike.position = Vector3(0, 0.2, 0.01) + out * 0.11 + Vector3.UP * cone.height / 2.0
+		spike.rotation = Vector3(out.z * 0.3, 0.0, -out.x * 0.3)
+		root.add_child(spike)
+	return root
+
+
+## A tattered black cape hanging from the shoulders, for the upper chest bone: strips of
+## uneven length, so it reads ragged.
+static func cape() -> Node3D:
+	var root := Node3D.new()
+	var cloth := _plain(Color(0.05, 0.04, 0.04), 0.95)
+	cloth.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var lengths := [0.95, 1.15, 0.8, 1.2, 1.0, 0.85, 1.1]
+	for i in lengths.size():
+		var length: float = lengths[i]
+		var x := (i - (lengths.size() - 1) / 2.0) * 0.075
+		var strip := _box(
+			Vector3(0.08, length, 0.012), Vector3(x, 0.12 - length / 2.0, -0.17), cloth
+		)
+		strip.rotation.x = 0.12
+		root.add_child(strip)
+	return root
+
+
+## Spiked pauldrons on both shoulders, for the upper chest bone.
+static func pauldrons(plate := IRON) -> Node3D:
+	var root := Node3D.new()
+	var iron := _metal(plate, 0.45)
+	for side: float in [-1.0, 1.0]:
+		var shell := MeshInstance3D.new()
+		var dome := SphereMesh.new()
+		dome.radius = 0.12
+		dome.height = 0.14
+		dome.is_hemisphere = true
+		dome.material = iron
+		shell.mesh = dome
+		shell.position = Vector3(side * 0.2, 0.1, 0.0)
+		shell.rotation.z = -side * 0.35
+		root.add_child(shell)
+		var spike := MeshInstance3D.new()
+		var cone := CylinderMesh.new()
+		cone.bottom_radius = 0.03
+		cone.top_radius = 0.0
+		cone.height = 0.16
+		cone.material = _metal(plate.lightened(0.15), 0.5)
+		spike.mesh = cone
+		spike.position = Vector3(side * 0.25, 0.22, 0.0)
+		spike.rotation.z = -side * 0.5
+		root.add_child(spike)
+	return root
+
+
 ## Two ember eyes, for the head bone of the dead.
-static func eyes(color := EMBER) -> Node3D:
+static func eyes(color := EMBER, energy := 6.0) -> Node3D:
 	var root := Node3D.new()
 	for x: float in [-0.035, 0.035]:
 		var eye := MeshInstance3D.new()
 		var ball := SphereMesh.new()
 		ball.radius = 0.016
 		ball.height = 0.032
-		ball.material = _glow(color, 6.0)
+		ball.material = _glow(color, energy)
 		eye.mesh = ball
 		eye.position = Vector3(x, 0.09, 0.09)
 		eye.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

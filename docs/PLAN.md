@@ -235,6 +235,7 @@ Moved to milestones:
 
 - Outfits (2026-11-09, after M13): to check in M15 how the rangers, squires and the dead look in a fight (outfit clipping in the UAL clips, the hood and hair, the weapon grips on the new hands, the hit flash on several stacked meshes).
 
+- Play-test 2026-11-10: the body glided on after a roll ended (8.5 m/s braking at ground_accel while the model already stood). The last `SimPlayer.ROLL_EASE` (30 %) of a roll now eases from roll speed into walking. The Warden was too small and plain: it is 4.2 m now (was 3.0; sweep reach 5.6, slam reach 4.0 at offset 3.0) with horns, an iron crown, spiked pauldrons, a ragged cape and brighter eyes with a face light, all built in code (`Gear.horns`, `crown`, `pauldrons`, `cape`). No CC0 model fit (Quaternius' monster packs are cartoony). M15: check the roll's end feels right and the Warden reads as scary at night.
 - M14 to check in M15: listen to every sound (the synthesized ones were never heard while building: twang, telegraphs, embers, hum, wind, fire), the mix (ambience, torches and footsteps against combat), 3D falloff, the volume slider. Swings and hits were replaced on 2026-11-10 (StarNinjas recordings, slash hits from Kenney) after the user disliked the first ones; check they land.
 
 Still open (§3.1, not in a milestone yet):

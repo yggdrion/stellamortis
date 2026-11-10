@@ -80,6 +80,17 @@ func _init(of: Enemy) -> void:
 		_add_well()
 
 
+## A small ember light in the Warden's face, so the eyes light the helm from inside.
+static func _glare() -> OmniLight3D:
+	var light := OmniLight3D.new()
+	light.light_color = Gear.EMBER
+	light.light_energy = 1.5
+	light.omni_range = 0.6
+	light.position = Vector3(0, 0.09, 0.12)
+	light.shadow_enabled = false
+	return light
+
+
 ## Which figure in which gear, at which size, with its clips.
 func _make_model() -> CharacterModel:
 	var human := CharacterModel.HUMAN
@@ -93,12 +104,17 @@ func _make_model() -> CharacterModel:
 				{
 					"sword": ["RightHand", Gear.sword(Gear.IRON.lightened(0.15), 1.3)],
 					"helm": ["Head", Gear.helm(Gear.IRON)],
-					"eyes": ["Head", Gear.eyes()],
+					"horns": ["Head", Gear.horns(1.6)],
+					"crown": ["Head", Gear.crown()],
+					"eyes": ["Head", Gear.eyes(Gear.EMBER, 16.0)],
+					"glare": ["Head", _glare()],
+					"cape": ["UpperChest", Gear.cape()],
+					"pauldrons": ["UpperChest", Gear.pauldrons()],
 				},
 				enemy.height / SimPlayer.HEIGHT
 			)
 		)
-		var iron := Gear.armor(Gear.IRON, Color(0.08, 0.06, 0.05))
+		var iron := Gear.armor(Gear.IRON.lightened(0.08), Color(0.06, 0.04, 0.03))
 		model.skin(iron[0], {1: iron[1]})
 		return model
 	if enemy is Mob:

@@ -11,6 +11,8 @@ const KENNEY := "res://assets/sounds/kenney/"
 const SYNTH := "res://assets/sounds/synth/"
 const BLADES := "res://assets/sounds/blades/"
 const BUSES := [&"Effects", &"Ambience", &"UI"]
+## Level of the planet's wind on its 2D player, on top of the Ambience bus.
+const WIND_DB := -18.0
 ## Sound name -> its files (one is picked at random each time).
 static var library := {
 	&"step_grass": _numbered(KENNEY + "footstep_grass_%03d.ogg", 5),
@@ -108,6 +110,8 @@ static func ambience(player: AudioStreamPlayer, on_hub: bool) -> void:
 	if player.stream == stream and player.playing:
 		return
 	player.bus = &"Ambience"
+	# The wind files peak near full scale, far too loud at 0 dB.
+	player.volume_db = WIND_DB
 	player.stream = stream
 	player.play()
 

@@ -70,7 +70,9 @@ var _combat_fields: Array = []
 
 func _init() -> void:
 	collision_layer = SimPlayer.LAYER_ENEMIES
-	collision_mask = SimPlayer.LAYER_WORLD
+	# Enemies shove each other aside instead of walking through one another; players don't
+	# block them (players bump into enemies, not the other way round).
+	collision_mask = SimPlayer.LAYER_WORLD | SimPlayer.LAYER_ENEMIES
 	floor_snap_length = 0.3
 	_shape = CollisionShape3D.new()
 	add_child(_shape)

@@ -82,9 +82,21 @@ playing.
 
 Every push to `main` runs `.github/workflows/release.yml`: `tools/check.py` on Linux, then
 `tools/export.py` on a Linux, Windows and macOS runner each (macOS: universal app, ad-hoc signed,
-not notarized, so Gatekeeper asks once: right click, Open). The exports are kept as workflow
-artifacts for 3 days and published as a GitHub Release `v<VERSION>.<patch>` with
-`stellamortis-linux.zip`, `stellamortis-windows.zip` and `stellamortis-macos.zip`.
+not notarized). The exports are kept as workflow artifacts for 3 days and published as a
+GitHub Release `v<VERSION>.<patch>` with `stellamortis-<tag>-linux.zip`,
+`stellamortis-<tag>-windows.zip` and `stellamortis-<tag>-macos.zip` (e.g.
+`stellamortis-v0.15.3-macos.zip`). Each release's notes start with `.github/release-notes.md`
+(downloads, the macOS step below), followed by GitHub's generated notes.
+
+### macOS
+
+The macOS zip is a universal app: it runs natively on Intel (x86_64) and Apple Silicon (arm64).
+It is ad-hoc signed but not notarized, so Gatekeeper blocks the first start. Either right-click
+`stellamortis.app` and choose **Open**, or remove the quarantine flag once:
+
+```bash
+xattr -dr com.apple.quarantine stellamortis.app
+```
 
 Versions: every milestone is a minor version. The commit that finishes milestone Mn sets
 `VERSION` to `0.<n+1>` (M1 done: `0.2`), so its release is `v0.<n+1>.0`; every push after it

@@ -102,3 +102,15 @@ func test_replay_is_deterministic() -> void:
 	_restore(player, start)
 	await _run(player, inputs)
 	assert_float(player.global_position.distance_to(first.origin)).is_less(0.001)
+
+
+## The test stair in the realm (Arena: six 0.4 m risers, 0.8 m deep, top at 2.4 m) is walked up
+## without jumping.
+func test_walks_up_stairs() -> void:
+	var player := _player()
+	player.global_position = Vector3(8, 0.05, -23.0)
+	var highest := 0.0
+	for i in 60:
+		await _run(player, [_forward()])
+		highest = maxf(highest, player.global_position.y)
+	assert_float(highest).is_greater(2.3)

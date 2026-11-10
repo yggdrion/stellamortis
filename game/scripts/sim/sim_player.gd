@@ -29,6 +29,9 @@ const MAX_BOLTS := 4
 const HEAVY_ATTACK := 3
 ## The last part of a roll (fraction of roll_time) that eases from roll speed into walking.
 const ROLL_EASE := 0.3
+## Highest ledge (stair riser) a grounded body walks up without jumping, in metres. The capsule's
+## round bottom alone slides up only a few centimetres.
+const STEP_HEIGHT := 0.45
 ## The rolled back state. transform covers position and orientation. netfox synchronizes it as
 ## SYNCED: transform and velocity as they are, the rest packed in groups (Wire.pack), one
 ## property each, because netfox's cost grows with the number of synced properties.
@@ -153,7 +156,8 @@ func _init() -> void:
 		bolt_vel.append(Vector3.ZERO)
 		bolt_life.append(0)
 		bolt_damage.append(0.0)
-	floor_snap_length = 0.3
+	# Long enough to follow a stair down; snapping never applies while moving up (jumps).
+	floor_snap_length = STEP_HEIGHT
 	floor_max_angle = deg_to_rad(50.0)
 	var shape := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
@@ -281,11 +285,21 @@ func step(
 
 	velocity = horizontal + vertical
 	up_direction = up
+	var was_grounded := grounded
+	var start := global_transform
 	# move_and_slide assumes the physics delta, netfox ticks may differ (rollback caveats).
 	velocity *= NetworkTime.physics_factor
 	move_and_slide()
 	velocity /= NetworkTime.physics_factor
 	grounded = is_on_floor()
+	# Probes with the speed the input wants: the slide has eaten the speed into the riser, and
+	# the capsule's round bottom finds a floor on the edge only once it is ~0.1 m past it.
+	var probe := (
+		horizontal_target if horizontal_target.length() > horizontal.length() else horizontal
+	)
+	if was_grounded and vertical.dot(up) <= 0.0 and _step_up(start, probe * delta):
+		velocity = horizontal
+		grounded = true
 
 	if action == Action.NONE and not aiming and wish.length_squared() > 0.01:
 		facing = facing.slerp(wish.normalized(), minf(1.0, delta * t.turn_rate))
@@ -596,6 +610,41 @@ func _turn_frame(target: Vector3, weight: float) -> void:
 	up = (turn * up).normalized()
 	ref_forward = _tangent(turn * ref_forward, up)
 	facing = _tangent(turn * facing, up)
+
+
+## Walks up a step the slide stopped at: from where the tick began, lifts by STEP_HEIGHT, moves
+## the tick's horizontal motion, drops back onto a floor. Takes that only if it gets further
+## than the slide did. Uses test_move only, so it replays the same in rollback.
+func _step_up(start: Transform3D, motion: Vector3) -> bool:
+	var wanted := motion.length()
+	if wanted < 0.001:
+		return false
+	var slid := global_position - start.origin
+	slid -= up * slid.dot(up)
+	if slid.length() > wanted * 0.9:
+		return false
+	var hit := KinematicCollision3D.new()
+	var at := start
+	var lift := up * STEP_HEIGHT
+	if test_move(at, lift, hit):
+		lift = hit.get_travel()
+	at.origin += lift
+	var forward := motion
+	if test_move(at, motion, hit):
+		forward = hit.get_travel()
+	at.origin += forward
+	if not test_move(at, -lift - up * 0.05, hit):
+		return false
+	if hit.get_normal().dot(up) < cos(floor_max_angle):
+		return false
+	at.origin += hit.get_travel()
+	var moved := at.origin - start.origin
+	var rise := moved.dot(up)
+	moved -= up * rise
+	if rise < 0.02 or moved.length() <= slid.length() + 0.01:
+		return false
+	global_transform = at
+	return true
 
 
 func _orient() -> void:

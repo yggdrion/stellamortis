@@ -11,10 +11,11 @@ signal rejected(reason: String)
 signal ponged(sent_ms: int)
 signal server_stats_received(tps: float, tick_ms: float, tick_avg_ms: float, out_kbps: float)
 signal room_received(code: String)
+signal notice_received(text: String)
 
 ## Bump on any change to the RPCs here or to what netfox synchronizes (SimPlayer.STATE,
 ## PlayerControls) or to what both sides simulate (Layout, Gravity, Tuning).
-const PROTOCOL_VERSION := 11
+const PROTOCOL_VERSION := 12
 
 @rpc("any_peer", "reliable")
 func hello(version: int, player_name: String) -> void:
@@ -46,3 +47,9 @@ func server_stats(tps: float, tick_ms: float, tick_avg_ms: float, out_kbps: floa
 @rpc("authority", "reliable")
 func room(code: String) -> void:
 	room_received.emit(code)
+
+
+## A line for every player's HUD ("Ana joined", "Ana lost the connection").
+@rpc("authority", "reliable")
+func notice(text: String) -> void:
+	notice_received.emit(text)

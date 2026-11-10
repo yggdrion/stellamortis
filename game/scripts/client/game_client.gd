@@ -7,6 +7,12 @@ extends Node3D
 ## code (player host, PLAN §4.7).
 
 signal left(reason: String)
+## The own player is in the world (the main menu waits for it).
+signal entered
+
+## Seconds without a word from the server before the HUD warns, and before giving up.
+const SILENT_WARN := 2.0
+const SILENT_LEAVE := 8.0
 
 var net: Net
 var player_name := "player"
@@ -50,6 +56,10 @@ var _world: World
 var _rig: CameraRig
 ## Set by leave(): the disconnect that follows is ours, not a lost server.
 var _leaving := false
+## When the server was last heard from (pong or stats), 0 before the first. A server that
+## crashed or a host that lost its network sends nothing, and ENet or WebRTC take up to 30 s to
+## notice: after SILENT_WARN the HUD says so, after SILENT_LEAVE the game ends.
+var _heard_ms := 0
 var _overlay: DebugOverlay
 var _hud: Hud
 var _pause: PauseMenu
@@ -99,13 +109,19 @@ func _ready() -> void:
 	add_child(_pause)
 	net.rejected.connect(func(reason: String) -> void: left.emit(reason))
 	net.room_received.connect(func(code: String) -> void: room = code)
-	net.ponged.connect(func(sent: int) -> void: ping_ms = Time.get_ticks_msec() - sent)
+	net.ponged.connect(
+		func(sent: int) -> void:
+			ping_ms = Time.get_ticks_msec() - sent
+			_heard_ms = Time.get_ticks_msec()
+	)
+	net.notice_received.connect(func(text: String) -> void: _hud.notice(text))
 	net.server_stats_received.connect(
 		func(tps: float, tick_ms: float, tick_avg_ms: float, out_kbps: float) -> void:
 			server_tps = tps
 			server_tick_ms = tick_ms
 			server_tick_avg_ms = tick_avg_ms
 			server_out_kbps = out_kbps
+			_heard_ms = Time.get_ticks_msec()
 	)
 	var timer := Timer.new()
 	timer.wait_time = 1.0
@@ -154,6 +170,7 @@ func _watch_connection() -> void:
 	multiplayer.server_disconnected.connect(
 		func() -> void:
 			if not _leaving:
+				_heard_ms = 0
 				left.emit("The host left" if lobby and not hosting else "The server closed")
 	)
 
@@ -217,6 +234,7 @@ func _on_player_spawned(player: SimPlayer) -> void:
 		_rig.pitch = deg_to_rad((look as Vector2).y)
 	if not bot and not _pause.visible:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	entered.emit()
 
 
 func _read_controls(controls: PlayerControls) -> void:
@@ -278,6 +296,7 @@ func _bot_controls(controls: PlayerControls) -> void:
 
 func _process(_delta: float) -> void:
 	_hud.room = room
+	_watch_silence()
 	if _snap_log and me != null:
 		_log_snaps()
 	if me != null:
@@ -289,6 +308,22 @@ func _process(_delta: float) -> void:
 			and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 			and (Input.is_action_pressed(&"block") or me.action == SimPlayer.Action.DRAW)
 		)
+
+
+## Warns, then leaves, when the server has gone quiet (see _heard_ms).
+func _watch_silence() -> void:
+	if _heard_ms == 0 or _leaving:
+		_hud.warning = ""
+		return
+	var silent := (Time.get_ticks_msec() - _heard_ms) / 1000.0
+	var who := "the host" if lobby and not hosting else "the server"
+	if silent >= SILENT_LEAVE:
+		_heard_ms = 0
+		left.emit("Lost the connection to %s" % who)
+	elif silent >= SILENT_WARN:
+		_hud.warning = "No word from %s for %d s ..." % [who, int(silent)]
+	else:
+		_hud.warning = ""
 
 
 ## Prints the own player's moves between ticks that are longer than its speed allows (rollback
@@ -370,10 +405,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	var motion := event as InputEventMouseMotion
 	if motion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_rig.look(motion.screen_relative)
-	elif event.is_action_pressed(&"pause"):
+	elif event.is_action_pressed(&"pause") and me != null:
 		if _pause.visible:
 			_pause.back()
 		else:
+			_pause.room = room
 			_pause.open()
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif _pause.visible:

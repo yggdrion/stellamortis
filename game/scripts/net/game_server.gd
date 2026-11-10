@@ -17,6 +17,10 @@ const SOLO_JOIN_TIMEOUT := 20.0
 const ROOM_JOIN_TIMEOUT := 60.0
 ## Seconds before opening a new room after the lobby was lost.
 const LOBBY_RETRY := 10.0
+## Seconds without a ping from a player before it is dropped. Clients ping every second; a
+## crashed one or one that lost its network would otherwise stand there until ENet or WebRTC
+## time out (up to 30 s). Generous, so a client's long first frame (shader compiles) is no drop.
+const SILENT_DROP := 10.0
 
 var net: Net
 var solo := false
@@ -35,6 +39,8 @@ var _rtc: WebRTCMultiplayerPeer
 
 var _world: World
 var _names := {}
+## Peer id -> Time.get_ticks_msec() of its last ping, for players in the world.
+var _heard := {}
 var _ever_joined := false
 var _started_ms := 0
 var _loop_began := 0
@@ -77,7 +83,7 @@ func start(port: int) -> void:
 		multiplayer.multiplayer_peer = peer
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	net.hello_received.connect(_on_hello)
-	net.pinged.connect(func(id: int, sent: int) -> void: net.pong.rpc_id(id, sent))
+	net.pinged.connect(_on_ping)
 	NetworkTime.before_tick_loop.connect(func() -> void: _loop_began = Time.get_ticks_usec())
 	NetworkTime.after_tick_loop.connect(_track_stats)
 	NetworkTime.on_tick.connect(func(_delta: float, _tick: int) -> void: _stats_ticks += 1)
@@ -132,6 +138,7 @@ func _write_room_file(text: String) -> void:
 
 
 func _process(_delta: float) -> void:
+	_drop_silent()
 	var wait := ROOM_JOIN_TIMEOUT if lobby_url != "" else SOLO_JOIN_TIMEOUT
 	if solo and not _ever_joined and Time.get_ticks_msec() - _started_ms > wait * 1000:
 		print("Nobody joined, exiting")
@@ -209,14 +216,49 @@ func _on_hello(id: int, version: int, player_name: String) -> void:
 			return
 	var at := Layout.spawn_point(id)
 	_world.spawn_player(id, _names[id], spawn_at if spawn_at is Vector3 else at)
+	_heard[id] = Time.get_ticks_msec()
 	print("%s joined (%d)" % [_names[id], id])
+	_tell_others(id, "%s joined" % _names[id])
+
+
+func _on_ping(id: int, sent: int) -> void:
+	if _heard.has(id):
+		_heard[id] = Time.get_ticks_msec()
+	net.pong.rpc_id(id, sent)
+
+
+## Drops players that went quiet (SILENT_DROP); peer_disconnected then finds them gone.
+func _drop_silent() -> void:
+	var now := Time.get_ticks_msec()
+	for id: int in _heard.keys():
+		if now - _heard[id] > SILENT_DROP * 1000:
+			print("%s went silent (%d)" % [_names.get(id, "?"), id])
+			_heard.erase(id)
+			_tell_others(id, "%s lost the connection" % _names.get(id, "A player"))
+			_names.erase(id)
+			_remove_player(id)
+			multiplayer.multiplayer_peer.disconnect_peer(id)
+
+
+## A HUD line for every player in the world but this one.
+func _tell_others(id: int, text: String) -> void:
+	for other: int in _heard:
+		if other != id:
+			net.notice.rpc_id(other, text)
 
 
 func _on_peer_disconnected(id: int) -> void:
 	if not _names.has(id):
 		return
 	print("%s left (%d)" % [_names[id], id])
+	if _heard.has(id):
+		_heard.erase(id)
+		_tell_others(id, "%s left" % _names[id])
 	_names.erase(id)
+	_remove_player(id)
+
+
+func _remove_player(id: int) -> void:
 	var player := _world.player(id)
 	if player:
 		player.queue_free()

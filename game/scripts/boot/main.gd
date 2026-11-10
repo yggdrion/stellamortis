@@ -92,6 +92,7 @@ func _direct_mode() -> String:
 
 
 func _show_menu(message: String) -> void:
+	_close_menu()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_menu = MainMenu.new()
 	_menu.message = message
@@ -99,11 +100,14 @@ func _show_menu(message: String) -> void:
 	add_child(_menu)
 
 
-## Starts a game: "solo", "host", "join" (code from the menu or --join) or "connect".
-func _start(mode: String, code := "") -> void:
+func _close_menu() -> void:
 	if _menu:
 		_menu.queue_free()
 		_menu = null
+
+
+## Starts a game: "solo", "host", "join" (code from the menu or --join) or "connect".
+func _start(mode: String, code := "") -> void:
 	var client := GameClient.new()
 	client.net = _net
 	client.bot = _args.has("bot")
@@ -122,6 +126,14 @@ func _start(mode: String, code := "") -> void:
 		var parts := (_args["look"] as String).split(",")
 		client.look = Vector2(float(parts[0]), float(parts[1]) if parts.size() > 1 else -15.0)
 	client.left.connect(_on_left)
+	if _menu:
+		# The menu stays on top until the player is in: a failed join returns to it at once.
+		var steps := {
+			"solo": "Starting...", "host": "Opening a room...", "join": "Joining room %s..." % code
+		}
+		_menu.joining(steps.get(mode, "Connecting..."))
+		_menu.cancelled.connect(_on_left.bind(""))
+		client.entered.connect(_close_menu)
 	_client = client
 	add_child(client)
 	match mode:

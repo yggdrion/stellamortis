@@ -27,6 +27,8 @@ const GROUP := &"players"
 ## Bolts in flight per player: fixed slots, so they roll back with the player's state.
 const MAX_BOLTS := 4
 const HEAVY_ATTACK := 3
+## The last part of a roll (fraction of roll_time) that eases from roll speed into walking.
+const ROLL_EASE := 0.3
 ## The rolled back state. transform covers position and orientation. netfox synchronizes it as
 ## SYNCED: transform and velocity as they are, the rest packed in groups (Wire.pack), one
 ## property each, because netfox's cost grows with the number of synced properties.
@@ -255,7 +257,13 @@ func step(
 				horizontal_target = facing * def.lunge
 			accel = t.ground_accel
 		Action.ROLL:
-			horizontal_target = action_dir * t.roll_speed
+			# The last ROLL_EASE of the roll eases into walking, so the body stops with the clip
+			# instead of gliding on at roll speed while the model already stands.
+			var left := 1.0 - float(action_time) / Combat.ticks(t.roll_time)
+			var rolling := clampf(left / ROLL_EASE, 0.0, 1.0)
+			horizontal_target = (
+				action_dir * t.roll_speed * rolling + wish * t.walk_speed * (1.0 - rolling)
+			)
 			accel = 1000.0
 	# A gravity well drags the body toward its center: walking out is slow, sprints and rolls
 	# get away. Its pull turns into a drift speed (well_drag seconds of its acceleration).

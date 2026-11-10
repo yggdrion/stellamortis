@@ -428,7 +428,7 @@ func _add_environment() -> void:
 	var moon := DirectionalLight3D.new()
 	moon.rotation = Vector3(deg_to_rad(-38), deg_to_rad(30), 0)
 	moon.light_color = MOON_LIGHT
-	moon.light_energy = 1.1
+	moon.light_energy = 1.4
 	moon.shadow_enabled = true
 	moon.directional_shadow_max_distance = 140.0
 	add_child(moon)
@@ -450,17 +450,20 @@ func _add_environment() -> void:
 	env.sky = sky
 	# The night sky is mostly black, so ambient light comes from a fixed color instead.
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.3, 0.33, 0.45)
-	env.ambient_light_energy = 1.0
+	# Bright enough that shadowed sides still read (the 2026-11-10 play-test found it far too dark).
+	env.ambient_light_color = Color(0.42, 0.45, 0.58)
+	env.ambient_light_energy = 1.8
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.tonemap_exposure = 1.25
 	env.ssao_enabled = true
+	env.ssao_intensity = 1.2
 	env.ssil_enabled = true
 	env.glow_enabled = true
 	env.glow_bloom = 0.06
-	# Muted and a little crushed: grim, not cute.
+	# Muted: grim, not cute. Barely any extra contrast, which crushed the shadows to black.
 	env.adjustment_enabled = true
-	env.adjustment_contrast = 1.1
+	env.adjustment_contrast = 1.02
 	env.adjustment_saturation = 0.85
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.09, 0.1, 0.14)

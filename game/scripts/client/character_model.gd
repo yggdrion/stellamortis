@@ -25,6 +25,19 @@ const BODY_MALE := CHARACTERS + "Superhero_Male_FullBody.gltf"
 const BODY_FEMALE := CHARACTERS + "Superhero_Female_FullBody.gltf"
 ## Bones whose skin stays when a full body is cut down to its head.
 const HEAD_BONES := [&"Head", &"Neck"]
+## Bones a mixed clip (mix()) takes from its legs clip; every other track comes from the upper one.
+const LEG_BONES := [
+	&"Root",
+	&"Hips",
+	&"LeftUpperLeg",
+	&"LeftLowerLeg",
+	&"LeftFoot",
+	&"LeftToes",
+	&"RightUpperLeg",
+	&"RightLowerLeg",
+	&"RightFoot",
+	&"RightToes",
+]
 
 ## Borrowed clips by library path and target skeleton path, retargeted once.
 static var _cache := {}
@@ -132,6 +145,26 @@ func loop(clip: StringName, speed := 1.0) -> void:
 		animation.play(clip, 0.15)
 		_looping = clip
 	animation.speed_scale = speed
+
+
+## A looping clip named name with the legs of legs_clip and the rest of the body from upper_clip,
+## built once per library: UAL has no walk with a raised shield or a crossbow at the ready.
+## Lasts as long as legs_clip; a shorter upper clip holds its last key.
+func mix(name: StringName, legs_clip: StringName, upper_clip: StringName) -> StringName:
+	var library := animation.get_animation_library(&"")
+	if library.has_animation(name):
+		return name
+	var clip := animation.get_animation(legs_clip).duplicate() as Animation
+	clip.loop_mode = Animation.LOOP_LINEAR
+	for track in range(clip.get_track_count() - 1, -1, -1):
+		if not LEG_BONES.has(StringName(clip.track_get_path(track).get_concatenated_subnames())):
+			clip.remove_track(track)
+	var upper := animation.get_animation(upper_clip)
+	for track in upper.get_track_count():
+		if not LEG_BONES.has(StringName(upper.track_get_path(track).get_concatenated_subnames())):
+			upper.copy_track(track, clip)
+	library.add_animation(name, clip)
+	return name
 
 
 ## Puts a base character's head (its body cut to head and neck), eyes and brows on this

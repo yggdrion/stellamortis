@@ -8,6 +8,8 @@ extends Node3D
 ## facing when an attack or roll starts; turning the model over a few frames keeps that from
 ## looking like a jump.
 const TURN_FOLLOW := 25.0
+## Ground speed (m/s) at which UAL's Walk clip plays at its own pace.
+const WALK_CLIP_SPEED := 1.8
 
 var player: SimPlayer
 var _model: CharacterModel
@@ -152,9 +154,9 @@ func _pose() -> void:
 			var ticks := Combat.ticks(t.roll_time)
 			_model.play_timed(&"Roll", time / ticks, t.roll_time)
 		SimPlayer.Action.BLOCK:
-			_model.loop(&"Idle_Shield")
+			_guarded(&"Idle_Shield", &"Walk_Shield")
 		SimPlayer.Action.DRAW:
-			_model.loop(&"Pistol_Aim_Neutral")
+			_guarded(&"Pistol_Aim_Neutral", &"Walk_Aim")
 		SimPlayer.Action.SHOOT:
 			var ticks := Combat.ticks(t.shoot_recover)
 			_model.play_timed(&"Pistol_Shoot", time / ticks * 0.6, t.shoot_recover / 0.6)
@@ -167,12 +169,26 @@ func _pose() -> void:
 			_locomotion(t)
 
 
+## Holding a pose (shield up, crossbow drawn): the upper body keeps it, the legs walk when the
+## body moves (CharacterModel.mix).
+func _guarded(upper: StringName, walking: StringName) -> void:
+	var speed := _ground_speed()
+	if speed < 0.4:
+		_model.loop(upper)
+	else:
+		_model.loop(_model.mix(walking, &"Walk", upper), speed / WALK_CLIP_SPEED)
+
+
+func _ground_speed() -> float:
+	var flat := player.velocity - player.up * player.velocity.dot(player.up)
+	return flat.length()
+
+
 func _locomotion(t: Tuning) -> void:
 	if not player.grounded:
 		_model.loop(&"Jump")
 		return
-	var flat := player.velocity - player.up * player.velocity.dot(player.up)
-	var speed := flat.length()
+	var speed := _ground_speed()
 	if speed < 0.4:
 		_model.loop(&"Sword_Idle" if player.weapon == SimPlayer.Weapon.SWORD else &"Pistol_Idle")
 	elif speed < (t.walk_speed + t.sprint_speed) / 2.0:

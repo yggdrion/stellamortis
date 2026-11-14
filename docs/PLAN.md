@@ -6,7 +6,11 @@ Source of truth for scope, design, architecture and milestones. Decisions from t
 
 Third-person coop action game in space, Valheim-like with aiming, combat in Valheim's style: dodge roll with i-frames, shield block and parry, attacks toward the camera, no lock-on (removed in M10). Fights happen across gravity zones on a planet surface and a small asteroid. The PoC is a hub keep and one realm: kill 3 mobs, a boss rises, kill the boss, take the portal home.
 
+After the PoC (decided 2026-11-14, §4.8, M19 onward): a saved survival world. Round realms large enough to feel like land, one biome, gravity and boss each, reached through rune gates from the keep; camps of the dead to clear, loot, gear with real gear slots, levels and perk trees, gathering, crafting and base building.
+
 ## 2. Scope
+
+The PoC list below is built. From M19 on the scope is §4.8 and the milestone briefs in `docs/milestones/`: inventory, loot, crafting, persistence, a generated world and building move in; telemetry and public dedicated hosting stay out.
 
 In:
 
@@ -156,6 +160,33 @@ All numbers live in data resources (`game/data/*.tres`), not in code.
   - Phases (`Encounter.Phase`): MOBS, BOSS, CLEARED; 20 s after the Warden falls everything resets. A wipe (every player dead at once, at least 4 s after the last reset) resets to the mobs. The encounter node is rolled back with prediction like the enemies.
   - Debug: `--encounter=boss` starts a server (or solo) with the mobs dead.
 
+### 4.8 Survival world (M19 onward)
+
+Decided with the user on 2026-11-14. Nothing here is built yet; the briefs in `docs/milestones/` split it into tasks.
+
+What the game becomes:
+
+- A persistent survival world in Valheim's spirit. Priority: explore and fight, then gather and craft, then base building.
+- Several round realms, each one biome with its own gravity, enemies, resources and boss. A boss's death opens the keep's gate to the next realm. Realms must be big enough that walking never feels like running around a ball.
+- Realms: the Barrowlands (normal gravity, start, the Warden), Myrkfen (low gravity, fog and black water, a drowned jotun), Jarnfell (high gravity, ash and old forges, a forge king), the Skyshards (a cluster of small floating rocks with launch stones between them).
+- The theme stays §3.2: dark medieval, Viking, northern fantasy. No sci-fi words or looks: realms and rune gates, sky iron, draugr.
+- Hits and loot must feel satisfying (M19, M23).
+- Inventory with real gear slots apart from the bag, sorting and quick transfer (Valheim's inventory is the bad example).
+- Progression: character levels with perk trees, plus gear and sets that grant perks. The level cap rises with each boss.
+- Characters (gear, inventory, level, perks) are saved on the player's machine and travel between worlds; the server trusts what the client sends (fine among friends). The world save lives with the server.
+- Enemies stay rolled back. A fixed pool of 24 to 32 enemy slots is assigned to spawn points near players: small groups, no hordes.
+
+Technical calls (Claude's, to be corrected by measurement and play-tests):
+
+- Realm radius 1000 m (a lap is 6.3 km; the horizon sits about 60 m away at eye height, and hills and fog hide the curve). Radius is data per realm.
+- Terrain is a cube-sphere cut into chunks. Height is a pure function of world seed and direction (seeded `FastNoiseLite`), quantized, so every peer builds the same collision. Collision chunks exist around every player and awake enemy on the server and around the own player on clients; clients draw near chunks in detail and a coarse far shell. A gate holds the traveller until the destination's chunks exist.
+- Realms sit in the one world at offsets like `Layout.HUB`, all within 6 km of the origin (32 bit floats); clients draw the realm they are on.
+- The server sends the world seed and name in the hello handshake, before the client builds `World`.
+- Only combat is rolled back. World objects (resource nodes, drops, graves, built pieces) and inventories are server-authoritative: reliable RPC deltas plus a snapshot at join. Equipped item ids are the only item data in rolled back state. A player's `Stats` block (from perks, gear and sets) is computed on the server and sent to its owner; it is not rolled back.
+- Enemy kinds are data (`EnemyDef`: health, speed, attacks, behavior, look), so any pool slot can be any kind.
+- Saves are JSON, written to a temp file and renamed: `user://worlds/<name>.json` on the server, `user://characters/<name>.json` on the client.
+- New enemies stay on the humanoid UAL rig first. Beasts and flyers need a CC0 model that fits the look; each realm milestone starts with that search and falls back to humanoids.
+
 ## 5. Repository layout
 
 ```
@@ -173,27 +204,44 @@ docs/        PLAN.md, RESOURCES.md
 
 ## 6. Milestones
 
-| # | Name | Done when | Status |
-|---|---|---|---|
-| M0 | Skeleton | Tooling (pinned Godot, gdUnit4, lint); client spawns a local server in solo; capsule player moves with prediction and reconciliation (netfox since 2026-11-09); third-person camera; a second client joins by IP; two clients see each other move smoothly at 100 ms simulated latency | Done (2026-11-09), v0.1.x |
-| M1 | Gravity zones | `Gravity.sample` with zones; low-g and high-g zones; walk all the way around the asteroid with a steady camera; jump pad to the asteroid; tests for sampling and zone priority | Done (2026-11-09), v0.2.0 |
-| M2 | Melee + defense | Stamina, roll with i-frames, light combo, heavy, block, parry; a training dummy that swings on a timer to test i-frames and parry; animated player model (CC0); graphics presets | Done (2026-11-09), v0.3.0 |
-| M3 | Ranged | Aim mode, crosshair, charged bolt simulated on the server and falling with local gravity; hits the dummy; weapon switching | Done (2026-11-09), v0.4.0 |
-| M4 | Lock-on | Toggle, target switch, strafe and roll relative to target, works on the asteroid | Done (2026-11-09), v0.5.0 |
-| M5 | Encounter | 3 mobs with telegraphed attacks, boss with phases and gravity well, death and respawn, wipe reset, HUD (health, stamina, boss bar) | Done (2026-11-09), v0.6.0 |
-| M6 | Lobby | `lobby/` (Bun, lobby protocol 1) and `deploy/lobby/` (lobby + coturn) in this repo; `net/lobby_client.gd` and the WebRTC transport; `--host` spawns the server with a lobby room, host and friends join by code via WebRTC (TURN relay when direct fails); `bun test` and a WebRTC run in `tools/check.py`; works against a local lobby + coturn compose | Done (2026-11-09), v0.7.0 |
-| M7 | 6 players | Headless bots fill a game (`tools/run_load_test.py`); server holds 30 tps; bandwidth per player measured; state packets fit netfox's 508 byte limit (netfox schemas). Planned for 10 players; measured, netfox's server rollback holds 6 (§4.3, §8), and the cap is 6 by decision (2026-11-09) | Done (2026-11-09), v0.8.0 |
-| M8 | Lobby deploy | `deploy/lobby/` runs on the gvm host from `/root/stellamortis` (compose project `stellamortis-lobby`) in place of the stack there before, with its `TURN_SECRET`; gvm's Caddy routes `lobby.r4b2.de` (`/ws`, `/healthz`) to `stellamortis-lobby:8080`. coturn runs on the host network: behind Docker's NAT it mapped its own public address to the container's and denied relay to relay as a private peer (403 on CreatePermission). Checked with a host bot and a friend bot forced through the public TURN relay (`--relay-only`) | Done |
-| M9 | Dark sci-fi look | Replace the KayKit fantasy look with grounded sci-fi (§3.2): suited players with blade, hard-light shield and revolver, training mannequins, robot mobs and Warden, PBR arena materials, cold lighting and grade, a restyled HUD | Done |
-| M10 | Combat like Valheim | Combat should feel like Valheim, not Elden Ring. Remove lock-on completely (code, tests, Tab/MMB bindings, camera framing, outline and dot, docs). Attacks and blocks turn the character toward where the camera looks; rolls go in the movement direction (camera forward without input). Find and fix the moments where the player seems to teleport toward an enemy (suspects: facing slerp, roll direction, rollback corrections on attacks). The enemy's ground telegraph is clearly visible through the whole windup (filled area plus a bright outline from the first windup tick, more opaque toward the hit). Damage numbers when the own player is hit pop next to the health bar (blocked hits smaller, grey). The death notice says "YOU DIED". The F3 overlay no longer covers the encounter title | Done |
-| M11 | Main menu | A start menu instead of booting straight into solo: Solo, Host (opens a room, the code shows in game as today), Join by code (text field), Settings (graphics preset, mouse sensitivity, fullscreen; key bindings later), Player name (saved in `user://settings.cfg`), Quit. Escape in game opens a pause menu (Resume, Settings, Leave to menu, Quit); the game keeps running behind it. When the host quits, friends see "The host left" and return to the menu (no host migration). Plain functional look; M12 restyles it. The command line flags keep working for tests | Done |
-| M12 | Medieval fantasy theme | Replace M9's sci-fi look with dark, grounded medieval fantasy (worn steel, stone, torches, undead and beasts, muted colors; not cute). Space stays as travel: a home hub (a keep on a small planet) with portals to other planets, each a realm with its own gravity and encounter; one planet is loaded at a time. Replace every M9 piece: knights in armor, swords, round shields, the crossbow back, fantasy mobs and Warden. After the Warden falls: a victory notice and a portal home; the planet resets when the group leaves. A wipe sends everyone back to the hub and resets the planet. Restyle HUD and menus. CC0 packs may be downloaded (Quaternius fantasy outfits on the UAL rig, fantasy environment kits). Fold in the §3.1 rendering items that fit: LightmapGI for static levels, `AreaLight3D` for torches and windows, decals for impacts, `AnimationTree` with blend spaces and foot IK | Done |
-| M13 | Discord Rich Presence | Discord application "Stellamortis", application ID `1563509032348557382` (public). A logo in the M12 style (SVG, exported 1024×1024 PNG for the app icon and the Rich Presence art, also used as the game icon); the user uploads it in the developer portal. Presence shows the mode (in the menu, Solo, Hosting), the party size (n of 6) and the elapsed time; no room code. Client: a GDExtension or the Discord IPC; skipped when Discord is not running | Done |
-| M14 | Sound | CC0 sounds: hits, blocks, parries, telegraphs, footsteps, UI, some ambience per planet | Done |
-| M15 | Test round | One milestone for everything left to verify, after the features are built blind: the user play-tests by hand (solo, with a friend on another network, one player behind a strict NAT without `--relay-only`); the headless network test fights the encounter (mobs, Warden phases, enemy shots) under 100 ms lag; `--host --bot` gives up on its own after `--duration`; screenshots of every enemy state and effect (gravity well, phase 2); numbers (damage, windups, ranges, boss health, well strength) get tuned from the play-test | Planned |
-| M16 | Frame pacing | Settings to turn vsync off and, as an alternative, cap the frame rate (`Engine.max_fps`, e.g. 60/120/144/unlimited), saved with the graphics preset; F3 shows the cap. Later, not relevant for the PoC | Later |
-| M17 | Wooting analog | Analog movement from Wooting keyboards through the Wooting Analog SDK (GDExtension or a small native bridge): WASD depth becomes `PlayerControls.move` length, so walk speed follows key pressure; digital keys stay the fallback when no Wooting device or SDK is present. Later, not relevant for the PoC | Later |
-| M18 | Telemetry | Opt-in game telemetry (sessions, joins, connection type, tick and frame times) through the lobby host. Later, not relevant for the PoC | Later |
+The overview: every milestone, what it is in one line, and its status. The details (tasks, files, done-when, pitfalls) are in the milestone's file in `docs/milestones/`; `docs/milestones/README.md` has the rules for working on one.
+
+When a milestone's status changes, change it here and in the `Status:` line of its file. Status values: Done (date, release), In progress, Planned, Optional (only when the user asks).
+
+| # | Name | What | Status | Details |
+|---|---|---|---|---|
+| M0 | Skeleton | Tooling, solo through a local server, netfox prediction, camera, join by IP | Done (2026-11-09), v0.1.x | [details](milestones/M0-skeleton.md) |
+| M1 | Gravity zones | `Gravity.sample`, low and high gravity zones, the walkable asteroid, jump pads | Done (2026-11-09), v0.2.0 | [details](milestones/M1-gravity-zones.md) |
+| M2 | Melee + defense | Stamina, roll, light combo, heavy, block, parry, training dummy, graphics presets | Done (2026-11-09), v0.3.0 | [details](milestones/M2-melee-defense.md) |
+| M3 | Ranged | Aim mode, charged bolts that fall with local gravity, weapon switching | Done (2026-11-09), v0.4.0 | [details](milestones/M3-ranged.md) |
+| M4 | Lock-on | Target lock and switching (removed again in M10) | Done (2026-11-09), v0.5.0 | [details](milestones/M4-lock-on.md) |
+| M5 | Encounter | Three mobs, the Warden with phases and gravity well, death, wipe reset, HUD | Done (2026-11-09), v0.6.0 | [details](milestones/M5-encounter.md) |
+| M6 | Lobby | Lobby server, WebRTC transport, host and join by room code | Done (2026-11-09), v0.7.0 | [details](milestones/M6-lobby.md) |
+| M7 | 6 players | Load test with bots, wire schemas, 30 tps at 6 players | Done (2026-11-09), v0.8.0 | [details](milestones/M7-six-players.md) |
+| M8 | Lobby deploy | Lobby and coturn on the gvm host behind `lobby.r4b2.de` | Done (2026-11-09) | [details](milestones/M8-lobby-deploy.md) |
+| M9 | Dark sci-fi look | Grounded sci-fi look (replaced by M12) | Done (2026-11-09) | [details](milestones/M9-dark-sci-fi-look.md) |
+| M10 | Combat like Valheim | Lock-on removed, attacks face the camera, clear telegraphs, damage numbers | Done (2026-11-09) | [details](milestones/M10-combat-like-valheim.md) |
+| M11 | Main menu | Main menu, pause menu, settings, player name, "The host left" | Done (2026-11-09) | [details](milestones/M11-main-menu.md) |
+| M12 | Medieval fantasy theme | Dark medieval look, hub keep and realm, portals, restyled HUD and menus | Done (2026-11-09) | [details](milestones/M12-medieval-fantasy.md) |
+| M13 | Discord Rich Presence | Discord presence with mode, party size and logo | Done (2026-11-09) | [details](milestones/M13-discord-rich-presence.md) |
+| M14 | Sound | CC0 and synthesized sounds, buses, volume setting | Done (2026-11-09) | [details](milestones/M14-sound.md) |
+| M15 | Test round | Hand play-tests, network test under lag, screenshots, tuning | Done (2026-11-14), v0.16.0 | [details](milestones/M15-test-round.md) |
+| M16 | Frame pacing | Settings for vsync and a frame rate cap, saved, shown in F3. Required; independent of M19 to M29. | Planned | [details](milestones/M16-frame-pacing.md) |
+| M17 | Wooting analog | Analog movement from Wooting keyboards. | Optional | [details](milestones/M17-wooting-analog.md) |
+| M18 | Telemetry | Opt-in game telemetry through the lobby host. | Optional | [details](milestones/M18-telemetry.md) |
+| M19 | Hit feel | Hitting and being hit read clearly and feel heavy: knockback and flinch, hit stop, camera shake, blood and sparks, enemies that fall and burn away. | Planned | [details](milestones/M19-hit-feel.md) |
+| M20 | Big round realm | A world has a seed. The Barrowlands is a generated realm of 1000 m radius with streamed terrain, reached by a keep gate; two peers stand on identical ground; it looks like northern moorland. | Planned | [details](milestones/M20-big-round-realm.md) |
+| M21 | Enemy pool | Enemies walk the round realm; kinds are data; a pool of 24 rolled back slots serves seeded camps and roamers near players; the load test holds 29 tps with a full pool. | Planned | [details](milestones/M21-enemy-pool.md) |
+| M22 | Barrowlands bestiary and boss | Draugr swordsman and archer, shield bearer, berserker, barrow elite; the Warden rises at a generated barrow and its death opens the next gate; the hand-built realm is removed. | Planned | [details](milestones/M22-barrowlands.md) |
+| M23 | Inventory, loot and saves | Items, gear slots apart from the bag, a good inventory panel, loot that bursts out of enemies, chests, graves, world and character saves, a world list in the menu. | Planned | [details](milestones/M23-inventory-loot-saves.md) |
+| M24 | Levels, perks and sets | XP and levels, three perk trees, set bonuses, one `Stats` block feeding the sim, level cap per boss. | Planned | [details](milestones/M24-levels-perks-sets.md) |
+| M25 | Gather and craft | Trees, rock and ore as saved world objects, axe and pickaxe, recipes, smithy and workbench, the Barrowlands gear tier with two sets. | Planned | [details](milestones/M25-gather-craft.md) |
+| M26 | Myrkfen | Second realm, low gravity: biome, three enemy kinds, resin and bog iron, tier 2, the drowned jotun. | Planned | [details](milestones/M26-myrkfen.md) |
+| M27 | Jarnfell | Third realm, high gravity: brutes and swarms, ore and coal, tier 3, the forge king. | Planned | [details](milestones/M27-jarnfell.md) |
+| M28 | Skyshards | Floating rocks with launch stones, sentries, sky iron, tier 4, a boss fought across rocks. | Planned | [details](milestones/M28-skyshards.md) |
+| M29 | Base building | Place, snap and remove saved pieces and stations on any realm, within a piece budget. | Planned | [details](milestones/M29-base-building.md) |
+
+M16 is required and independent of the rest. M19 to M29 are the survival world (§4.8), in priority order; from M19 on every milestone ends with a hand play-test by the user instead of being built blind.
 
 ## 7. Open questions
 
@@ -203,6 +251,7 @@ None open. Answered on the way:
 - Exact CC0 packs: KayKit in M2, Quaternius and ambientCG in M9; M12 picks fantasy packs.
 - M12 planet travel: a hub with portals, one planet loaded at a time (decided 2026-11-09).
 - M13: application ID and what Discord shows are in the M13 row.
+- After the PoC (2026-11-14): a persistent survival world on several large round realms; characters saved on the player's machine; enemies in a fixed rolled back pool; levels with perk trees and set perks; real gear slots. All in §4.8.
 
 ## 8. Open items to clarify after the last milestone
 
@@ -248,4 +297,6 @@ Still open (§3.1, not in a milestone yet):
 - Shader baker for exports and a check that ubershaders avoid hitches in the release builds.
 - From M12: LightmapGI needs an editor bake, and the levels are built in code at runtime; it waits for levels saved as scenes. `AnimationTree` with blend spaces and foot IK (`TwoBoneIK3D` exists in 4.7) would replace `CharacterModel.play_timed`, which the rolled back views rely on; left out. Decals for impacts left out. Only one realm; more planets mean more `Layout` entries and portals.
 
-Milestones not started: M15 test round; Later: M16 frame pacing, M17 Wooting analog, M18 telemetry.
+Open from the 2026-11-14 planning (§4.8): food, rest, day and night are not planned yet; whether 1000 m is the right realm radius, and the enemy pool size, wait for M20's play-test and M21's load test.
+
+Milestones not started: M16 frame pacing (required); M19 to M29 the survival world (§4.8); optional: M17 Wooting analog, M18 telemetry. M15 test round is done (2026-11-14). Briefs for all of them are in `docs/milestones/`.

@@ -4,7 +4,7 @@ name: Release
 # platform on its own runner (macOS: universal, ad-hoc signed), keep the exports as workflow
 # artifacts for ARTIFACT_DAYS days, and publish them as a GitHub Release v<VERSION>.<patch>.
 # Releases stay; artifacts expire. Every milestone is a minor version: the commit that finishes
-# milestone Mn sets VERSION to 0.<n+1>, and its release is v0.<n+1>.0. Every later push until the
+# a milestone raises VERSION's minor by one (in whatever order milestones finish). Every later push until the
 # next milestone is a patch: the patch is one above the highest existing v<VERSION>.* tag.
 
 on:
@@ -23,7 +23,8 @@ concurrency:
 env:
   # Tools inside the checkout, where the caches below look for them.
   STELLAMORTIS_TOOLS: .tools
-  ARTIFACT_DAYS: 3
+  # The release holds the zips for good; the artifacts only carry them between jobs.
+  ARTIFACT_DAYS: 1
 
 jobs:
   check:

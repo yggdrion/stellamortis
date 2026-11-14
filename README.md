@@ -82,7 +82,7 @@ playing.
 
 Every push to `main` runs `.github/workflows/release.yml`: `tools/check.py` on Linux, then
 `tools/export.py` on a Linux, Windows and macOS runner each (macOS: universal app, ad-hoc signed,
-not notarized). The exports are kept as workflow artifacts for 3 days and published as a
+not notarized). The exports are kept as workflow artifacts for 1 day and published as a
 GitHub Release `v<VERSION>.<patch>` with `stellamortis-<tag>-linux.zip`,
 `stellamortis-<tag>-windows.zip` and `stellamortis-<tag>-macos.zip` (e.g.
 `stellamortis-v0.15.3-macos.zip`). Each release's notes start with `.github/release-notes.md`
@@ -98,8 +98,9 @@ It is ad-hoc signed but not notarized, so Gatekeeper blocks the first start. Eit
 xattr -dr com.apple.quarantine stellamortis.app
 ```
 
-Versions: every milestone is a minor version. The commit that finishes milestone Mn sets
-`VERSION` to `0.<n+1>` (M1 done: `0.2`), so its release is `v0.<n+1>.0`; every push after it
-until the next milestone is a patch (`v0.2.1`, `v0.2.2`, ...).
+Versions: every milestone is a minor version. The commit that finishes a milestone raises
+`VERSION`'s minor by one (`0.16` after M15, then `0.17` for the next one finished, in whatever
+order they finish), so its release is `v0.17.0`; every push after it until the next milestone
+is a patch (`v0.17.1`, `v0.17.2`, ...).
 
     python tools/export.py           # local export for this platform into build/<platform>/

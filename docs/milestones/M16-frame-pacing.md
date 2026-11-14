@@ -1,6 +1,6 @@
 # M16 Frame pacing
 
-Status: in progress. Built on 2026-11-14 (`python tools/check.py` green); the user's check that the cap holds in F3 with vsync off is open. Required; independent of M19 to M29.
+Status: built (2026-11-14, v0.17.0), play-test pending (`docs/PLAYTEST.md`). Required; independent of M19 to M29.
 
 ## Goal
 

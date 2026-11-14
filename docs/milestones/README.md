@@ -34,10 +34,12 @@ Done means:
 - Visual work comes with screenshots (`--screenshot=PATH`, `--spawn`, `--look`; see `CLAUDE.md` "Boot").
 - Commits are semantic commits (`type(scope): summary`).
 - No pull requests (the user's rule, 2026-11-14): a finished task is committed and pushed straight to `main` by the main session, after it reviewed the worker's diff and ran the checks. Every push to `main` publishes a release, so push finished work only.
-- What the task left open goes to `docs/PLAN.md` §8.
+- What the task left open goes to `docs/PLAN.md` §8; what needs a person playing goes to `docs/PLAYTEST.md`.
 - The last task of a milestone updates "Where we are" in `CLAUDE.md`, sets the milestone's status to Done with date and release in `docs/PLAN.md` §6 and in the `Status:` line of its file, and raises `VERSION`'s minor by one (milestones finish out of order, so the minor is not the milestone number).
 
-Not done by workers: committing or pushing (the main session does both after review), changes on the gvm host, play-test verdicts. Each milestone ends with the user's play-test.
+Not done by workers: committing or pushing (the main session does both after review), changes on the gvm host, play-test verdicts.
+
+Play-tests are batched (the user's call, 2026-11-14): a milestone is finished when it is built and checks are green; its status becomes "Built (date, release), play-test pending". Everything only a person playing can judge (feel, look, sound, numbers, what tests and screenshots could not show) goes into `docs/PLAYTEST.md` under the milestone, one checkbox per item, added by the task that built it. The user plays several milestones in one round and gives the feedback at once; fixes from it go into later work.
 
 ## Models
 

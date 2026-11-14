@@ -20,6 +20,8 @@ static var library := {
 	&"swing": _numbered(BLADES + "swing_%d.ogg", 4),
 	&"swing_heavy": _numbered(BLADES + "swing_heavy_%d.ogg", 4),
 	&"hit": _numbered(BLADES + "hit_%d.ogg", 3),
+	&"thud": _numbered(KENNEY + "impactPunch_medium_%03d.ogg", 3),
+	&"boom": _numbered(KENNEY + "impactPunch_heavy_%03d.ogg", 3),
 	&"hurt": _numbered(BLADES + "hurt_%d.ogg", 3),
 	&"block": _numbered(KENNEY + "impactPlank_medium_%03d.ogg", 3),
 	&"parry": [KENNEY + "impactBell_heavy_000.ogg"],

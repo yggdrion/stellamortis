@@ -42,6 +42,14 @@ const WARDEN_CLIPS := {
 ## The dead's rusted swords.
 const RUST := Color(0.3, 0.17, 0.1)
 const TELEGRAPH := Color(1.0, 0.45, 0.1)
+## Death: the body lies this long (s) after the fall starts, then burns away over BURN_TIME,
+## shedding an ember burst every EMBER_EVERY seconds.
+const LINGER := 2.0
+const BURN_TIME := 1.4
+const EMBER_EVERY := 0.15
+## Pitch of the kill's boom, and its level (dB).
+const BOOM_PITCH := 0.6
+const BOOM_DB := 2.0
 ## Moving faster than this (m/s) plays the walk.
 const WALKING := 0.4
 
@@ -67,6 +75,8 @@ var _well_sound: AudioStreamPlayer3D
 var _clips := HUMAN_CLIPS
 ## Hit stop: seconds left of the held pose.
 var _hold := 0.0
+## Seconds until the next ember burst of a burning body.
+var _ember_wait := 0.0
 
 
 func _init(of: Enemy) -> void:
@@ -258,9 +268,7 @@ func _add_well() -> void:
 func _process(delta: float) -> void:
 	visible = enemy.action != Enemy.Action.HIDDEN and Arena.shows(enemy.global_position)
 	if _last_health >= 0.0 and enemy.health < _last_health:
-		Sounds.play(self, &"hit")
-		if enemy is Warden:
-			Sounds.play(self, &"clang", -4.0)
+		_hit_sounds(_last_health - enemy.health)
 	if _last_health >= 0.0 and enemy.health < _last_health and enemy.alive():
 		_model.flash(
 			Color(1, 1, 1, clampf(0.5 + HitEffects.weight(_last_health - enemy.health), 0.5, 1.0)),
@@ -283,6 +291,7 @@ func _process(delta: float) -> void:
 		_hold -= delta
 	else:
 		_pose()
+	_burn(delta)
 	_sounds()
 	if _well:
 		_show_well()
@@ -303,6 +312,35 @@ func _hit(lost: float) -> void:
 	HitEffects.burst(
 		self, enemy.global_position + enemy.up() * enemy.height * 0.6, away + enemy.up() * 0.4, kind
 	)
+
+
+## Hit sounds in layers: a body thud always, the blade for heavy hits, a low boom for the kill,
+## and the Warden's iron rings on top.
+func _hit_sounds(lost: float) -> void:
+	var weight := HitEffects.weight(lost)
+	Sounds.play(self, &"thud", clampf(weight, 0.0, 1.0) * 4.0 - 4.0)
+	if weight >= HitEffects.BLADE_WEIGHT:
+		Sounds.play(self, &"hit")
+	if not enemy.alive():
+		Sounds.play(self, &"boom", BOOM_DB, BOOM_PITCH)
+	if enemy is Warden:
+		Sounds.play(self, &"clang", -4.0)
+
+
+## The dead burn away: after LINGER seconds on the ground the body dissolves and sheds embers.
+## Derived from DOWN and action_time alone, so a late joiner sees the same state, and anything
+## that leaves DOWN (rise, reset) puts the body back whole.
+func _burn(delta: float) -> void:
+	var burned := 0.0
+	if enemy.action == Enemy.Action.DOWN:
+		var seconds := (enemy.action_time + NetworkTime.tick_factor) / Combat.TICKRATE
+		burned = clampf((seconds - LINGER) / BURN_TIME, 0.0, 1.0)
+	_model.dissolve(burned)
+	_ember_wait -= delta
+	if burned > 0.0 and burned < 1.0 and visible and _ember_wait <= 0.0:
+		_ember_wait = EMBER_EVERY
+		var at := enemy.global_position + enemy.up() * enemy.height * randf()
+		HitEffects.burst(self, at, enemy.up(), HitEffects.Kind.EMBERS)
 
 
 ## Windups growl, strikes swoosh (embers hiss for shots), falls thud, the Warden stomps as it

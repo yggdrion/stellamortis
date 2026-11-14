@@ -7,6 +7,8 @@ extends Node3D
 
 ## The humanoid model and the second animation library it borrows from. Both are imported with
 ## a humanoid bone map (assets/quaternius/ual/*_bone_map.tres), so their bones share names.
+## The dissolve shader of a dying body (dissolve()).
+const BURN := "res://shaders/burn_away.gdshader"
 const HUMAN := "res://assets/quaternius/ual/UAL1.glb"
 const HUMAN_EXTRA := "res://assets/quaternius/ual/UAL2.glb"
 ## Outfits (Quaternius Modular Character Outfits - Fantasy): rigged without clips, imported with
@@ -54,6 +56,10 @@ var _meshes: Array[MeshInstance3D] = []
 var _flash: StandardMaterial3D
 var _flash_left := 0.0
 var _looping: StringName = &""
+## While burning away: the shader materials in use, and what they replaced as [mesh, surface,
+## override].
+var _burn_materials: Array[ShaderMaterial] = []
+var _burn_saved: Array = []
 
 
 ## scale: model units to meters.
@@ -256,6 +262,28 @@ func punch(amount: float, seconds: float) -> void:
 	tween.tween_property(self, "scale", Vector3.ONE, seconds * 0.6)
 
 
+## Burns the body away, 0 whole to 1 gone: every surface gets BURN with its albedo while it runs
+## (held props vanish halfway); 0 puts the originals back. Skipped headless, like skin().
+func dissolve(amount: float) -> void:
+	if _headless():
+		return
+	if amount <= 0.0:
+		if not _burn_saved.is_empty():
+			for saved: Array in _burn_saved:
+				(saved[0] as MeshInstance3D).set_surface_override_material(saved[1], saved[2])
+			_burn_saved.clear()
+			_burn_materials.clear()
+			for prop: Node3D in props.values():
+				prop.visible = true
+		return
+	if _burn_saved.is_empty():
+		_start_burn()
+	for material in _burn_materials:
+		material.set_shader_parameter("amount", amount)
+	for prop: Node3D in props.values():
+		prop.visible = amount < 0.5
+
+
 ## A steady tint (telegraph); a running flash() wins.
 func glow(color: Color) -> void:
 	if _flash_left > 0.0:
@@ -269,6 +297,23 @@ func _process(delta: float) -> void:
 		_flash_left -= delta
 		if _flash_left <= 0.0:
 			_flash.albedo_color.a = 0.0
+
+
+func _start_burn() -> void:
+	var shader := load(BURN) as Shader
+	for mesh in _meshes:
+		for i in mesh.mesh.get_surface_count():
+			var current := mesh.get_surface_override_material(i)
+			var source := current if current else mesh.mesh.surface_get_material(i)
+			var standard := source as StandardMaterial3D
+			var burn := ShaderMaterial.new()
+			burn.shader = shader
+			if standard:
+				burn.set_shader_parameter("albedo_texture", standard.albedo_texture)
+				burn.set_shader_parameter("albedo_color", standard.albedo_color)
+			_burn_saved.append([mesh, i, current])
+			_burn_materials.append(burn)
+			mesh.set_surface_override_material(i, burn)
 
 
 ## Headless bots draw nothing; the dummy renderer logs an error for every surface override.

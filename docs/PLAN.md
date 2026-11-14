@@ -229,7 +229,7 @@ When a milestone's status changes, change it here and in the `Status:` line of i
 | M16 | Frame pacing | Settings for vsync and a frame rate cap, saved, shown in F3. Required; independent of M19 to M29. | In progress (built 2026-11-14, the user's check in F3 is open) | [details](milestones/M16-frame-pacing.md) |
 | M17 | Wooting analog | Analog movement from Wooting keyboards. | Optional | [details](milestones/M17-wooting-analog.md) |
 | M18 | Telemetry | Opt-in game telemetry through the lobby host. | Optional | [details](milestones/M18-telemetry.md) |
-| M19 | Hit feel | Hitting and being hit read clearly and feel heavy: knockback and flinch, hit stop, camera shake, blood and sparks, enemies that fall and burn away. | Planned | [details](milestones/M19-hit-feel.md) |
+| M19 | Hit feel | Hitting and being hit read clearly and feel heavy: knockback and flinch, hit stop, camera shake, blood and sparks, enemies that fall and burn away. | In progress (built 2026-11-14, the user's play-test is open) | [details](milestones/M19-hit-feel.md) |
 | M20 | Big round realm | A world has a seed. The Barrowlands is a generated realm of 1000 m radius with streamed terrain, reached by a keep gate; two peers stand on identical ground; it looks like northern moorland. | Planned | [details](milestones/M20-big-round-realm.md) |
 | M21 | Enemy pool | Enemies walk the round realm; kinds are data; a pool of 24 rolled back slots serves seeded camps and roamers near players; the load test holds 29 tps with a full pool. | Planned | [details](milestones/M21-enemy-pool.md) |
 | M22 | Barrowlands bestiary and boss | Draugr swordsman and archer, shield bearer, berserker, barrow elite; the Warden rises at a generated barrow and its death opens the next gate; the hand-built realm is removed. | Planned | [details](milestones/M22-barrowlands.md) |
@@ -294,6 +294,8 @@ M19 task 1 (knockback and flinch, 2026-11-14), open: the numbers (`knockback` m/
 
 M19 task 2 (hit stop, shake, bursts): views react to what they see (`EnemyView` health drop, `PlayerView` health drop and new `swing_hits` bits), so nothing is deduplicated beyond comparing with the last seen value, as `_sounds` does. Left open: blocked hits were not screenshotted (no bot plan blocks a swing); a hit on an enemy shakes only through the attacker's `swing_hits` (bolt hits do not shake); hit stop on the attacker waits for the next frame after the hit lands, so it lags the victim's by one frame; the numbers (`HitEffects` constants) wait for the play-test.
 
+M19 task 3 (deaths, layered hit sounds): `EnemyView._burn` derives the burn from `Action.DOWN` + `action_time` (`LINGER` 2 s, `BURN_TIME` 1.4 s) and `CharacterModel.dissolve` swaps in `shaders/burn_away.gdshader` (restored when the enemy leaves DOWN). No mob was killed on camera (the combo bot dies to them first); the dissolve was checked by driving the view timer with a temporary clock on live mobs. Open: the real kill-to-ash sequence, hit layers (`thud` and `boom` are Kenney punches, the blade layer is the old `hit`; heavy means damage over `HitEffects.BLADE_WEIGHT` x 50) and the ember look wait for the play-test; the burn does not dissolve non-StandardMaterial3D surfaces' textures (none today); dead mobs' ember bursts share the 8-node pool with blood.
+
 Still open (§3.1, not in a milestone yet):
 
 - The compositor screen-space distortion for the gravity well (a glowing shell with motes for now).
@@ -304,4 +306,4 @@ Still open (§3.1, not in a milestone yet):
 
 Open from the 2026-11-14 planning (§4.8): food, rest, day and night are not planned yet; whether 1000 m is the right realm radius, and the enemy pool size, wait for M20's play-test and M21's load test.
 
-Milestones not started: M16 frame pacing (required); M19 to M29 the survival world (§4.8); optional: M17 Wooting analog, M18 telemetry. M15 test round is done (2026-11-14). Briefs for all of them are in `docs/milestones/`.
+Waiting on the user: M16 frame pacing (check in F3), M19 hit feel (play-test). Milestones not started: M20 to M29 the survival world (§4.8); optional: M17 Wooting analog, M18 telemetry. M15 test round is done (2026-11-14). Briefs for all of them are in `docs/milestones/`.

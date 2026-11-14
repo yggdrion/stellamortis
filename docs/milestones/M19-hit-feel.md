@@ -1,6 +1,6 @@
 # M19 Hit feel
 
-Status: planned.
+Status: in progress. All three tasks built on 2026-11-14 (`python tools/check.py` green); the user's play-test is open (open items in `docs/PLAN.md` §8). After it: status Done with date and release, `VERSION` minor +1.
 
 ## Goal
 

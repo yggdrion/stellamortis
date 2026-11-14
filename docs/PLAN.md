@@ -172,7 +172,7 @@ What the game becomes:
 - The theme stays §3.2: dark medieval, Viking, northern fantasy. No sci-fi words or looks: realms and rune gates, sky iron, draugr.
 - Hits and loot must feel satisfying (M19, M23).
 - Inventory with real gear slots apart from the bag, sorting and quick transfer (Valheim's inventory is the bad example).
-- Progression: character levels with perk trees, plus gear and sets that grant perks. The level cap rises with each boss.
+- Progression: character levels with perk trees, plus gear and sets that grant perks. The level cap rises with each boss. A kill pays its full XP to every nearby player; dying drops the XP toward the next level into the grave, to be fetched back by a body run (lost on a second death).
 - Characters (gear, inventory, level, perks) are saved on the player's machine and travel between worlds; the server trusts what the client sends (fine among friends). The world save lives with the server.
 - Enemies stay rolled back. A fixed pool of 24 to 32 enemy slots is assigned to spawn points near players: small groups, no hordes.
 
@@ -226,7 +226,7 @@ When a milestone's status changes, change it here and in the `Status:` line of i
 | M13 | Discord Rich Presence | Discord presence with mode, party size and logo | Done (2026-11-09) | [details](milestones/M13-discord-rich-presence.md) |
 | M14 | Sound | CC0 and synthesized sounds, buses, volume setting | Done (2026-11-09) | [details](milestones/M14-sound.md) |
 | M15 | Test round | Hand play-tests, network test under lag, screenshots, tuning | Done (2026-11-14), v0.16.0 | [details](milestones/M15-test-round.md) |
-| M16 | Frame pacing | Settings for vsync and a frame rate cap, saved, shown in F3. Required; independent of M19 to M29. | Planned | [details](milestones/M16-frame-pacing.md) |
+| M16 | Frame pacing | Settings for vsync and a frame rate cap, saved, shown in F3. Required; independent of M19 to M29. | In progress (built 2026-11-14, the user's check in F3 is open) | [details](milestones/M16-frame-pacing.md) |
 | M17 | Wooting analog | Analog movement from Wooting keyboards. | Optional | [details](milestones/M17-wooting-analog.md) |
 | M18 | Telemetry | Opt-in game telemetry through the lobby host. | Optional | [details](milestones/M18-telemetry.md) |
 | M19 | Hit feel | Hitting and being hit read clearly and feel heavy: knockback and flinch, hit stop, camera shake, blood and sparks, enemies that fall and burn away. | Planned | [details](milestones/M19-hit-feel.md) |

@@ -26,17 +26,21 @@ func _process(_delta: float) -> void:
 		return
 	var lines := PackedStringArray()
 	var viewport := get_viewport().get_viewport_rid()
+	var vsync := DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED
 	(
 		lines
 		. append(
 			(
 				(
-					"FPS %d   frame %.2f ms (incl. vsync wait)   render CPU %.2f ms   GPU %.2f ms"
-					+ "   physics %.2f ms   draw calls %d"
+					"FPS %d (vsync %s, cap %s)   frame %.2f ms%s   render CPU %.2f ms"
+					+ "   GPU %.2f ms   physics %.2f ms   draw calls %d"
 				)
 				% [
 					Engine.get_frames_per_second(),
+					"on" if vsync else "off",
+					str(Engine.max_fps) if Engine.max_fps > 0 else "none",
 					Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+					" (incl. vsync wait)" if vsync else "",
 					(
 						RenderingServer.get_frame_setup_time_cpu()
 						+ RenderingServer.viewport_get_measured_render_time_cpu(viewport)

@@ -23,6 +23,8 @@ extends Node
 ##     [--delay=SECONDS]            how long to wait first (default 4)
 ##     [--frames=N]                 take N, 50 ms apart (PATH_0.png, PATH_1.png, ...)
 ##   --graphics=low|medium|high|ultra   graphics preset for this run (not saved)
+##   --vsync=on|off                 vsync for this run (not saved; does not start a game)
+##   --max-fps=N                    frame rate cap for this run (0 unlimited; not saved)
 ##   --look=YAW,PITCH               start the camera there (degrees, yaw 0 looks along -Z)
 ##   --bench=N                      time N simulated players and the enemies per tick, then quit
 ##   (none of the above)            the main menu (MainMenu); --spawn, --encounter, --look and
@@ -74,6 +76,12 @@ func _ready() -> void:
 	Settings.load_saved()
 	Graphics.load_saved()
 	Sounds.setup()
+	if _args.has("vsync"):
+		Settings.vsync_flag = 1 if _args["vsync"] in ["on", "true", "1"] else 0
+	if _args.has("max-fps"):
+		Settings.max_fps_flag = maxi(int(_args["max-fps"]), 0)
+	if DisplayServer.get_name() != "headless":
+		Settings.apply_pacing()
 	if not _args.has("windowed") and not _args.has("bot") and not OS.is_debug_build():
 		Settings.apply_window(get_window())
 	for flag: String in DIRECT:

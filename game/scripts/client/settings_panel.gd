@@ -1,6 +1,6 @@
 class_name SettingsPanel
 extends VBoxContainer
-## Graphics preset, mouse sensitivity, volume and fullscreen, saved as they change. Shown by
+## Graphics, sensitivity, volume, fullscreen, vsync and frame cap, saved as they change. Shown by
 ## the main menu and the pause menu; on_graphics re-applies the preset to a running game.
 
 signal closed
@@ -52,6 +52,18 @@ func _ready() -> void:
 	fullscreen.toggled.connect(_on_fullscreen)
 	add_child(Menus.row("Fullscreen (F11)", fullscreen))
 
+	var vsync := CheckBox.new()
+	vsync.button_pressed = Settings.vsync
+	vsync.toggled.connect(_on_vsync)
+	add_child(Menus.row("Vsync", vsync))
+
+	var cap := OptionButton.new()
+	for fps: int in Settings.FPS_CAPS:
+		cap.add_item("Unlimited" if fps == 0 else str(fps))
+	cap.selected = maxi(Settings.FPS_CAPS.find(Settings.max_fps), 0)
+	cap.item_selected.connect(_on_cap)
+	add_child(Menus.row("Frame cap", cap))
+
 	add_child(Menus.button("Back", func() -> void: closed.emit()))
 
 
@@ -78,4 +90,16 @@ func _on_volume(value: float) -> void:
 func _on_fullscreen(on: bool) -> void:
 	Settings.fullscreen = on
 	Settings.apply_window(get_window())
+	Settings.save()
+
+
+func _on_vsync(on: bool) -> void:
+	Settings.vsync = on
+	Settings.apply_pacing()
+	Settings.save()
+
+
+func _on_cap(index: int) -> void:
+	Settings.max_fps = Settings.FPS_CAPS[index]
+	Settings.apply_pacing()
 	Settings.save()

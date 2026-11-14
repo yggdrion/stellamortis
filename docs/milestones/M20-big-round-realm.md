@@ -1,5 +1,7 @@
 # M20 Big round realm
 
+Status: planned.
+
 ## Goal
 
 The first generated realm: the Barrowlands, a round world of 1000 m radius with hills, moor and stone, reached through a gate in the keep. It must feel like land, not a ball. Every peer builds the same ground from the world seed.

@@ -1,5 +1,7 @@
 # M19 Hit feel
 
+Status: planned.
+
 ## Goal
 
 Hitting an enemy and being hit read clearly and feel heavy. Today a hit is a health change, a flash and a number; after M19 enemies are pushed and flinch, the blow pauses for a moment, the camera kicks, blood or sparks fly, and the dead fall and burn away.

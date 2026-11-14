@@ -1,5 +1,7 @@
 # M28 Skyshards
 
+Status: planned.
+
 ## Goal
 
 The fourth realm, behind the forge king's gate: a broken land hanging in the night sky. Many small rocks, each with its own pull, joined by launch stones. This is the one place that is meant to feel small and strange underfoot; it brings back the PoC's asteroid and jump pads as a whole realm.

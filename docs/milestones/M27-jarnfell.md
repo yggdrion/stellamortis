@@ -1,5 +1,7 @@
 # M27 Jarnfell
 
+Status: planned.
+
 ## Goal
 
 The third realm, behind the jotun's gate: ash, slag and dead forges under heavy gravity. Jumps are short, rolls cost more, bolts drop fast, and the enemies are armored. It ends with the forge king and gives the tier 3 gear.

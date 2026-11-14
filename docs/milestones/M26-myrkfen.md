@@ -1,5 +1,7 @@
 # M26 Myrkfen
 
+Status: planned.
+
 ## Goal
 
 The second realm, behind the Warden's gate: a drowned moor under low gravity. Long floating jumps, fog, black water, dead trees, and enemies built around the gravity. It ends with the drowned jotun and gives the tier 2 gear.

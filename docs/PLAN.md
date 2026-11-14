@@ -204,26 +204,44 @@ docs/        PLAN.md, RESOURCES.md
 
 ## 6. Milestones
 
-Open milestones only. Finished ones (M0 to M15) are in `docs/milestones/DONE.md`; a milestone's row moves there when it is done.
+The overview: every milestone, what it is in one line, and its status. The details (tasks, files, done-when, pitfalls) are in the milestone's file in `docs/milestones/`; `docs/milestones/README.md` has the rules for working on one.
 
-| # | Name | Done when | Status |
-|---|---|---|---|
-| M16 | Frame pacing | Settings for vsync and a frame rate cap, saved, shown in F3. Required; independent of M19 to M29. Brief: `docs/milestones/M16-frame-pacing.md` | Planned |
-| M17 | Wooting analog | Analog movement from Wooting keyboards. Brief: `docs/milestones/M17-wooting-analog.md` | Optional |
-| M18 | Telemetry | Opt-in game telemetry through the lobby host. Brief: `docs/milestones/M18-telemetry.md` | Optional |
-| M19 | Hit feel | Hitting and being hit read clearly and feel heavy: knockback and flinch, hit stop, camera shake, blood and sparks, enemies that fall and burn away. Brief: `docs/milestones/M19-hit-feel.md` | Planned |
-| M20 | Big round realm | A world has a seed. The Barrowlands is a generated realm of 1000 m radius with streamed terrain, reached by a keep gate; two peers stand on identical ground; it looks like northern moorland. Brief: `docs/milestones/M20-big-round-realm.md` | Planned |
-| M21 | Enemy pool | Enemies walk the round realm; kinds are data; a pool of 24 rolled back slots serves seeded camps and roamers near players; the load test holds 29 tps with a full pool. Brief: `docs/milestones/M21-enemy-pool.md` | Planned |
-| M22 | Barrowlands bestiary and boss | Draugr swordsman and archer, shield bearer, berserker, barrow elite; the Warden rises at a generated barrow and its death opens the next gate; the hand-built realm is removed. Brief: `docs/milestones/M22-barrowlands.md` | Planned |
-| M23 | Inventory, loot and saves | Items, gear slots apart from the bag, a good inventory panel, loot that bursts out of enemies, chests, graves, world and character saves, a world list in the menu. Brief: `docs/milestones/M23-inventory-loot-saves.md` | Planned |
-| M24 | Levels, perks and sets | XP and levels, three perk trees, set bonuses, one `Stats` block feeding the sim, level cap per boss. Brief: `docs/milestones/M24-levels-perks-sets.md` | Planned |
-| M25 | Gather and craft | Trees, rock and ore as saved world objects, axe and pickaxe, recipes, smithy and workbench, the Barrowlands gear tier with two sets. Brief: `docs/milestones/M25-gather-craft.md` | Planned |
-| M26 | Myrkfen | Second realm, low gravity: biome, three enemy kinds, resin and bog iron, tier 2, the drowned jotun. Brief: `docs/milestones/M26-myrkfen.md` | Planned |
-| M27 | Jarnfell | Third realm, high gravity: brutes and swarms, ore and coal, tier 3, the forge king. Brief: `docs/milestones/M27-jarnfell.md` | Planned |
-| M28 | Skyshards | Floating rocks with launch stones, sentries, sky iron, tier 4, a boss fought across rocks. Brief: `docs/milestones/M28-skyshards.md` | Planned |
-| M29 | Base building | Place, snap and remove saved pieces and stations on any realm, within a piece budget. Brief: `docs/milestones/M29-base-building.md` | Planned |
+When a milestone's status changes, change it here and in the `Status:` line of its file. Status values: Done (date, release), In progress, Planned, Optional (only when the user asks).
 
-From M15 on every milestone has a brief in `docs/milestones/`. From M19 on every milestone ends with a hand play-test by the user instead of being built blind.
+| # | Name | What | Status | Details |
+|---|---|---|---|---|
+| M0 | Skeleton | Tooling, solo through a local server, netfox prediction, camera, join by IP | Done (2026-11-09), v0.1.x | [details](milestones/M0-skeleton.md) |
+| M1 | Gravity zones | `Gravity.sample`, low and high gravity zones, the walkable asteroid, jump pads | Done (2026-11-09), v0.2.0 | [details](milestones/M1-gravity-zones.md) |
+| M2 | Melee + defense | Stamina, roll, light combo, heavy, block, parry, training dummy, graphics presets | Done (2026-11-09), v0.3.0 | [details](milestones/M2-melee-defense.md) |
+| M3 | Ranged | Aim mode, charged bolts that fall with local gravity, weapon switching | Done (2026-11-09), v0.4.0 | [details](milestones/M3-ranged.md) |
+| M4 | Lock-on | Target lock and switching (removed again in M10) | Done (2026-11-09), v0.5.0 | [details](milestones/M4-lock-on.md) |
+| M5 | Encounter | Three mobs, the Warden with phases and gravity well, death, wipe reset, HUD | Done (2026-11-09), v0.6.0 | [details](milestones/M5-encounter.md) |
+| M6 | Lobby | Lobby server, WebRTC transport, host and join by room code | Done (2026-11-09), v0.7.0 | [details](milestones/M6-lobby.md) |
+| M7 | 6 players | Load test with bots, wire schemas, 30 tps at 6 players | Done (2026-11-09), v0.8.0 | [details](milestones/M7-six-players.md) |
+| M8 | Lobby deploy | Lobby and coturn on the gvm host behind `lobby.r4b2.de` | Done (2026-11-09) | [details](milestones/M8-lobby-deploy.md) |
+| M9 | Dark sci-fi look | Grounded sci-fi look (replaced by M12) | Done (2026-11-09) | [details](milestones/M9-dark-sci-fi-look.md) |
+| M10 | Combat like Valheim | Lock-on removed, attacks face the camera, clear telegraphs, damage numbers | Done (2026-11-09) | [details](milestones/M10-combat-like-valheim.md) |
+| M11 | Main menu | Main menu, pause menu, settings, player name, "The host left" | Done (2026-11-09) | [details](milestones/M11-main-menu.md) |
+| M12 | Medieval fantasy theme | Dark medieval look, hub keep and realm, portals, restyled HUD and menus | Done (2026-11-09) | [details](milestones/M12-medieval-fantasy.md) |
+| M13 | Discord Rich Presence | Discord presence with mode, party size and logo | Done (2026-11-09) | [details](milestones/M13-discord-rich-presence.md) |
+| M14 | Sound | CC0 and synthesized sounds, buses, volume setting | Done (2026-11-09) | [details](milestones/M14-sound.md) |
+| M15 | Test round | Hand play-tests, network test under lag, screenshots, tuning | Done (2026-11-14), v0.16.0 | [details](milestones/M15-test-round.md) |
+| M16 | Frame pacing | Settings for vsync and a frame rate cap, saved, shown in F3. Required; independent of M19 to M29. | Planned | [details](milestones/M16-frame-pacing.md) |
+| M17 | Wooting analog | Analog movement from Wooting keyboards. | Optional | [details](milestones/M17-wooting-analog.md) |
+| M18 | Telemetry | Opt-in game telemetry through the lobby host. | Optional | [details](milestones/M18-telemetry.md) |
+| M19 | Hit feel | Hitting and being hit read clearly and feel heavy: knockback and flinch, hit stop, camera shake, blood and sparks, enemies that fall and burn away. | Planned | [details](milestones/M19-hit-feel.md) |
+| M20 | Big round realm | A world has a seed. The Barrowlands is a generated realm of 1000 m radius with streamed terrain, reached by a keep gate; two peers stand on identical ground; it looks like northern moorland. | Planned | [details](milestones/M20-big-round-realm.md) |
+| M21 | Enemy pool | Enemies walk the round realm; kinds are data; a pool of 24 rolled back slots serves seeded camps and roamers near players; the load test holds 29 tps with a full pool. | Planned | [details](milestones/M21-enemy-pool.md) |
+| M22 | Barrowlands bestiary and boss | Draugr swordsman and archer, shield bearer, berserker, barrow elite; the Warden rises at a generated barrow and its death opens the next gate; the hand-built realm is removed. | Planned | [details](milestones/M22-barrowlands.md) |
+| M23 | Inventory, loot and saves | Items, gear slots apart from the bag, a good inventory panel, loot that bursts out of enemies, chests, graves, world and character saves, a world list in the menu. | Planned | [details](milestones/M23-inventory-loot-saves.md) |
+| M24 | Levels, perks and sets | XP and levels, three perk trees, set bonuses, one `Stats` block feeding the sim, level cap per boss. | Planned | [details](milestones/M24-levels-perks-sets.md) |
+| M25 | Gather and craft | Trees, rock and ore as saved world objects, axe and pickaxe, recipes, smithy and workbench, the Barrowlands gear tier with two sets. | Planned | [details](milestones/M25-gather-craft.md) |
+| M26 | Myrkfen | Second realm, low gravity: biome, three enemy kinds, resin and bog iron, tier 2, the drowned jotun. | Planned | [details](milestones/M26-myrkfen.md) |
+| M27 | Jarnfell | Third realm, high gravity: brutes and swarms, ore and coal, tier 3, the forge king. | Planned | [details](milestones/M27-jarnfell.md) |
+| M28 | Skyshards | Floating rocks with launch stones, sentries, sky iron, tier 4, a boss fought across rocks. | Planned | [details](milestones/M28-skyshards.md) |
+| M29 | Base building | Place, snap and remove saved pieces and stations on any realm, within a piece budget. | Planned | [details](milestones/M29-base-building.md) |
+
+M16 is required and independent of the rest. M19 to M29 are the survival world (§4.8), in priority order; from M19 on every milestone ends with a hand play-test by the user instead of being built blind.
 
 ## 7. Open questions
 

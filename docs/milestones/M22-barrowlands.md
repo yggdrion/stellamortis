@@ -1,5 +1,7 @@
 # M22 Barrowlands bestiary and boss
 
+Status: planned.
+
 ## Goal
 
 The Barrowlands gets its own cast and its boss fight on the realm itself. Five enemy kinds that ask for different answers, and the Warden rising from a barrow; its death opens the keep's gate to the next realm. The hand-built PoC realm is removed.
@@ -62,7 +64,7 @@ Tests: entering the ring raises the Warden; leaving resets it; the kill sets the
 
 Files: `sim/arena.gd` or a new `client/site_view.gd`, `docs/milestones/M23-inventory-loot-saves.md`.
 
-Steps: standing stones, torches, a barrow door, embers when the Warden rises; then detail M23's brief to file level against the code as it is now, and close the milestone (`CLAUDE.md`, the row moved to `docs/milestones/DONE.md`, `VERSION`).
+Steps: standing stones, torches, a barrow door, embers when the Warden rises; then detail M23's brief to file level against the code as it is now, and close the milestone (`CLAUDE.md`, the status in `docs/PLAN.md` §6 and in this file, `VERSION`).
 
 ## Out of scope
 

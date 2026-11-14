@@ -1,6 +1,6 @@
 # Milestone briefs
 
-One file per milestone from M15 on. Finished milestones are listed in `DONE.md` (M0 to M14 have no brief; `docs/PLAN.md` §4 describes what they built). Each brief splits the milestone into tasks that one worker (a Sonnet or Opus subagent, or a person) can build alone, one PR per task, in the order given unless the brief says tasks are independent.
+One file per milestone. `docs/PLAN.md` §6 is the overview with every milestone's status; the files here hold the details. M0 to M14 were finished before briefs existed, so their files only keep the original "done when" text. From M16 on each brief splits the milestone into tasks that one worker (a Sonnet or Opus subagent, or a person) can build alone, one PR per task, in the order given unless the brief says tasks are independent.
 
 `docs/PLAN.md` stays the source of truth for design (§4.8 for the survival world). A brief says how to build it. When a brief and the code disagree, the code is right: fix the brief in the same PR.
 
@@ -34,7 +34,7 @@ Done means:
 - Visual work comes with screenshots (`--screenshot=PATH`, `--spawn`, `--look`; see `CLAUDE.md` "Boot").
 - Commits and the PR title are semantic commits (`type(scope): summary`).
 - What the task left open goes to `docs/PLAN.md` §8.
-- The last task of a milestone updates "Where we are" in `CLAUDE.md`, moves the milestone's row from `docs/PLAN.md` §6 to `docs/milestones/DONE.md` with its date and version, and raises `VERSION`'s minor by one (milestones finish out of order, so the minor is not the milestone number).
+- The last task of a milestone updates "Where we are" in `CLAUDE.md`, sets the milestone's status to Done with date and release in `docs/PLAN.md` §6 and in the `Status:` line of its file, and raises `VERSION`'s minor by one (milestones finish out of order, so the minor is not the milestone number).
 
 Not done by workers: pushing to `main` (it publishes a release), changes on the gvm host, play-test verdicts. Each milestone ends with the user's play-test.
 

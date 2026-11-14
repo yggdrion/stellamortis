@@ -1,5 +1,7 @@
 # M23 Inventory, loot and saves
 
+Status: planned.
+
 ## Goal
 
 Killing things pays. Enemies burst into loot that is worth running for, gear changes how a fight goes, the inventory is pleasant to manage, and the world and the character survive a restart.

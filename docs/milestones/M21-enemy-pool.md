@@ -1,5 +1,7 @@
 # M21 Enemy pool
 
+Status: planned.
+
 ## Goal
 
 The Barrowlands is inhabited: camps and roamers everywhere, generated from the seed. Enemies stay rolled back, so rolls, blocks and parries are as exact as today; a fixed pool of 24 slots serves whatever is near the players.

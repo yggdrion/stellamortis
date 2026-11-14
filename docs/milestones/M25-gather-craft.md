@@ -1,5 +1,7 @@
 # M25 Gather and craft
 
+Status: planned.
+
 ## Goal
 
 The land gives materials and the smithy turns them into gear. A player fells trees, breaks rock and ore, and crafts the Barrowlands tier, including two armor sets, which is what the next realm asks for.

@@ -1,5 +1,7 @@
 # M29 Base building
 
+Status: planned.
+
 ## Goal
 
 A group builds a hall of its own on any realm: floors, walls, roofs, doors, stairs and stations, placed for materials, snapped together and saved with the world.

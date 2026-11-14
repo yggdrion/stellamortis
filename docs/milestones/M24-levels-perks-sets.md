@@ -1,5 +1,7 @@
 # M24 Levels, perks and sets
 
+Status: planned.
+
 ## Goal
 
 A character grows: kills and discoveries give XP, each level gives a point for one of three perk trees, and gear sets grant perks of their own. Builds differ between players and every boss raises the ceiling.

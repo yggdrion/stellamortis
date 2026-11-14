@@ -13,6 +13,7 @@ var built := false
 var arena: Arena
 var players: Node3D
 var encounter: Encounter
+var chunks: TerrainChunks
 var _spawner: MultiplayerSpawner
 var _enemies: Node3D
 
@@ -40,15 +41,20 @@ func _ready() -> void:
 	_add_encounter()
 
 
-## Builds what is generated from the seed (nothing yet: terrain comes with M20 task 2). Server
-## at start, client when Net.world arrives; the nodes the netcode finds by path (the spawner,
-## players, enemies) already exist from _ready. Once only.
+## Builds what is generated from the seed: the terrain collision of every realm, streamed
+## (TerrainChunks) with the arrival chunks always there. Server at start, client when Net.world
+## arrives; the nodes the netcode finds by path (the spawner, players, enemies) already exist
+## from _ready. Once only.
 func build(new_seed: int, new_name: String) -> void:
 	if built:
 		return
 	world_seed = new_seed
 	world_name = new_name
 	built = true
+	chunks = TerrainChunks.new(new_seed, visual)
+	add_child(chunks)
+	for realm in Layout.realms():
+		chunks.pin_around(Terrain.surface(realm, new_seed, realm.arrival))
 
 
 ## The same dummies, same names and order, on every peer (netfox finds them by path).

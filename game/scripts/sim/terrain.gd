@@ -176,3 +176,18 @@ static func fingerprint(realm: RealmDef, world_seed: int) -> int:
 	for d in sample_directions(SAMPLES):
 		h = (h ^ roundi(field.height(d) * 100.0)) * 1099511628211
 	return h
+
+
+## The chunk (face, x, y) holding a unit direction: the inverse of vertex_direction. A direction
+## exactly on a face edge or chunk border goes to either neighbour.
+static func chunk_at(realm: RealmDef, direction: Vector3) -> Vector3i:
+	var a := direction.abs()
+	var axis := 0 if a.x >= a.y and a.x >= a.z else (1 if a.y >= a.z else 2)
+	var face := axis * 2 + (1 if direction[axis] < 0.0 else 0)
+	var frame: Array = FACES[face]
+	var cube := direction / a[axis]
+	var cells := grid_cells(realm)
+	var last := chunks_per_face(realm) - 1
+	var x := floori((cube.dot(frame[1]) + 1.0) * 0.5 * cells / CHUNK_CELLS)
+	var y := floori((cube.dot(frame[2]) + 1.0) * 0.5 * cells / CHUNK_CELLS)
+	return Vector3i(face, clampi(x, 0, last), clampi(y, 0, last))

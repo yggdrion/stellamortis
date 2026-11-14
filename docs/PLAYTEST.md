@@ -38,3 +38,10 @@ Deaths and hit sounds (task 3, `client/enemy_view.gd`, `shaders/burn_away.gdshad
 Built task by task; items are added as the tasks land.
 
 - [ ] Joining a hosted game and a solo game still work (the world seed is sent on join; protocol 15).
+
+Streamed collision (task 3, `sim/terrain_chunks.gd`; needs the gate of task 4 to reach the realm, or `--spawn` in the realm):
+
+- [ ] Running across the Barrowlands never shows a hitch from chunks being added (watch F3 frame time while sprinting over hills).
+- [ ] You never fall through the ground, also when jumping off a ridge and landing on a slope.
+- [ ] A steep hillside is not climbed like stairs: a slope near 50 degrees stops you or lets you slide, with no jerking up the slope.
+- [ ] Two players in the realm see each other standing on the ground, not sunk in or floating.

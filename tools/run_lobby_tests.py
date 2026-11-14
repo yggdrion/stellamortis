@@ -4,8 +4,9 @@ Usage: python tools/run_lobby_tests.py [bun test args]
 Set BUN_BIN to use your own binary.
 """
 
+import os
 import sys
 
 from _common import ROOT, bun, run
 
-run(bun(), "test", *sys.argv[1:], cwd=ROOT / "lobby")
+run(bun(), "test", *sys.argv[1:], cwd=ROOT / "lobby", env={**os.environ, "HOST": "127.0.0.1"})

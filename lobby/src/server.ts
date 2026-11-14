@@ -28,6 +28,8 @@ export function startServer(port: number, config: Partial<Config> = {}) {
 
   const server = Bun.serve({
     port,
+    // Tests set HOST=127.0.0.1, so the local firewall has nothing to ask about.
+    hostname: process.env.HOST ?? "0.0.0.0",
     fetch(req, srv) {
       const path = new URL(req.url).pathname;
       if (path === "/ws") {

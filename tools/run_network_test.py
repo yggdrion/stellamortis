@@ -36,7 +36,7 @@ def start(*cmd, **kwargs):
     return subprocess.Popen([godot_bin, "--headless", "--path", ".", "--", *cmd], cwd=GAME, **kwargs)
 
 
-server = start("--server", f"--port={PORT}")
+server = start("--server", f"--port={PORT}", "--bind=127.0.0.1")
 time.sleep(1.0)
 bots = [
     # Staggered, so the two never quit in the same instant: the server would then tell the
@@ -60,7 +60,7 @@ log("ENet run passed")
 
 lobby = subprocess.Popen(
     [bun(), str(ROOT / "lobby" / "src" / "server.ts")],
-    env={**os.environ, "PORT": str(LOBBY_PORT)},
+    env={**os.environ, "PORT": str(LOBBY_PORT), "HOST": "127.0.0.1"},
     stdout=subprocess.DEVNULL,
 )
 lobby_url = f"ws://127.0.0.1:{LOBBY_PORT}/ws"

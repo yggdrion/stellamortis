@@ -44,7 +44,7 @@ def start(*cmd, **kwargs):
 
 
 server = start(
-    "--server", f"--port={PORT}",
+    "--server", f"--port={PORT}", "--bind=127.0.0.1",
     env={**os.environ, "STELLAMORTIS_SERVER_STATS": "1"},
     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
 )

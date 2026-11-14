@@ -28,7 +28,7 @@ def start(*cmd):
     return subprocess.Popen([godot_bin, "--path", ".", *cmd], cwd=GAME)
 
 
-server = start("--headless", "--", "--server", f"--port={PORT}")
+server = start("--headless", "--", "--server", f"--port={PORT}", "--bind=127.0.0.1")
 target = PORT
 if lag:
     target = PORT + 1

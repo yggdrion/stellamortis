@@ -24,6 +24,9 @@ const SILENT_DROP := 10.0
 
 var net: Net
 var solo := false
+## The address the ENet server listens on: "*" is every interface. Solo and the test tools
+## use 127.0.0.1, so the operating system's firewall has nothing to ask about.
+var bind_ip := "*"
 ## Debug: where players spawn instead of the ring around the origin (--spawn=x,y,z).
 var spawn_at: Variant = null
 ## Debug: start with the mobs dead, so the Warden rises at once (--encounter=boss).
@@ -75,6 +78,7 @@ func start(port: int) -> void:
 	else:
 		var peer := ENetMultiplayerPeer.new()
 		# Room for a few more connections than players, so the ones over get told why.
+		peer.set_bind_ip(bind_ip)
 		var err := peer.create_server(port, MAX_PLAYERS + 2)
 		if err != OK:
 			push_error("Could not open port %d: %s" % [port, error_string(err)])

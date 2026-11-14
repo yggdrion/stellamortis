@@ -1,6 +1,8 @@
 extends Node
 ## Entry point. Picks the role from the user args (after `--`):
 ##   --server --port=N [--solo]     headless game server; --solo: exits with its player
+##     [--bind=IP]                  listen on that address only (default: every interface;
+##                                  --solo: 127.0.0.1, so no firewall prompt)
 ##     [--spawn=X,Y,Z]              debug: spawn players there (a solo client passes it on)
 ##     [--encounter=boss]           debug: start with the mobs dead (a solo client passes it on)
 ##     [--lobby=URL [--room-file=PATH]]   instead of the port: open a room in this lobby and
@@ -60,6 +62,8 @@ func _ready() -> void:
 		var server := GameServer.new()
 		server.net = _net
 		server.solo = _args.has("solo")
+		# A solo server only ever has its own client, on this machine.
+		server.bind_ip = _args.get("bind", "127.0.0.1" if server.solo else "*")
 		if _args.has("spawn"):
 			var p := (_args["spawn"] as String).split(",")
 			server.spawn_at = Vector3(float(p[0]), float(p[1]), float(p[2]))
@@ -273,7 +277,7 @@ func _free_port() -> int:
 	var udp := PacketPeerUDP.new()
 	for i in 20:
 		var port := randi_range(20000, 60000)
-		if udp.bind(port) == OK:
+		if udp.bind(port, "127.0.0.1") == OK:
 			udp.close()
 			return port
 	return DEFAULT_PORT

@@ -1,0 +1,177 @@
+diff --git a/netfox/serializers/sparse-snapshot-serializer.gd b/netfox/serializers/sparse-snapshot-serializer.gd
+index 6fcde16..5e1ff3d 100644
+--- a/netfox/serializers/sparse-snapshot-serializer.gd
++++ b/netfox/serializers/sparse-snapshot-serializer.gd
+@@ -4,7 +4,7 @@ class_name _SparseSnapshotSerializer
+ static func _static_init():
+ 	_logger = NetfoxLogger._for_netfox("SparseSnapshotSerializer")
+ 
+-func write_for(peer: int, snapshot: _Snapshot, properties: _PropertyPool, filter: Callable = _default_filter) -> Array[PackedByteArray]:
++func write_for(peer: int, snapshot: _Snapshot, properties: _PropertyPool, filter: Callable = _default_filter, bodies: Dictionary = {}) -> Array[PackedByteArray]:
+ 	var packet_buffer := _PacketBuffer.new(max_packet_size)
+ 	var frame_buffer := StreamPeerBuffer.new()
+ 	var node_buffer := StreamPeerBuffer.new()
+@@ -34,21 +34,28 @@ func write_for(peer: int, snapshot: _Snapshot, properties: _PropertyPool, filter
+ 		if _write_identifier(node, peer, frame_buffer) != OK:
+ 			continue
+ 
+-		var node_props := properties.get_properties_of(node)
+-		var changed_bits := _Bitset.new(node_props.size())
+-
+-		for i in node_props.size():
+-			var property := node_props[i]
+-			if not snapshot.has_property(node, property):
+-				continue
+-
+-			changed_bits.set_bit(i)
+-			var value := snapshot.get_property(node, property)
+-			_write_property(node, property, value, node_buffer)
+-
+-		varuint.encode(node_buffer.data_array.size(), frame_buffer)		# Node props len
+-		varbits.encode(changed_bits, frame_buffer)						# Changed prop bits
+-		frame_buffer.put_data(node_buffer.data_array)					# Changed props
++		# Stellamortis patch: all after the identifier is the same for every peer, so the caller
++		# may pass a dictionary that keeps it per node
++		if bodies.has(node):
++			frame_buffer.put_data(bodies[node] as PackedByteArray)
++		else:
++			var node_props := properties.get_properties_of(node)
++			var changed_bits := _Bitset.new(node_props.size())
++
++			for i in node_props.size():
++				var property := node_props[i]
++				if not snapshot.has_property(node, property):
++					continue
++
++				changed_bits.set_bit(i)
++				var value := snapshot.get_property(node, property)
++				_write_property(node, property, value, node_buffer)
++
++			var identifier_size := frame_buffer.get_size()
++			varuint.encode(node_buffer.data_array.size(), frame_buffer)		# Node props len
++			varbits.encode(changed_bits, frame_buffer)						# Changed prop bits
++			frame_buffer.put_data(node_buffer.data_array)					# Changed props
++			bodies[node] = frame_buffer.data_array.slice(identifier_size)
+ 
+ 		# Write frame into output buffer
+ 		packet_buffer.push(frame_buffer.data_array)
+diff --git a/netfox/servers/network-synchronization-server.gd b/netfox/servers/network-synchronization-server.gd
+index d78e1b7..02e62b1 100644
+--- a/netfox/servers/network-synchronization-server.gd
++++ b/netfox/servers/network-synchronization-server.gd
+@@ -172,16 +172,38 @@ func _get_last_sent_rollback_state(peer: int, tick: int) -> _Snapshot:
+ 
+ func _remember_sent_rollback_state(peer: int, snapshot: _Snapshot) -> void:
+ 	var reference := _get_last_sent_rollback_state(peer, snapshot.tick)
++	_get_peer_rb_sent_history(peer).set_at(snapshot.tick, _merged_with(reference, snapshot))
++
++# What a peer holds once `snapshot` (maybe a diff state) arrives on top of `reference`
++func _merged_with(reference: _Snapshot, snapshot: _Snapshot) -> _Snapshot:
+ 	var remembered := reference.duplicate() if reference else _Snapshot.new(snapshot.tick)
+ 
+-	# `snapshot` might be a diff state, hence the merging
+ 	for subject in snapshot.get_subjects():
+ 		for property in snapshot.get_subject_properties(subject):
+ 			remembered.set_property(subject, property, snapshot.get_property(subject, property))
+ 		remembered.set_auth(subject, snapshot.is_auth(subject))
+ 	remembered.tick = snapshot.tick
++	return remembered
+ 
+-	_get_peer_rb_sent_history(peer).set_at(snapshot.tick, remembered)
++# The id `peer` knows each subject of `snapshot` by (-1 if none yet)
++func _ids_known_by(peer: int, snapshot: _Snapshot) -> PackedInt64Array:
++	var ids := PackedInt64Array()
++	for subject in snapshot.get_subjects():
++		var identifier := _identity_server._get_identifier_of(subject)
++		ids.append(identifier.get_id_for(peer) if identifier else -2)
++	return ids
++
++# True if no visibility filter hides a state node from any of `peers`
++func _everyone_sees_everything(peers: PackedInt32Array) -> bool:
++	for subject in _rb_owned_state_properties.get_subjects():
++		var filter := _visibility_filters.get(subject) as PeerVisibilityFilter
++		if not filter:
++			continue
++		var visible := filter.get_visible_peers()
++		for peer in peers:
++			if not visible.has(peer):
++				return false
++	return true
+ 
+ # Prepare snapshot to be sent to `peer`
+ # Only contains visible subjects' auth properties
+@@ -274,8 +296,20 @@ func _synchronize_state(tick: int) -> void:
+ 	if not _rb_enable_diffs:
+ 		is_full = true
+ 
+-	for peer in multiplayer.get_peers():
+-		var peer_snapshot := _make_peer_snapshot(snapshot, peer, _rb_owned_state_properties)
++	# Stellamortis patch: every peer gets the same snapshot unless a visibility filter hides a
++	# node from some, and peers whose last sent state is the same object get the same diff,
++	# remembered state, serialized nodes and packets. All that is made once per tick and not
++	# once per peer, the per-peer cost of this loop is what limited the players and enemies.
++	var peers := multiplayer.get_peers()
++	var shared: _Snapshot = null
++	if not peers.is_empty() and _everyone_sees_everything(peers):
++		shared = _make_peer_snapshot(snapshot, peers[0], _rb_owned_state_properties)
++	var groups := {} # reference snapshot to {diff, remembered, bodies, packets}
++
++	for peer in peers:
++		var peer_snapshot := shared
++		if peer_snapshot == null:
++			peer_snapshot = _make_peer_snapshot(snapshot, peer, _rb_owned_state_properties)
+ 		if peer_snapshot.is_empty():
+ 			continue
+ 
+@@ -289,22 +323,44 @@ func _synchronize_state(tick: int) -> void:
+ 			for packet in packets:
+ 				_cmd_full_state.send(packet, peer)
+ 
+-			_remember_sent_rollback_state(peer, peer_snapshot)
++			if shared:
++				# A full state is every peer's new reference: one object for all of them
++				_get_peer_rb_sent_history(peer).set_at(tick, shared)
++			else:
++				_remember_sent_rollback_state(peer, peer_snapshot)
+ 			NetworkPerformance.push_full_state_props(peer_snapshot.size())
+ 			NetworkPerformance.push_sent_state_props(peer_snapshot.size())
+ 		else:
+-			var diff := _Snapshot.make_patch(reference_snapshot, peer_snapshot)
+-			if diff.is_empty():
++			var group := {}
++			if shared and groups.has(reference_snapshot):
++				group = groups[reference_snapshot]
++			else:
++				var diff := _Snapshot.make_patch(reference_snapshot, peer_snapshot)
++				group = {"diff": diff, "bodies": {}, "packets": {}}
++				if not diff.is_empty():
++					group["remembered"] = _merged_with(reference_snapshot, diff)
++				if shared:
++					groups[reference_snapshot] = group
++
++			var group_diff := group["diff"] as _Snapshot
++			if group_diff.is_empty():
+ 				# Nothing changed, don't send anything
+ 				continue
+ 
+-			var packets := _sparse_serializer.write_for(peer, diff, _rb_owned_state_properties)
+-			for packet in packets:
++			# Peers that know every node by the same ids get the same packets
++			var packets_by_ids := group["packets"] as Dictionary
++			var ids := _ids_known_by(peer, group_diff)
++			if not packets_by_ids.has(ids):
++				packets_by_ids[ids] = _sparse_serializer.write_for(
++					peer, group_diff, _rb_owned_state_properties,
++					_BaseSnapshotSerializer._default_filter, group["bodies"]
++				)
++			for packet in packets_by_ids[ids] as Array[PackedByteArray]:
+ 				_cmd_diff_state.send(packet, peer)
+ 
+-			_remember_sent_rollback_state(peer, diff)
++			_get_peer_rb_sent_history(peer).set_at(tick, group["remembered"])
+ 			NetworkPerformance.push_full_state_props(peer_snapshot.size())
+-			NetworkPerformance.push_sent_state_props(diff.size())
++			NetworkPerformance.push_sent_state_props(group_diff.size())
+ 
+ func _synchronize_sync_state(tick: int) -> void:
+ 	# We don't own sync state, nothing to synchronize

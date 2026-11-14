@@ -96,16 +96,14 @@ var net_combat: PackedByteArray:
 	get:
 		if action == Action.HIDDEN:
 			return _hidden_net
-		return Wire.pack(self, _combat_fields) + _pack_bolts()
+		return _pack_state() + _pack_bolts()
 	set(value):
 		if value.size() == 1:
 			action = value[0] as Action
 			return
-		_unpack_bolts(value.slice(Wire.unpack(self, _combat_fields, value)))
+		_unpack_bolts(value.slice(_unpack_state(value)))
 
 var _shape: CollisionShape3D
-## The rolled back fields besides the bolts, packed into net_combat.
-var _combat_fields: Array = []
 
 
 func _init() -> void:
@@ -153,6 +151,61 @@ func bolt_slots() -> int:
 	return mini(def.bolt_slots, bolt_life.size())
 
 
+## The fields of STATE besides the bolts, written by hand because netfox reads and sets every
+## awake slot on every resimulated tick: action, kind, attack and parried as bytes, seven vectors
+## (the basis' three axes, the origin, up, facing, velocity) as 32 bit floats, health and
+## max_health, then action_time, quiet_time, flinch_time, well_time and combo as varuints.
+## A field added to STATE must be added here (tests/wire_test.gd fails otherwise).
+func _pack_state() -> PackedByteArray:
+	var at := transform
+	var bytes := PackedByteArray([action, kind, attack, 1 if parried else 0])
+	var vectors := PackedVector3Array(
+		[at.basis.x, at.basis.y, at.basis.z, at.origin, up, facing, velocity]
+	)
+	bytes.append_array(vectors.to_byte_array())
+	bytes.append_array(PackedFloat32Array([health, max_health]).to_byte_array())
+	for counter: int in [action_time, quiet_time, flinch_time, well_time, combo]:
+		var rest := counter
+		while rest > 127:
+			bytes.append((rest & 127) | 128)
+			rest >>= 7
+		bytes.append(rest)
+	return bytes
+
+
+## Reads what _pack_state wrote and returns how many bytes it took.
+func _unpack_state(bytes: PackedByteArray) -> int:
+	if bytes[1] != kind:
+		kind = bytes[1]
+	action = bytes[0] as Action
+	attack = bytes[2]
+	parried = bytes[3] != 0
+	var vectors := bytes.slice(4, 88).to_vector3_array()
+	transform = Transform3D(Basis(vectors[0], vectors[1], vectors[2]), vectors[3])
+	up = vectors[4]
+	facing = vectors[5]
+	velocity = vectors[6]
+	health = bytes.decode_float(88)
+	max_health = bytes.decode_float(92)
+	var counters := [0, 0, 0, 0, 0]
+	var at := 96
+	for i in 5:
+		var value := 0
+		var shift := 0
+		while bytes[at] > 127:
+			value |= (bytes[at] & 127) << shift
+			shift += 7
+			at += 1
+		counters[i] = value | (bytes[at] << shift)
+		at += 1
+	action_time = counters[0]
+	quiet_time = counters[1]
+	flinch_time = counters[2]
+	well_time = counters[3]
+	combo = counters[4]
+	return at
+
+
 func _pack_bolts() -> PackedByteArray:
 	if bolt_slots() == 0 or action == Action.HIDDEN:
 		return _no_bolts
@@ -191,16 +244,12 @@ func _unpack_bolts(bytes: PackedByteArray) -> void:
 		bolt_life[slot] = buffer.get_u8()
 
 
-## Server-owned, predicted on clients. Call before adding it to the tree, on every peer. state
-## is every rolled back field (Enemy.STATE); netfox synchronizes them as one property,
-## net_combat (`action` first, then the fields, then the bolts in flight): its cost grows with
-## the properties of every node, and the pool has dozens.
-func networked(state: Array) -> void:
+## Server-owned, predicted on clients. Call before adding it to the tree, on every peer. Every
+## rolled back field (Enemy.STATE) is synchronized as one property,
+## net_combat (_pack_state, then the bolts in flight): netfox's cost grows with the properties
+## of every node, and the pool has dozens.
+func networked() -> void:
 	var synced := ["net_combat"]
-	_combat_fields = ["action"]
-	for field: String in state:
-		if field != "action" and not field in BOLTS:
-			_combat_fields.append(field)
 	var rollback := RollbackSynchronizer.new()
 	rollback.name = "Rollback"
 	rollback.root = self

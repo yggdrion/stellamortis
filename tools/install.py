@@ -6,7 +6,7 @@ Usage: python tools/install.py [godot|gdunit4|webrtc|netfox|bun|venv|templates] 
              against tools/godot-<version>.sha512, plus webrtc. Prints the binary path.
   gdunit4    gdUnit4 into game/addons/gdUnit4 (gitignored).
   netfox     netfox and netfox.internals (rollback netcode) into game/addons/ (gitignored),
-             from NETFOX_COMMIT, checked against NETFOX_SHA256.
+             from NETFOX_COMMIT, checked against NETFOX_SHA256, then tools/netfox.patch applied.
   webrtc     the webrtc-native GDExtension (player host) into game/addons/webrtc_native
              (gitignored); exports ship its library next to the game.
   bun        Bun (the lobby in lobby/) into <TOOLS>/bun/<version>/. Prints the path.
@@ -40,6 +40,9 @@ GDUNIT4_VERSION = os.environ.get("GDUNIT4_VERSION", "v6.2.2")
 NETFOX_COMMIT = "cf5189d18e98766022c8c1c5e637a6a30c4c3703"
 NETFOX_SHA256 = "e3243b2326f080cec35d67cf4e23ceeabe7b67c3377731ebafed25c9f17f1174"
 NETFOX_ADDONS = ["netfox", "netfox.internals"]
+# Our changes to netfox (serializes the server's state once per tick, not once per peer), applied
+# after the extraction: tools/netfox.patch, relative to game/addons. PLAN §8 has the numbers.
+NETFOX_PATCH = ROOT / "tools" / "netfox.patch"
 WEBRTC_VERSION = "1.2.2-stable"
 WEBRTC_SHA256 = "98e9446921740d995bd9ca1be48798dc3c2ceed51e044a25ce18b3cff11f56e5"
 BUN_VERSION = "1.4.4"
@@ -132,7 +135,8 @@ def webrtc():
 
 def netfox():
     marker = ROOT / "game" / "addons" / "netfox" / ".commit"
-    if marker.exists() and marker.read_text().strip() == NETFOX_COMMIT:
+    stamp = f"{NETFOX_COMMIT} {hashlib.sha256(NETFOX_PATCH.read_bytes()).hexdigest()[:12]}"
+    if marker.exists() and marker.read_text().strip() == stamp:
         return
     with tempfile.TemporaryDirectory() as tmp:
         log(f"Downloading netfox {NETFOX_COMMIT[:12]}...")
@@ -146,8 +150,14 @@ def netfox():
             dest = ROOT / "game" / "addons" / name
             shutil.rmtree(dest, ignore_errors=True)
             shutil.copytree(src / name, dest)
-    marker.write_text(NETFOX_COMMIT + "\n")
-    log(f"netfox {NETFOX_COMMIT[:12]} installed to game/addons")
+    # --ignore-whitespace: a checkout with CRLF line endings still applies
+    subprocess.run(
+        ["git", "apply", "--ignore-whitespace", "--directory=game/addons", str(NETFOX_PATCH)],
+        cwd=ROOT,
+        check=True,
+    )
+    marker.write_text(stamp + "\n")
+    log(f"netfox {NETFOX_COMMIT[:12]} installed to game/addons, patched")
 
 
 def bun():

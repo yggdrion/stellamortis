@@ -75,7 +75,7 @@ func _add_dummies() -> void:
 		dummy.index = i
 		dummy.kind = Combat.enemy_kind(&"dummy")
 		dummy.passive = Layout.DUMMIES[i][1]
-		dummy.networked(Enemy.STATE)
+		dummy.networked()
 		dummy.position = Layout.DUMMIES[i][0]
 		dummy.facing = Vector3.BACK
 		dummy.basis = SimPlayer.frame(Vector3.UP, dummy.facing)
@@ -100,7 +100,7 @@ func _add_pool() -> void:
 		slot.index = Layout.DUMMIES.size() + i
 		slot.kind = free
 		slot.make_bolts(bolts)
-		slot.networked(Enemy.STATE)
+		slot.networked()
 		if visual:
 			slot.add_child(EnemyView.new(slot))
 		_enemies.add_child(slot)

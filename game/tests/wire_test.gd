@@ -120,13 +120,8 @@ func test_swing_hits_is_a_32_bit_mask() -> void:
 	assert_int(other.swing_hits).is_equal(player.swing_hits)
 
 
-func _packed(field: String) -> bool:
-	return field != "action" and not field in Enemy.BOLTS
-
-
 func test_hidden_slot_is_one_byte_and_wakes_from_full_state() -> void:
 	var slot := auto_free(Enemy.new()) as Enemy
-	slot._combat_fields = ["action"] + Enemy.STATE.filter(_packed)
 	slot.make_bolts(10)
 	slot.action = Enemy.Action.HIDDEN
 	assert_int(slot.net_combat.size()).is_equal(1)
@@ -134,7 +129,6 @@ func test_hidden_slot_is_one_byte_and_wakes_from_full_state() -> void:
 	slot.become(slot.kind, Transform3D.IDENTITY, Enemy.Action.IDLE)
 	slot.health = 321.0
 	var other := auto_free(Enemy.new()) as Enemy
-	other._combat_fields = slot._combat_fields
 	other.make_bolts(10)
 	other.action = Enemy.Action.HIDDEN
 	other.net_combat = slot.net_combat
@@ -145,6 +139,35 @@ func test_hidden_slot_is_one_byte_and_wakes_from_full_state() -> void:
 	slot.action = Enemy.Action.HIDDEN
 	other.net_combat = slot.net_combat
 	assert_int(other.action).is_equal(Enemy.Action.HIDDEN)
+
+
+func test_net_combat_carries_every_rolled_back_field_but_the_bolts() -> void:
+	var slot := auto_free(Enemy.new()) as Enemy
+	slot.kind = Combat.enemy_kind(&"warden")
+	slot.transform = Transform3D(Basis.from_euler(Vector3(0.2, 1.1, -0.4)), Vector3(5, -6, 7))
+	slot.action = Enemy.Action.STAGGER
+	slot.up = Vector3(0, 0, 1)
+	slot.facing = Vector3(1, 0, 0)
+	slot.health = 321.5
+	slot.max_health = 1350.0
+	slot.action_time = 300
+	slot.parried = true
+	slot.quiet_time = 5
+	slot.flinch_time = 20000
+	slot.well_time = 128
+	slot.combo = 127
+	slot.velocity = Vector3(1, 2, 3)
+	slot.attack = 2
+	var other := auto_free(Enemy.new()) as Enemy
+	other.net_combat = slot.net_combat
+	for field: String in Enemy.STATE:
+		if field in Enemy.BOLTS:
+			continue
+		var value: Variant = slot.get(field)
+		if value is float:
+			assert_float(other.get(field)).override_failure_message(field).is_equal(value)
+		else:
+			assert_that(other.get(field)).override_failure_message(field).is_equal(value)
 
 
 func test_enemy_bolts_travel_only_when_in_flight() -> void:

@@ -14,7 +14,7 @@ func attach() -> void:
 	NetworkRollback.on_prepare_tick.connect(_on_prepare)
 	NetworkRollback.after_prepare_tick.connect(func(_t: int) -> void: restore_us += _lap())
 	NetworkRollback.after_process_tick.connect(func(_t: int) -> void: simulate_us += _lap())
-	NetworkRollback.after_loop.connect(func() -> void: record_us += _lap() if _mark > 0 else 0)
+	NetworkRollback.after_loop.connect(_on_after_loop)
 
 
 func _on_prepare(_tick: int) -> void:
@@ -23,6 +23,14 @@ func _on_prepare(_tick: int) -> void:
 		record_us += _lap()
 	_mark = Time.get_ticks_usec()
 	ticks += 1
+
+
+func _on_after_loop() -> void:
+	# The last tick's record and send stage ends here; what the tick loop does until the next
+	# loop is not rollback.
+	if _mark > 0:
+		record_us += _lap()
+	_mark = 0
 
 
 func _lap() -> int:

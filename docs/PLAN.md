@@ -6,7 +6,11 @@ Source of truth for scope, design, architecture and milestones. Decisions from t
 
 Third-person coop action game in space, Valheim-like with aiming, combat in Valheim's style: dodge roll with i-frames, shield block and parry, attacks toward the camera, no lock-on (removed in M10). Fights happen across gravity zones on a planet surface and a small asteroid. The PoC is a hub keep and one realm: kill 3 mobs, a boss rises, kill the boss, take the portal home.
 
+After the PoC (decided 2026-11-14, §4.8, M19 onward): a saved survival world. Round realms large enough to feel like land, one biome, gravity and boss each, reached through rune gates from the keep; camps of the dead to clear, loot, gear with real gear slots, levels and perk trees, gathering, crafting and base building.
+
 ## 2. Scope
+
+The PoC list below is built. From M19 on the scope is §4.8 and the milestone briefs in `docs/milestones/`: inventory, loot, crafting, persistence, a generated world and building move in; telemetry and public dedicated hosting stay out.
 
 In:
 
@@ -156,6 +160,33 @@ All numbers live in data resources (`game/data/*.tres`), not in code.
   - Phases (`Encounter.Phase`): MOBS, BOSS, CLEARED; 20 s after the Warden falls everything resets. A wipe (every player dead at once, at least 4 s after the last reset) resets to the mobs. The encounter node is rolled back with prediction like the enemies.
   - Debug: `--encounter=boss` starts a server (or solo) with the mobs dead.
 
+### 4.8 Survival world (M19 onward)
+
+Decided with the user on 2026-11-14. Nothing here is built yet; the briefs in `docs/milestones/` split it into tasks.
+
+What the game becomes:
+
+- A persistent survival world in Valheim's spirit. Priority: explore and fight, then gather and craft, then base building.
+- Several round realms, each one biome with its own gravity, enemies, resources and boss. A boss's death opens the keep's gate to the next realm. Realms must be big enough that walking never feels like running around a ball.
+- Realms: the Barrowlands (normal gravity, start, the Warden), Myrkfen (low gravity, fog and black water, a drowned jotun), Jarnfell (high gravity, ash and old forges, a forge king), the Skyshards (a cluster of small floating rocks with launch stones between them).
+- The theme stays §3.2: dark medieval, Viking, northern fantasy. No sci-fi words or looks: realms and rune gates, sky iron, draugr.
+- Hits and loot must feel satisfying (M19, M23).
+- Inventory with real gear slots apart from the bag, sorting and quick transfer (Valheim's inventory is the bad example).
+- Progression: character levels with perk trees, plus gear and sets that grant perks. The level cap rises with each boss.
+- Characters (gear, inventory, level, perks) are saved on the player's machine and travel between worlds; the server trusts what the client sends (fine among friends). The world save lives with the server.
+- Enemies stay rolled back. A fixed pool of 24 to 32 enemy slots is assigned to spawn points near players: small groups, no hordes.
+
+Technical calls (Claude's, to be corrected by measurement and play-tests):
+
+- Realm radius 1000 m (a lap is 6.3 km; the horizon sits about 60 m away at eye height, and hills and fog hide the curve). Radius is data per realm.
+- Terrain is a cube-sphere cut into chunks. Height is a pure function of world seed and direction (seeded `FastNoiseLite`), quantized, so every peer builds the same collision. Collision chunks exist around every player and awake enemy on the server and around the own player on clients; clients draw near chunks in detail and a coarse far shell. A gate holds the traveller until the destination's chunks exist.
+- Realms sit in the one world at offsets like `Layout.HUB`, all within 6 km of the origin (32 bit floats); clients draw the realm they are on.
+- The server sends the world seed and name in the hello handshake, before the client builds `World`.
+- Only combat is rolled back. World objects (resource nodes, drops, graves, built pieces) and inventories are server-authoritative: reliable RPC deltas plus a snapshot at join. Equipped item ids are the only item data in rolled back state. A player's `Stats` block (from perks, gear and sets) is computed on the server and sent to its owner; it is not rolled back.
+- Enemy kinds are data (`EnemyDef`: health, speed, attacks, behavior, look), so any pool slot can be any kind.
+- Saves are JSON, written to a temp file and renamed: `user://worlds/<name>.json` on the server, `user://characters/<name>.json` on the client.
+- New enemies stay on the humanoid UAL rig first. Beasts and flyers need a CC0 model that fits the look; each realm milestone starts with that search and falls back to humanoids.
+
 ## 5. Repository layout
 
 ```
@@ -194,6 +225,19 @@ docs/        PLAN.md, RESOURCES.md
 | M16 | Frame pacing | Settings to turn vsync off and, as an alternative, cap the frame rate (`Engine.max_fps`, e.g. 60/120/144/unlimited), saved with the graphics preset; F3 shows the cap. Later, not relevant for the PoC | Later |
 | M17 | Wooting analog | Analog movement from Wooting keyboards through the Wooting Analog SDK (GDExtension or a small native bridge): WASD depth becomes `PlayerControls.move` length, so walk speed follows key pressure; digital keys stay the fallback when no Wooting device or SDK is present. Later, not relevant for the PoC | Later |
 | M18 | Telemetry | Opt-in game telemetry (sessions, joins, connection type, tick and frame times) through the lobby host. Later, not relevant for the PoC | Later |
+| M19 | Hit feel | Hitting and being hit read clearly and feel heavy: knockback and flinch, hit stop, camera shake, blood and sparks, enemies that fall and burn away. Brief: `docs/milestones/M19-hit-feel.md` | Planned |
+| M20 | Big round realm | A world has a seed. The Barrowlands is a generated realm of 1000 m radius with streamed terrain, reached by a keep gate; two peers stand on identical ground; it looks like northern moorland. Brief: `docs/milestones/M20-big-round-realm.md` | Planned |
+| M21 | Enemy pool | Enemies walk the round realm; kinds are data; a pool of 24 rolled back slots serves seeded camps and roamers near players; the load test holds 29 tps with a full pool. Brief: `docs/milestones/M21-enemy-pool.md` | Planned |
+| M22 | Barrowlands bestiary and boss | Draugr swordsman and archer, shield bearer, berserker, barrow elite; the Warden rises at a generated barrow and its death opens the next gate; the hand-built realm is removed. Brief: `docs/milestones/M22-barrowlands.md` | Planned |
+| M23 | Inventory, loot and saves | Items, gear slots apart from the bag, a good inventory panel, loot that bursts out of enemies, chests, graves, world and character saves, a world list in the menu. Brief: `docs/milestones/M23-inventory-loot-saves.md` | Planned |
+| M24 | Levels, perks and sets | XP and levels, three perk trees, set bonuses, one `Stats` block feeding the sim, level cap per boss. Brief: `docs/milestones/M24-levels-perks-sets.md` | Planned |
+| M25 | Gather and craft | Trees, rock and ore as saved world objects, axe and pickaxe, recipes, smithy and workbench, the Barrowlands gear tier with two sets. Brief: `docs/milestones/M25-gather-craft.md` | Planned |
+| M26 | Myrkfen | Second realm, low gravity: biome, three enemy kinds, resin and bog iron, tier 2, the drowned jotun. Brief: `docs/milestones/M26-myrkfen.md` | Planned |
+| M27 | Jarnfell | Third realm, high gravity: brutes and swarms, ore and coal, tier 3, the forge king. Brief: `docs/milestones/M27-jarnfell.md` | Planned |
+| M28 | Skyshards | Floating rocks with launch stones, sentries, sky iron, tier 4, a boss fought across rocks. Brief: `docs/milestones/M28-skyshards.md` | Planned |
+| M29 | Base building | Place, snap and remove saved pieces and stations on any realm, within a piece budget. Brief: `docs/milestones/M29-base-building.md` | Planned |
+
+From M19 on every milestone ends with a hand play-test by the user instead of being built blind. M15 keeps the PoC leftovers.
 
 ## 7. Open questions
 
@@ -203,6 +247,7 @@ None open. Answered on the way:
 - Exact CC0 packs: KayKit in M2, Quaternius and ambientCG in M9; M12 picks fantasy packs.
 - M12 planet travel: a hub with portals, one planet loaded at a time (decided 2026-11-09).
 - M13: application ID and what Discord shows are in the M13 row.
+- After the PoC (2026-11-14): a persistent survival world on several large round realms; characters saved on the player's machine; enemies in a fixed rolled back pool; levels with perk trees and set perks; real gear slots. All in §4.8.
 
 ## 8. Open items to clarify after the last milestone
 
@@ -248,4 +293,6 @@ Still open (§3.1, not in a milestone yet):
 - Shader baker for exports and a check that ubershaders avoid hitches in the release builds.
 - From M12: LightmapGI needs an editor bake, and the levels are built in code at runtime; it waits for levels saved as scenes. `AnimationTree` with blend spaces and foot IK (`TwoBoneIK3D` exists in 4.7) would replace `CharacterModel.play_timed`, which the rolled back views rely on; left out. Decals for impacts left out. Only one realm; more planets mean more `Layout` entries and portals.
 
-Milestones not started: M15 test round; Later: M16 frame pacing, M17 Wooting analog, M18 telemetry.
+Open from the 2026-11-14 planning (§4.8): food, rest, day and night are not planned yet; whether 1000 m is the right realm radius, and the enemy pool size, wait for M20's play-test and M21's load test.
+
+Milestones not started: M15 test round; M19 to M29 the survival world (§4.8, `docs/milestones/`); Later: M16 frame pacing, M17 Wooting analog, M18 telemetry.

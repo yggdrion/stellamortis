@@ -21,7 +21,7 @@ Reuse: `Enemy.take_hit` (`enemy.gd:167`), `Enemy._set_action`, `Enemy._walk` (ve
 Steps:
 
 1. `AttackDef`: add `knockback` (m/s away from the attacker) and `flinch` (seconds). Set them in the player attacks (light small, light 3 and heavy large) and the enemy attacks.
-2. `Enemy.take_hit(amount, from, def)`: add the push to `velocity` along the tangent away from `from`, and enter a new `Action.FLINCH` for `def.flinch` unless the enemy is in `RISE`, `DOWN`, `HIDDEN` or a parried `STAGGER`. A flinch interrupts a windup only if the enemy's `poise` allows it: add `poise` to `Enemy` (mobs low, the Warden never flinches, it only slides a little).
+2. `Enemy.take_hit(amount, from, knockback, flinch)` (built that way: bolts have no `AttackDef`, they use `Tuning.bolt_*`): add the push to `velocity` along the tangent away from `from`, and enter a new `Action.FLINCH` for `def.flinch` unless the enemy is in `RISE`, `DOWN`, `HIDDEN` or a parried `STAGGER`. A flinch interrupts a windup only if the enemy's `poise` allows it: add `poise` to `Enemy` (a per-kind constant, not rolled back; `flinches = false` and `shove = 0.15` for the Warden). The flinch length is rolled back as `Enemy.flinch_time` (ticks, in `net_combat`).
 3. Mob and Warden ticks: `FLINCH` counts down, then returns to `IDLE`; velocity decays through `_walk` with no wish.
 4. Players: `SimPlayer._take` applies the enemy attack's knockback to the player's velocity (blocked hits: a quarter).
 5. Wire and protocol: `Action` grows by one value (check its serializer still fits), bump `Net.PROTOCOL_VERSION`.

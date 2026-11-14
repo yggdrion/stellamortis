@@ -37,6 +37,8 @@ func _rollback_tick(delta: float, _tick: int, _is_fresh: bool) -> void:
 		Action.RECOVER:
 			if action_time >= Combat.ticks(def.recover):
 				_set_action(Action.IDLE)
+		Action.FLINCH:
+			_end_flinch()
 		Action.STAGGER:
 			if action_time >= Combat.ticks(stagger_time):
 				_set_action(Action.IDLE)

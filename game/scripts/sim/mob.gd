@@ -59,6 +59,8 @@ func _rollback_tick(delta: float, _tick: int, _is_fresh: bool) -> void:
 	elif action == Action.STAGGER:
 		if action_time >= Combat.ticks(stagger_time):
 			_set_action(Action.IDLE)
+	elif action == Action.FLINCH:
+		_end_flinch()
 	elif target:
 		wish = _engage(target, delta)
 	elif global_position.distance_to(home.origin) > 1.0:

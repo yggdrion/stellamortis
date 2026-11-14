@@ -34,6 +34,8 @@ func _init() -> void:
 	max_health = BASE_HEALTH
 	health = max_health
 	stagger_time = 1.8
+	flinches = false
+	shove = 0.15
 	riposte = 2.0
 	make_bolts(10)
 	add_to_group(WELLS)
@@ -89,6 +91,8 @@ func _rollback_tick(delta: float, _tick: int, _is_fresh: bool) -> void:
 	elif action == Action.STAGGER:
 		if action_time >= Combat.ticks(stagger_time):
 			_set_action(Action.IDLE)
+	elif action == Action.FLINCH:
+		_end_flinch()
 	elif target:
 		wish = _engage(target, delta)
 	_walk(wish, 3.8 if phase_2() else 2.8, delta)

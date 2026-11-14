@@ -66,7 +66,7 @@ func start(port: int) -> void:
 	add_child(_world)
 	if skip_to_boss:
 		for mob in _world.encounter.mobs:
-			mob.take_hit(1000000.0)
+			mob.take_hit(1000000.0, Vector3.ZERO)
 	if lobby_url != "":
 		_rtc = WebRTCMultiplayerPeer.new()
 		var rtc_err := _rtc.create_server()

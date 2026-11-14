@@ -6,13 +6,15 @@ extends CharacterBody3D
 ## Subclasses: TrainingDummy (M2), Mob and Warden (M5). Every enemy exists on every peer from the
 ## start (netfox finds them by path); the encounter hides, wakes and resets them.
 
-enum Action { IDLE, WINDUP, STRIKE, RECOVER, STAGGER, DOWN, HIDDEN, RISE }
+enum Action { IDLE, WINDUP, STRIKE, RECOVER, STAGGER, DOWN, HIDDEN, RISE, FLINCH }
 
 const HEIGHT := 1.8
 const RADIUS := 0.5
 const GROUP := &"enemies"
 ## Rolled back state; subclasses append their own.
-const STATE := ["transform", "facing", "health", "action", "action_time", "parried", "quiet_time"]
+const STATE := [
+	"transform", "facing", "health", "action", "action_time", "parried", "quiet_time", "flinch_time"
+]
 ## State of enemies that walk and shoot (Mob, Warden).
 const ACTOR_STATE := ["velocity", "attack", "bolt_pos", "bolt_vel", "bolt_life"]
 const BOLTS := ["bolt_pos", "bolt_vel", "bolt_life"]
@@ -27,6 +29,13 @@ var attack_id: StringName = &"dummy_swing"
 var riposte := 2.5
 var stagger_time := 1.5
 var down_time := 2.0
+## Shortest flinch (seconds, AttackDef.flinch) that interrupts a swing in progress; a hit while
+## idle or walking always flinches. Per kind, not rolled back.
+var poise := 0.3
+## The Warden never flinches, whatever hits it.
+var flinches := true
+## Share of an attack's knockback it takes (heavy bodies slide less).
+var shove := 1.0
 ## Body size; set_size() before adding to the tree changes it.
 var height := HEIGHT
 var radius := RADIUS
@@ -45,6 +54,8 @@ var action_time := 0
 var parried := false
 ## Ticks since it last took damage.
 var quiet_time := 0
+## Ticks the current FLINCH lasts.
+var flinch_time := 0
 var attack := 0
 var bolt_pos := PackedVector3Array()
 var bolt_vel := PackedVector3Array()
@@ -163,8 +174,9 @@ func windup_ticks() -> int:
 	return maxi(1, roundi(attack_def().windup_ticks() * pace()))
 
 
-## A player's hit. Returns the damage dealt.
-func take_hit(amount: float) -> float:
+## A player's hit from a point: pushes it away along its ground and flinches it (a swing in
+## progress only if the flinch beats its poise). Returns the damage dealt.
+func take_hit(amount: float, from: Vector3, knockback := 0.0, flinch := 0.0) -> float:
 	if not alive() or action == Action.RISE:
 		return 0.0
 	if action == Action.STAGGER and parried:
@@ -174,7 +186,19 @@ func take_hit(amount: float) -> float:
 	if health <= 0.0:
 		health = 0.0
 		_set_action(Action.DOWN)
+		return amount
+	velocity += SimPlayer._tangent(global_position - from, up()) * knockback * shove
+	var busy := action == Action.WINDUP or action == Action.STRIKE or action == Action.RECOVER
+	if flinches and flinch > 0.0 and action != Action.STAGGER and (not busy or flinch >= poise):
+		_set_action(Action.FLINCH)
+		flinch_time = Combat.ticks(flinch)
 	return amount
+
+
+## FLINCH counts down, then it is idle again.
+func _end_flinch() -> void:
+	if action_time >= flinch_time:
+		_set_action(Action.IDLE)
 
 
 ## A player parried its swing.

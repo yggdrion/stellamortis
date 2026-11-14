@@ -16,4 +16,5 @@ parryable = false
 bolts = 5
 spread_degrees = 50.0
 bolt_speed = 15.0
+knockback = 3.0
 animation = &"Spell_Simple_Shoot"

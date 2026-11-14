@@ -13,4 +13,6 @@ reach = 2.3
 arc_degrees = 130.0
 lunge = 1.2
 next = &"light_3"
+knockback = 5.0
+flinch = 0.2
 animation = &"Sword_Regular_B"

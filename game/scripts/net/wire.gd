@@ -89,6 +89,7 @@ static func _fill() -> void:
 		"invulnerable": counter,
 		"respawns": counter,
 		"quiet_time": counter,
+		"flinch_time": counter,
 		"well_time": counter,
 		"phase_time": counter,
 		"swing_hits": u16,

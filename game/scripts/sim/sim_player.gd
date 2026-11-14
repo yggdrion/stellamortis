@@ -326,7 +326,7 @@ func step(
 		_use_portal()
 	if action == Action.ATTACK:
 		_strike()
-	_fly_bolts(delta)
+	_fly_bolts(delta, t)
 
 
 ## Ticks of a roll in which the body travels.
@@ -504,6 +504,8 @@ func _catch_bolts(t: Tuning) -> void:
 
 func _take(enemy: Enemy, def: AttackDef, t: Tuning) -> void:
 	invulnerable = Combat.ticks(t.hurt_invulnerable)
+	# Share of the attack's knockback: a block stops most of it, a guard break none.
+	var push := 1.0 if action != Action.BLOCK else t.block_knockback
 	if action == Action.BLOCK:
 		if def.parryable and action_time <= Combat.ticks(t.parry_window):
 			enemy.parry()
@@ -517,10 +519,12 @@ func _take(enemy: Enemy, def: AttackDef, t: Tuning) -> void:
 			# Guard break: the rest of the hit goes through and the guard drops.
 			health -= -stamina / t.block_stamina
 			stamina = 0.0
+			push = 1.0
 			_set_action(Action.STAGGER, Combat.ticks(t.guard_break_time))
 	else:
 		health -= def.damage
 		_set_action(Action.STAGGER, Combat.ticks(t.hurt_time))
+	velocity += _tangent(global_position - enemy.global_position, up) * def.knockback * push
 	if health <= 0.0:
 		health = 0.0
 		_set_action(Action.DEAD)
@@ -540,7 +544,7 @@ func _strike() -> void:
 			center(), facing, up, def.reach, def.arc_degrees, enemy.center(), enemy.radius
 		):
 			swing_hits |= bit
-			enemy.take_hit(def.damage)
+			enemy.take_hit(def.damage, global_position, def.knockback, def.flinch)
 			_mutate(enemy)
 
 
@@ -565,7 +569,7 @@ func _shoot(yaw: float, pitch: float, t: Tuning) -> void:
 
 ## Moves this player's bolts one tick under the gravity where they are, and ends them on the
 ## first wall or enemy they reach.
-func _fly_bolts(delta: float) -> void:
+func _fly_bolts(delta: float, t: Tuning) -> void:
 	for i in MAX_BOLTS:
 		if bolt_life[i] <= 0:
 			continue
@@ -577,7 +581,7 @@ func _fly_bolts(delta: float) -> void:
 		bolt_pos[i] = to
 		var enemy := Combat.enemy_on_segment(self, from, to)
 		if enemy:
-			enemy.take_hit(bolt_damage[i])
+			enemy.take_hit(bolt_damage[i], from, t.bolt_knockback, t.bolt_flinch)
 			_mutate(enemy)
 			bolt_pos[i] = Combat.closest_on_segment(from, to, enemy.center())
 			bolt_life[i] = 0

@@ -25,6 +25,12 @@ extends Resource
 ## Bolts: fan width in degrees and speed in m/s.
 @export var spread_degrees := 0.0
 @export var bolt_speed := 16.0
+## Speed (m/s, along the ground) the target is pushed away from the attacker, and for how long
+## (seconds) a hit enemy flinches. A swing in progress is only interrupted by a flinch at least as
+## long as its poise (Enemy.poise). Players hit by enemies take the knockback (a quarter if
+## blocked); their stagger length is Tuning.hurt_time.
+@export var knockback := 0.0
+@export var flinch := 0.0
 ## Animation of the model that uses it (EnemyView, PlayerView), stretched to windup + active +
 ## recover.
 @export var animation: StringName = &"Sword_Regular_A"

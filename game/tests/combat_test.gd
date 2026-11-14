@@ -186,6 +186,131 @@ func test_death_and_respawn() -> void:
 	assert_float(_player.global_position.distance_to(_swinger.global_position)).is_greater(5.0)
 
 
+## A melee mob standing at `at` (its post), out of the other bodies' way.
+func _mob(at: Vector3) -> Mob:
+	var mob := Mob.new()
+	mob.index = 2
+	mob.make_melee()
+	mob.facing = Vector3.BACK
+	_world.add_child(mob)
+	mob.home = Transform3D(SimPlayer.frame(Vector3.UP, mob.facing), at)
+	mob.global_transform = mob.home
+	return mob
+
+
+func _run_mob(mob: Enemy, ticks: int) -> void:
+	for i in ticks:
+		await get_tree().physics_frame
+		mob._rollback_tick(DELTA, 0, true)
+
+
+## How far a hit from the north pushes the mob at its post, at most.
+func _push(mob: Mob, attack_id: StringName) -> float:
+	var def := Combat.attack(attack_id)
+	mob.take_hit(def.damage, mob.global_position + Vector3.FORWARD * 3.0, def.knockback, def.flinch)
+	var farthest := 0.0
+	for i in 20:
+		await _run_mob(mob, 1)
+		farthest = maxf(farthest, mob.global_position.distance_to(mob.home.origin))
+	return farthest
+
+
+func test_heavy_pushes_a_mob_further_than_a_light() -> void:
+	var mob := _mob(Vector3(0, 0, -30))
+	var light := await _push(mob, &"light_1")
+	mob.reset(Enemy.Action.IDLE)
+	var heavy := await _push(mob, &"heavy")
+	assert_float(light).is_greater(0.2)
+	assert_float(heavy).is_greater(light * 2.0)
+
+
+## The mob stands next to the player and winds up a swing; returns it at its first windup tick.
+func _winding_mob() -> Mob:
+	var mob := _mob(Vector3(0, 0, -1.6))
+	for i in 60:
+		if mob.action == Enemy.Action.WINDUP:
+			break
+		await _run_mob(mob, 1)
+	assert_int(mob.action).is_equal(Enemy.Action.WINDUP)
+	return mob
+
+
+func test_flinch_delays_a_mob_windup() -> void:
+	var heavy := Combat.attack(&"heavy")
+	var windup := Combat.attack(&"mob_chop").windup_ticks()
+	var undisturbed := await _winding_mob()
+	await _run_mob(undisturbed, windup)
+	assert_int(undisturbed.action).is_equal(Enemy.Action.STRIKE)
+	var hit := await _winding_mob()
+	hit.take_hit(heavy.damage, Vector3(0, 0, 3), heavy.knockback, heavy.flinch)
+	assert_int(hit.action).is_equal(Enemy.Action.FLINCH)
+	await _run_mob(hit, windup)
+	assert_int(hit.action).is_not_equal(Enemy.Action.STRIKE)
+	assert_int(hit.action).is_not_equal(Enemy.Action.WINDUP)
+
+
+func test_a_light_flinch_does_not_interrupt_a_windup() -> void:
+	var light := Combat.attack(&"light_1")
+	var mob := await _winding_mob()
+	mob.take_hit(light.damage, Vector3(0, 0, 3), light.knockback, light.flinch)
+	assert_int(mob.action).is_equal(Enemy.Action.WINDUP)
+
+
+func test_the_warden_does_not_flinch() -> void:
+	var boss := Warden.new()
+	boss.index = 3
+	_world.add_child(boss)
+	boss.global_position = Vector3(0, 0, -30)
+	var heavy := Combat.attack(&"heavy")
+	for action in [Enemy.Action.IDLE, Enemy.Action.WINDUP]:
+		boss._set_action(action)
+		boss.take_hit(heavy.damage, Vector3(0, 0, -25), heavy.knockback, heavy.flinch)
+		assert_int(boss.action).is_equal(action)
+	# It only slides a little.
+	assert_float(boss.velocity.length()).is_between(0.1, heavy.knockback * 0.4)
+
+
+## The player's speed in the tick an unarmed dummy's swing lands.
+func _hit_speed(buttons: int) -> float:
+	_player.velocity = Vector3.ZERO
+	_player.invulnerable = 0
+	_player.health = Tuning.data().max_health
+	_swinger._set_action(Enemy.Action.IDLE)
+	_face(_swinger)
+	for i in 200:
+		await _run(1, buttons)
+		if _player.invulnerable > 0:
+			break
+	return _player.velocity.length()
+
+
+func test_a_blocked_hit_pushes_the_player_less() -> void:
+	var unguarded := await _hit_speed(0)
+	var blocked := await _hit_speed(B.BLOCK)
+	assert_float(unguarded).is_equal_approx(Combat.attack(&"dummy_swing").knockback, 0.5)
+	assert_float(blocked).is_equal_approx(unguarded * Tuning.data().block_knockback, 0.5)
+
+
+## Replaying a hit from the same state (what a rollback does) lands the mob in the same place.
+func test_rollback_replay_of_a_hit_is_deterministic() -> void:
+	var mob := _mob(Vector3(0, 0, -30))
+	var heavy := Combat.attack(&"heavy")
+	var start := [mob.global_transform, mob.velocity, mob.facing, mob.health]
+	var ends := []
+	for run in 2:
+		mob.global_transform = start[0]
+		mob.velocity = start[1]
+		mob.facing = start[2]
+		mob.health = start[3]
+		mob._set_action(Enemy.Action.IDLE)
+		mob.take_hit(heavy.damage, Vector3(0, 0, -33), heavy.knockback, heavy.flinch)
+		await _run_mob(mob, 25)
+		ends.append([mob.global_position, mob.velocity, mob.action, mob.action_time, mob.health])
+	assert_vector(ends[1][0]).is_equal(ends[0][0])
+	assert_that(ends[1]).is_equal(ends[0])
+	assert_float(mob.global_position.distance_to(mob.home.origin)).is_greater(0.5)
+
+
 func test_in_arc() -> void:
 	var o := Vector3.ZERO
 	(

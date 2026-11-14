@@ -12,4 +12,5 @@ stamina = 0.0
 reach = 2.2
 arc_degrees = 100.0
 lunge = 0.0
+knockback = 5.0
 animation = &"Zombie_Scratch"

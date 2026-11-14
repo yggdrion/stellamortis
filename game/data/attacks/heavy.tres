@@ -12,4 +12,6 @@ stamina = 28.0
 reach = 2.5
 arc_degrees = 100.0
 lunge = 1.0
+knockback = 12.0
+flinch = 0.5
 animation = &"Sword_Attack"

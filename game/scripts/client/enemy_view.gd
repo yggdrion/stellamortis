@@ -359,6 +359,9 @@ func _pose() -> void:
 		Enemy.Action.STAGGER:
 			var ticks := Combat.ticks(enemy.stagger_time)
 			_model.play_timed(_clips["hit"], time / ticks, enemy.stagger_time)
+		Enemy.Action.FLINCH:
+			var length := float(enemy.flinch_time) / Combat.TICKRATE
+			_model.play_timed(_clips["hit"], time / enemy.flinch_time, length)
 		Enemy.Action.DOWN:
 			var down: float = _clips["down_time"]
 			var fallen := time / Combat.ticks(down)

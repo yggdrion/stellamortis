@@ -14,4 +14,5 @@ arc_degrees = 360.0
 lunge = 0.0
 parryable = false
 offset = 3.0
+knockback = 12.0
 animation = &"Sword_Attack"

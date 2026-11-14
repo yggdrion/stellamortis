@@ -48,7 +48,7 @@ func _run(ticks: int, buttons := 0, move := Vector2.ZERO) -> void:
 
 func _kill_mobs() -> void:
 	for mob in _world.encounter.mobs:
-		mob.take_hit(10000.0)
+		mob.take_hit(10000.0, Vector3.ZERO)
 
 
 func test_starts_with_mobs_at_their_posts_and_the_warden_hidden() -> void:
@@ -81,8 +81,8 @@ func test_mob_gives_up_beyond_its_leash() -> void:
 
 func test_ranged_bolts_hit_a_standing_player() -> void:
 	var shooter := _mob(2)
-	_mob(0).take_hit(10000.0)
-	_mob(1).take_hit(10000.0)
+	_mob(0).take_hit(10000.0, Vector3.ZERO)
+	_mob(1).take_hit(10000.0, Vector3.ZERO)
 	_players[0].place(shooter.global_position + Vector3(0, 0, -11))
 	await _run(150)
 	assert_float(_players[0].health).is_less(Tuning.data().max_health)
@@ -116,10 +116,10 @@ func test_killing_the_mobs_raises_the_warden_with_health_per_player() -> void:
 	assert_int(_world.encounter.phase).is_equal(Encounter.Phase.BOSS)
 	assert_int(_boss().action).is_equal(Enemy.Action.RISE)
 	assert_float(_boss().max_health).is_equal(Warden.BASE_HEALTH * 1.5)
-	assert_float(_boss().take_hit(50.0)).is_equal(0.0)
+	assert_float(_boss().take_hit(50.0, Vector3.ZERO)).is_equal(0.0)
 	await _run(Combat.ticks(Warden.RISE_TIME) + 1)
 	assert_bool(_boss().alive()).is_true()
-	assert_float(_boss().take_hit(50.0)).is_equal(50.0)
+	assert_float(_boss().take_hit(50.0, Vector3.ZERO)).is_equal(50.0)
 
 
 func test_slam_hits_in_front_only() -> void:
@@ -160,7 +160,7 @@ func test_a_fallen_warden_opens_the_portal_home() -> void:
 	_kill_mobs()
 	await _run(Combat.ticks(Warden.RISE_TIME) + 2)
 	_players[0].place(Vector3(0, 0, -30))
-	_boss().take_hit(100000.0)
+	_boss().take_hit(100000.0, Vector3.ZERO)
 	await _run(1)
 	assert_int(_world.encounter.phase).is_equal(Encounter.Phase.CLEARED)
 	assert_bool(Encounter.won(_world)).is_true()
@@ -198,7 +198,7 @@ func test_the_keep_gate_leads_to_the_realm_and_the_home_portal_back() -> void:
 
 
 func test_a_wipe_sends_everyone_home_and_resets_the_realm() -> void:
-	_mob(0).take_hit(10000.0)
+	_mob(0).take_hit(10000.0, Vector3.ZERO)
 	await _run(2)
 	_players[0].health = 0.0
 	_players[0].action = SimPlayer.Action.DEAD

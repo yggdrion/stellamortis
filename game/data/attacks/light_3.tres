@@ -12,4 +12,6 @@ stamina = 16.0
 reach = 2.6
 arc_degrees = 60.0
 lunge = 2.0
+knockback = 9.0
+flinch = 0.35
 animation = &"Sword_Regular_C"

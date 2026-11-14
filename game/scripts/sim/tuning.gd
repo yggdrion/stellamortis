@@ -36,6 +36,8 @@ static var _data: Tuning
 @export var block_reduction := 0.8
 ## Stamina lost per point of damage blocked; at zero stamina the guard breaks.
 @export var block_stamina := 1.0
+## Share of an attack's knockback a block lets through.
+@export var block_knockback := 0.25
 ## A block started this soon before a parryable hit parries it.
 @export var parry_window := 0.2
 @export var guard_break_time := 1.0
@@ -56,6 +58,8 @@ static var _data: Tuning
 @export var bolt_stamina_min := 6.0
 @export var bolt_stamina_max := 18.0
 @export var shoot_recover := 0.3
+@export var bolt_knockback := 4.0
+@export var bolt_flinch := 0.15
 @export var bolt_life := 3.0
 ## Walk speed while aiming or drawing.
 @export var aim_speed := 3.0

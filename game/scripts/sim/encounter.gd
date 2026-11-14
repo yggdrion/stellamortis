@@ -84,6 +84,6 @@ func _set_phase(next: Phase) -> void:
 
 func _anyone_in_realm() -> bool:
 	for node in get_tree().get_nodes_in_group(SimPlayer.GROUP):
-		if not Layout.on_hub((node as SimPlayer).global_position):
+		if Layout.place_at((node as SimPlayer).global_position) == Layout.ORIGIN_PLACE:
 			return true
 	return false

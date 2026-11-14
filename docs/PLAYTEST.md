@@ -45,3 +45,11 @@ Streamed collision (task 3, `sim/terrain_chunks.gd`; needs the gate of task 4 to
 - [ ] You never fall through the ground, also when jumping off a ridge and landing on a slope.
 - [ ] A steep hillside is not climbed like stairs: a slope near 50 degrees stops you or lets you slide, with no jerking up the slope.
 - [ ] Two players in the realm see each other standing on the ground, not sunk in or floating.
+
+Gates and places (task 4, `sim/layout.gd`, `sim/portal.gd`; protocol 16; the realm has no look until task 5, so the ground is invisible):
+
+- [ ] The keep has two gates side by side in its south wall, "To the Barrows" and "To the Barrowlands"; stepping into the second lands you on the ground at the realm arrival and does not drop you.
+- [ ] In the Barrowlands the gate home stands about 10 m behind the arrival, looks the same as the keep gates, and takes you back to the keep.
+- [ ] Walking around in the Barrowlands the HUD goal line names the place, the wind sound is the Barrows wind, steps sound like grass, and nothing of the keep or the old realm is drawn.
+- [ ] Gravity feels normal (9.8) on the Barrowlands ground and pulls toward the realm center, also on a hillside; leaving its reach in a jump pad-less fall is not possible to test yet.
+- [ ] Two players travelling together through the gate each arrive on a different spot of the ring on the same ground.

@@ -598,7 +598,7 @@ func _use_portal() -> void:
 	if portal == null or (portal.needs_victory and not Encounter.won(self)):
 		return
 	velocity = Vector3.ZERO
-	var arrival := Layout.ring_point(portal.to, peer_id)
+	var arrival := Layout.arrival_point(portal, peer_id)
 	# A realm's ground must stand before the body does (no-op where it already does).
 	var chunks := get_tree().get_first_node_in_group(TerrainChunks.GROUP) as TerrainChunks
 	if chunks:

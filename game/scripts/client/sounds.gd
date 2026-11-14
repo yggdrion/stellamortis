@@ -104,11 +104,12 @@ static func loop(
 	return player
 
 
-## The planet's ambience on a 2D player (the wind of the keep or of the Barrows).
-static func ambience(player: AudioStreamPlayer, on_hub: bool) -> void:
+## The place's ambience on a 2D player (the wind of the keep, or of the Barrows and the realms
+## beyond).
+static func ambience(player: AudioStreamPlayer, place: StringName) -> void:
 	if _silent():
 		return
-	var stream := _looping(&"wind_keep" if on_hub else &"wind_barrows")
+	var stream := _looping(&"wind_keep" if place == Layout.HUB_PLACE else &"wind_barrows")
 	if player.stream == stream and player.playing:
 		return
 	player.bus = &"Ambience"

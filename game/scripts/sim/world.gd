@@ -51,10 +51,14 @@ func build(new_seed: int, new_name: String) -> void:
 	world_seed = new_seed
 	world_name = new_name
 	built = true
+	# One world per process (a server, or a client of one): gates and arrivals read this seed.
+	Layout.set_world_seed(new_seed)
 	chunks = TerrainChunks.new(new_seed, visual)
 	add_child(chunks)
 	for realm in Layout.realms():
 		chunks.pin_around(Terrain.surface(realm, new_seed, realm.arrival))
+	if visual:
+		arena.add_seeded_portals()
 
 
 ## The same dummies, same names and order, on every peer (netfox finds them by path).

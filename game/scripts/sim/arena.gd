@@ -5,7 +5,7 @@ extends Node3D
 ## Collision on both sides, meshes, lights and sky only on clients. Built in code so server and
 ## client always get the same collision. Surfaces are tiling PBR materials mapped world
 ## triplanar (ambientCG ground and rock, the Medieval Village MegaKit's brick), dressing comes
-## from the Quaternius MegaKits (CC0). Clients show one planet at a time (show_planet).
+## from the Quaternius MegaKits (CC0). Clients show one place at a time (show_place).
 
 const SIZE := 160.0
 const AMBIENTCG := "res://assets/ambientcg/"
@@ -20,8 +20,8 @@ const ASTEROID := "Rock035"
 const TORCH_LIGHT := Color(1.0, 0.62, 0.32)
 const MOON_LIGHT := Color(0.62, 0.7, 0.92)
 
-## Clients: which planet is drawn (show_planet), for views to hide what is on the other one.
-static var shown_hub := true
+## Clients: which place is drawn (show_place), for views to hide what is in another one.
+static var shown := Layout.HUB_PLACE
 
 var visual := false
 ## Clients only: what Graphics presets adjust.
@@ -31,6 +31,8 @@ var sun: DirectionalLight3D
 ## doesn't change physics).
 var realm: Node3D
 var hub: Node3D
+## Place name (Layout.place_at) -> its node: the hub, the old realm, one per generated realm.
+var places := {}
 ## Materials by name and tint, shared by every box that uses them.
 var _materials := {}
 ## Torch lights; each flickers with its own phase.
@@ -51,27 +53,43 @@ func _ready() -> void:
 	hub = Node3D.new()
 	hub.name = "Hub"
 	add_child(hub)
+	places = {Layout.HUB_PLACE: hub, Layout.ORIGIN_PLACE: realm}
+	for def in Layout.realms():
+		var node := Node3D.new()
+		node.name = def.id.capitalize()
+		add_child(node)
+		places[StringName(def.id)] = node
 	_build_realm()
 	_build_hub()
 	if visual:
 		_add_environment()
 		for portal in Layout.portals():
+			if portal.seeded:
+				continue
 			var gate := _portal(portal)
 			if portal.needs_victory:
 				_victory_portal = gate
 				gate.visible = false
 
 
-## Clients: shows the hub or the realm (only one planet is drawn at a time).
-func show_planet(on_hub: bool) -> void:
-	shown_hub = on_hub
-	hub.visible = on_hub
-	realm.visible = not on_hub
+## Clients: the gates that stand on a generated realm's ground, once the world seed is known
+## (World.build).
+func add_seeded_portals() -> void:
+	for portal in Layout.portals():
+		if portal.seeded:
+			_portal(portal)
 
 
-## Clients: whether something at point is on the planet being drawn.
+## Clients: shows one place (only one is drawn at a time).
+func show_place(place: StringName) -> void:
+	shown = place
+	for key: StringName in places:
+		(places[key] as Node3D).visible = key == place
+
+
+## Clients: whether something at point is in the place being drawn.
 static func shows(point: Vector3) -> bool:
-	return Layout.on_hub(point) == shown_hub
+	return Layout.place_at(point) == shown
 
 
 func _process(_delta: float) -> void:
@@ -113,11 +131,11 @@ func _build_realm() -> void:
 	if visual:
 		for i in 5:
 			_torch(realm, Vector3(-16 + i * 8, 3.2, 44.5), Vector3.FORWARD, i == 2)
-		_prop(realm, VILLAGE + "Prop_Wagon.gltf", Vector3(-15, 0, -12), 0.6)
+		_prop(realm, VILLAGE + "Prop_Wagon.gltf", Vector3(-15, 0, -12), _yaw(0.6))
 		_prop(realm, PROPS + "Barrel.gltf", Vector3(-13, 0, -14.5))
-		_prop(realm, PROPS + "Crate_Wooden.gltf", Vector3(-12, 0, -15.5), 0.4)
-		_prop(realm, PROPS + "Banner_2.gltf", Vector3(-6, 5.2, 44.38), PI)
-		_prop(realm, PROPS + "Banner_2.gltf", Vector3(6, 5.2, 44.38), PI)
+		_prop(realm, PROPS + "Crate_Wooden.gltf", Vector3(-12, 0, -15.5), _yaw(0.4))
+		_prop(realm, PROPS + "Banner_2.gltf", Vector3(-6, 5.2, 44.38), _yaw(PI))
+		_prop(realm, PROPS + "Banner_2.gltf", Vector3(6, 5.2, 44.38), _yaw(PI))
 		_prop(realm, PROPS + "Chain_Coil.gltf", Vector3(3, 0, 40))
 		_add_zone_visuals()
 		_add_pads()
@@ -170,13 +188,21 @@ func _build_hub() -> void:
 		var at := _h(corner.x * (half.x + 0.6), 5.5, corner.y * (half.z + 0.6))
 		_box(hub, at, Vector3(4.5, 11, 4.5), BRICK)
 		if visual:
-			_prop(hub, VILLAGE + "Roof_Tower_RoundTiles.gltf", at + Vector3(0, 6.0, 0), 0.0, 0.9)
+			_prop(
+				hub,
+				VILLAGE + "Roof_Tower_RoundTiles.gltf",
+				at + Vector3(0, 6.0, 0),
+				Basis.IDENTITY,
+				0.9
+			)
 	# The hall along the north wall.
 	_box(hub, _h(0, 4.5, -half.z + 3.5), Vector3(22, 9, 7), BRICK)
 	if not visual:
 		return
 	hub.add_child(_sphere_mesh(Layout.HUB_PLANET_RADIUS, ASTEROID, 0.05, _h(0, -64, 0)))
-	_prop(hub, VILLAGE + "DoorFrame_Round_Brick.gltf", _h(0, 0, -half.z + 7.02), 0.0, 1.3)
+	_prop(
+		hub, VILLAGE + "DoorFrame_Round_Brick.gltf", _h(0, 0, -half.z + 7.02), Basis.IDENTITY, 1.3
+	)
 	for x: float in [-7.0, 7.0]:
 		_window(_h(x, 4.6, -half.z + 7.05))
 		_torch(hub, _h(x * 0.42, 2.6, -half.z + 7.05), Vector3.BACK, true)
@@ -186,25 +212,33 @@ func _build_hub() -> void:
 		_torch(hub, _h(half.x - 0.05, 3.2, z), Vector3.LEFT, false)
 	for x: float in [-4.0, 4.0]:
 		_torch(hub, _h(x, 3.2, half.z - 0.05), Vector3.FORWARD, false)
-		_prop(hub, PROPS + "Banner_1.gltf", _h(x * 2.5, wall - 1.2, half.z - 0.12), PI)
+		_prop(hub, PROPS + "Banner_1.gltf", _h(x * 2.5, wall - 1.2, half.z - 0.12), _yaw(PI))
 	for x: float in [-9.0, 9.0]:
 		_prop(hub, PROPS + "Banner_2.gltf", _h(x, 7.6, -half.z + 7.12))
 	# Training corner (the dummies stand at Layout.DUMMIES) and the smithy.
-	_prop(hub, PROPS + "WeaponStand.gltf", _h(-10, 0, -12), PI / 2.0)
+	_prop(hub, PROPS + "WeaponStand.gltf", _h(-10, 0, -12), _yaw(PI / 2.0))
 	_prop(hub, PROPS + "Barrel.gltf", _h(-17.5, 0, -13))
 	_prop(hub, PROPS + "Barrel.gltf", _h(-17, 0, -11.6))
-	_prop(hub, PROPS + "Crate_Wooden.gltf", _h(-17.6, 0, 6), 0.3)
-	_prop(hub, PROPS + "Anvil.gltf", _h(11, 0, -10), 0.4)
+	_prop(hub, PROPS + "Crate_Wooden.gltf", _h(-17.6, 0, 6), _yaw(0.3))
+	_prop(hub, PROPS + "Anvil.gltf", _h(11, 0, -10), _yaw(0.4))
 	_prop(hub, PROPS + "Cauldron.gltf", _h(15, 0, -6))
 	_prop(hub, PROPS + "Chest_Wood.gltf", _h(13, 0, -13.5))
-	_prop(hub, PROPS + "Crate_Wooden.gltf", _h(17.5, 0, 10), -0.2)
+	_prop(hub, PROPS + "Crate_Wooden.gltf", _h(17.5, 0, 10), _yaw(-0.2))
 	_prop(hub, PROPS + "Barrel.gltf", _h(16.8, 0, 12))
 	for i in 6:
 		var vine: String = ["Prop_Vine1", "Prop_Vine2", "Prop_Vine4"][i % 3]
 		var x := -half.x + 0.02 if i < 3 else half.x - 0.02
 		_prop(
-			hub, VILLAGE + vine + ".gltf", _h(x, wall - 0.5, -6 + (i % 3) * 9), PI / 2.0 * signf(-x)
+			hub,
+			VILLAGE + vine + ".gltf",
+			_h(x, wall - 0.5, -6 + (i % 3) * 9),
+			_yaw(PI / 2.0 * signf(-x))
 		)
+
+
+## A turn around the world's up.
+static func _yaw(angle: float) -> Basis:
+	return Basis(Vector3.UP, angle)
 
 
 ## A point relative to the keep's yard center.
@@ -258,12 +292,14 @@ func _sphere_mesh(
 	return mesh
 
 
-## A model from a MegaKit, turned by yaw around up and scaled; visual only.
-func _prop(parent: Node3D, path: String, at: Vector3, yaw := 0.0, scale_by := 1.0) -> Node3D:
+## A model from a MegaKit, oriented by a basis (SimPlayer.frame(up, forward) on a round ground,
+## _yaw(angle) on a flat one) and scaled; visual only.
+func _prop(
+	parent: Node3D, path: String, at: Vector3, orientation := Basis.IDENTITY, scale_by := 1.0
+) -> Node3D:
 	var node := (load(path) as PackedScene).instantiate() as Node3D
 	node.position = at
-	node.rotation.y = yaw
-	node.scale = Vector3.ONE * scale_by
+	node.basis = orientation.scaled(Vector3.ONE * scale_by)
 	parent.add_child(node)
 	return node
 
@@ -336,7 +372,8 @@ func _window(at: Vector3) -> void:
 func _portal(portal: Portal) -> Node3D:
 	var root := Node3D.new()
 	root.position = portal.position
-	(hub if Layout.on_hub(portal.position) else realm).add_child(root)
+	root.basis = SimPlayer.frame(portal.up, Vector3.FORWARD)
+	(places[Layout.place_at(portal.position)] as Node3D).add_child(root)
 	var stone := _surface(BRICK, 0.6)
 	for x: float in [-1.7, 1.7]:
 		root.add_child(_block(Vector3(0.6, 4.0, 0.7), Vector3(x, 2.0, 0), stone))

@@ -305,8 +305,9 @@ func _process(_delta: float) -> void:
 	if _snap_log and me != null:
 		_log_snaps()
 	if me != null:
-		_world.arena.show_planet(Layout.on_hub(me.global_position))
-		Sounds.ambience(_ambience, Layout.on_hub(me.global_position))
+		var place := Layout.place_at(me.global_position)
+		_world.arena.show_place(place)
+		Sounds.ambience(_ambience, place)
 	if me != null and not bot:
 		_rig.aiming = (
 			me.weapon == SimPlayer.Weapon.CROSSBOW

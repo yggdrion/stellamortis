@@ -13,6 +13,14 @@ var to := Vector3.ZERO
 var facing := Vector3.FORWARD
 var needs_victory := false
 var label := ""
+## The gate's own up (a gate on a realm's ground stands along the local gravity).
+var up := Vector3.UP
+## A gate that leads into a generated realm (RealmDef.id) arrives at that realm's arrival point,
+## which depends on the world seed (Layout.arrival_point); `to` is unused then.
+var realm := ""
+## A gate that stands on a generated realm's ground: its position depends on the world seed
+## (Layout.portals() rebuilds when the seed is set).
+var seeded := false
 
 
 static func at(
@@ -27,6 +35,8 @@ static func at(
 	return portal
 
 
-func reaches(feet: Vector3) -> bool:
-	var flat := feet - position
-	return absf(flat.y) < 1.5 and Vector2(flat.x, flat.z).length() <= radius
+## Measured along `walker_up`, the up of whoever steps in (a tilted one on a round realm).
+func reaches(feet: Vector3, walker_up := Vector3.UP) -> bool:
+	var offset := feet - position
+	var height := offset.dot(walker_up)
+	return absf(height) < 1.5 and (offset - walker_up * height).length() <= radius

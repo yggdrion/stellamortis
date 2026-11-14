@@ -20,28 +20,15 @@ const SLOPE_SLACK_DEGREES := 6.0
 var _realm: RealmDef
 var _field: Terrain.Field
 var _chunks: TerrainChunks
-var _zone: GravityZone
 var _player: SimPlayer
 
 
 func before_test() -> void:
 	_realm = Layout.realms()[0]
-	# The realm's gravity sphere is task 4's (Layout.gravity_zones); until then the test adds it.
-	var known := false
-	for zone in Layout.gravity_zones():
-		known = known or zone.center == _realm.center
-	if not known:
-		_zone = GravityZone.sphere(_realm.id, _realm.center, _realm.reach(), _realm.gravity)
-		Layout.gravity_zones().append(_zone)
 	_field = Terrain.Field.new(_realm, SEED)
 	_chunks = auto_free(TerrainChunks.new(SEED)) as TerrainChunks
 	_chunks.anchors = func() -> Array: return [_player]
 	add_child(_chunks)
-
-
-func after_test() -> void:
-	if _zone:
-		Layout.gravity_zones().erase(_zone)
 
 
 func _spawn(direction: Vector3, forward := Vector3.FORWARD) -> void:

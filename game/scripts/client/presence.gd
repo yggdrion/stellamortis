@@ -72,8 +72,11 @@ static func describe(client: GameClient) -> Dictionary:
 static func place(client: GameClient) -> String:
 	if client.me == null:
 		return "Arriving"
-	if Layout.on_hub(client.me.global_position):
+	var where := Layout.place_at(client.me.global_position)
+	if where == Layout.HUB_PLACE:
 		return "In the keep"
+	if where != Layout.ORIGIN_PLACE:
+		return "In the " + String(where).capitalize()
 	if Encounter.won(client.me):
 		return "The Warden has fallen"
 	var fight := client.get_tree().get_first_node_in_group(Encounter.GROUP) as Encounter

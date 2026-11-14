@@ -188,7 +188,11 @@ func _footsteps(_delta: float) -> void:
 	if _stride < 1.7:
 		return
 	_stride = 0.0
-	var stone := Layout.on_hub(feet) or Gravity.zone_at(feet) != null and feet.y > 20.0
+	var place := Layout.place_at(feet)
+	var stone := (
+		place == Layout.HUB_PLACE
+		or place == Layout.ORIGIN_PLACE and Gravity.zone_at(feet) != null and feet.y > 20.0
+	)
 	Sounds.play(self, &"step_stone" if stone else &"step_grass", -8.0)
 
 

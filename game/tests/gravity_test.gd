@@ -32,3 +32,21 @@ func test_asteroid_wins_over_low_gravity() -> void:
 func test_zone_edges() -> void:
 	var edge := Layout.LOW_G_CENTER + Vector3(Layout.LOW_G_SIZE.x / 2.0 + 0.01, 0, 0)
 	assert_object(Gravity.zone_at(edge)).is_null()
+
+
+func test_realm_zone_pulls_to_its_center() -> void:
+	var realm := Layout.realms()[0]
+	var top := realm.center + Vector3.UP * (realm.radius + 50.0)
+	assert_str(Gravity.zone_at(top).label).is_equal(realm.id)
+	assert_float(Gravity.sample(top).length()).is_equal_approx(realm.gravity, 0.001)
+	assert_vector(Gravity.sample(top).normalized()).is_equal_approx(
+		Vector3.DOWN, Vector3.ONE * 0.001
+	)
+	var side := realm.center + Vector3.RIGHT * (realm.radius + 50.0)
+	assert_vector(Gravity.sample(side).normalized()).is_equal_approx(
+		Vector3.LEFT, Vector3.ONE * 0.001
+	)
+	# Past the reach, and in the keep and the old realm, nothing changes.
+	assert_object(Gravity.zone_at(realm.center + Vector3.UP * (realm.reach() + 1.0))).is_null()
+	assert_vector(Gravity.sample(Layout.HUB)).is_equal(Gravity.DEFAULT)
+	assert_vector(Gravity.sample(Vector3.ZERO)).is_equal(Gravity.DEFAULT)

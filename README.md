@@ -98,8 +98,9 @@ It is ad-hoc signed but not notarized, so Gatekeeper blocks the first start. Eit
 xattr -dr com.apple.quarantine stellamortis.app
 ```
 
-Versions: every milestone is a minor version. The commit that finishes milestone Mn sets
-`VERSION` to `0.<n+1>` (M1 done: `0.2`), so its release is `v0.<n+1>.0`; every push after it
-until the next milestone is a patch (`v0.2.1`, `v0.2.2`, ...).
+Versions: every milestone is a minor version. The commit that finishes a milestone raises
+`VERSION`'s minor by one (`0.16` after M15, then `0.17` for the next one finished, in whatever
+order they finish), so its release is `v0.17.0`; every push after it until the next milestone
+is a patch (`v0.17.1`, `v0.17.2`, ...).
 
     python tools/export.py           # local export for this platform into build/<platform>/

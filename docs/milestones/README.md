@@ -34,7 +34,7 @@ Done means:
 - Visual work comes with screenshots (`--screenshot=PATH`, `--spawn`, `--look`; see `CLAUDE.md` "Boot").
 - Commits and the PR title are semantic commits (`type(scope): summary`).
 - What the task left open goes to `docs/PLAN.md` §8.
-- The last task of a milestone updates "Where we are" in `CLAUDE.md`, moves the milestone's row from `docs/PLAN.md` §6 to `docs/milestones/DONE.md` with its date and version, and sets `VERSION` to `0.<n+1>` for milestone Mn.
+- The last task of a milestone updates "Where we are" in `CLAUDE.md`, moves the milestone's row from `docs/PLAN.md` §6 to `docs/milestones/DONE.md` with its date and version, and raises `VERSION`'s minor by one (milestones finish out of order, so the minor is not the milestone number).
 
 Not done by workers: pushing to `main` (it publishes a release), changes on the gvm host, play-test verdicts. Each milestone ends with the user's play-test.
 

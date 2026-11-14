@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RealmDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/realm_def.gd" id="1_realm"]
+
+[resource]
+script = ExtResource("1_realm")
+id = "barrowlands"
+center = Vector3(2500, 0, 1800)
+radius = 1000.0
+gravity = 9.8
+seed_salt = 7919
+biome = "moor"
+arrival = Vector3(0, 1, 0)

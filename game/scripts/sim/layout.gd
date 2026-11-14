@@ -52,6 +52,7 @@ const SPAWN_SLOTS := 10
 static var _zones: Array[GravityZone] = []
 static var _pads: Array[JumpPad] = []
 static var _portals: Array[Portal] = []
+static var _realms: Array[RealmDef] = []
 
 
 static func gravity_zones() -> Array[GravityZone]:
@@ -94,6 +95,26 @@ static func portal_at(feet: Vector3) -> Portal:
 		if portal.reaches(feet):
 			return portal
 	return null
+
+
+## The generated realms (M20), loaded from res://data/realms.
+static func realms() -> Array[RealmDef]:
+	if _realms.is_empty():
+		_realms = [load("res://data/realms/barrowlands.tres") as RealmDef]
+	return _realms
+
+
+## The realm whose gravity reaches this point (the nearest center), null in the hub or the old
+## realm.
+static func realm_at(point: Vector3) -> RealmDef:
+	var best: RealmDef = null
+	var best_distance := INF
+	for realm in realms():
+		var distance := point.distance_to(realm.center)
+		if distance <= realm.reach() and distance < best_distance:
+			best = realm
+			best_distance = distance
+	return best
 
 
 static func on_hub(point: Vector3) -> bool:

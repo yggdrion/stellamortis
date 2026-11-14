@@ -171,6 +171,7 @@ What the game becomes:
 - Realms: the Barrowlands (normal gravity, start, the Warden), Myrkfen (low gravity, fog and black water, a drowned jotun), Jarnfell (high gravity, ash and old forges, a forge king), the Skyshards (a cluster of small floating rocks with launch stones between them).
 - The theme stays §3.2: dark medieval, Viking, northern fantasy. No sci-fi words or looks: realms and rune gates, sky iron, draugr.
 - Hits and loot must feel satisfying (M19, M23).
+- A base becomes a homestead (added 2026-11-14, after base building): fields of crops cooked into meals that raise health and stamina for a while (M30), tamed livestock that breeds and gives wool, milk, eggs, hide and meat but never fights (M31), and stations that work unattended through fuel and queues, with water wheels and windmills driving mills, bellows and saws over wooden shafts (M32). No conveyors, pipes or electricity. Growth, breeding and processing count in saved world time (only while the server runs) and are computed on load, never ticked.
 - Inventory with real gear slots apart from the bag, sorting and quick transfer (Valheim's inventory is the bad example).
 - Progression: character levels with perk trees, plus gear and sets that grant perks. The level cap rises with each boss. A kill pays its full XP to every nearby player; dying drops the XP toward the next level into the grave, to be fetched back by a body run (lost on a second death).
 - Characters (gear, inventory, level, perks) are saved on the player's machine and travel between worlds; the server trusts what the client sends (fine among friends). The world save lives with the server.
@@ -240,8 +241,11 @@ When a milestone's status changes, change it here and in the `Status:` line of i
 | M27 | Jarnfell | Third realm, high gravity: brutes and swarms, ore and coal, tier 3, the forge king. | Planned | [details](milestones/M27-jarnfell.md) |
 | M28 | Skyshards | Floating rocks with launch stones, sentries, sky iron, tier 4, a boss fought across rocks. | Planned | [details](milestones/M28-skyshards.md) |
 | M29 | Base building | Place, snap and remove saved pieces and stations on any realm, within a piece budget. | Planned | [details](milestones/M29-base-building.md) |
+| M30 | Planting and cooking | World time, tilled fields, crops per realm that grow while the server runs, cooking stations, three meal slots that raise health and stamina through `Stats`. | Planned | [details](milestones/M30-planting-cooking.md) |
+| M31 | Livestock | Goats, sheep, boars and hens: wild herds, taming by feeding, pens, breeding and products by world time; server-moved, out of rollback, never fighting. | Planned | [details](milestones/M31-livestock.md) |
+| M32 | Mills and station queues | Stations with fuel and queues that work unattended, water wheels and windmills driving machines through shafts, hoppers and chutes by gravity. | Planned | [details](milestones/M32-mills-and-queues.md) |
 
-M16 is required and independent of the rest. M19 to M29 are the survival world (§4.8), in priority order; from M19 on every milestone ends with a hand play-test by the user instead of being built blind.
+M16 is required and independent of the rest. M19 to M32 are the survival world (§4.8), in priority order; from M19 on every milestone ends with a hand play-test by the user instead of being built blind.
 
 ## 7. Open questions
 
@@ -306,4 +310,4 @@ Still open (§3.1, not in a milestone yet):
 
 Open from the 2026-11-14 planning (§4.8): food, rest, day and night are not planned yet; whether 1000 m is the right realm radius, and the enemy pool size, wait for M20's play-test and M21's load test.
 
-Waiting on the user: M16 frame pacing (check in F3), M19 hit feel (play-test). Milestones not started: M20 to M29 the survival world (§4.8); optional: M17 Wooting analog, M18 telemetry. M15 test round is done (2026-11-14). Briefs for all of them are in `docs/milestones/`.
+Waiting on the user: M16 frame pacing (check in F3), M19 hit feel (play-test). Milestones not started: M20 to M32 the survival world (§4.8); optional: M17 Wooting analog, M18 telemetry. M15 test round is done (2026-11-14). Briefs for all of them are in `docs/milestones/`.

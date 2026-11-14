@@ -26,7 +26,7 @@ M23 (items, world objects for drops, saves), M24 (set perks, crafter tree), M20'
 
 ## Out of scope
 
-Placing stations in the world (M29). Farming, cooking. Smelting chains (ore to bar is one recipe for now).
+Placing stations in the world (M29). Farming and cooking (M30). Smelting chains (ore to bar is one recipe for now).
 
 ## Pitfalls
 

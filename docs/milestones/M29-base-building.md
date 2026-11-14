@@ -23,7 +23,7 @@ M25 (materials, recipes, stations, world objects with collision). Can run before
 
 1. **Pieces in the world (Opus).** `PieceDef`, placement and removal on the server, snap and overlap rules, collision per chunk, deltas, snapshot (chunked if large), save, the budget. Tests: place, snap, reject overlap, remove and refund, restart, late joiner, a player standing on a placed floor through a rollback.
 2. **Build mode (Sonnet).** The piece wheel, ghost preview (green or red), rotation, snapping feedback, hammer sounds, dust.
-3. **Stations and bed (Sonnet).** Station pieces reuse M25's panels; bed respawn in `SimPlayer._respawn`'s spawn choice (a server decision). Close the milestone.
+3. **Stations and bed (Sonnet).** Station pieces reuse M25's panels; bed respawn in `SimPlayer._respawn`'s spawn choice (a server decision). Then detail M30's brief and close the milestone.
 
 ## Out of scope
 

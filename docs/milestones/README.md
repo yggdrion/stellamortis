@@ -54,10 +54,10 @@ Out of scope    what not to build here
 Pitfalls        what has gone wrong before, or will
 ```
 
-M19 to M22 are written to file and function level. M23 to M29 fix goal, tasks, interfaces and done-when; their file level detail is added when the milestone before them lands, because it depends on that code. Whoever finishes a milestone details the next brief as its last task.
+M19 to M22 are written to file and function level. M23 to M32 fix goal, tasks, interfaces and done-when; their file level detail is added when the milestone before them lands, because it depends on that code. Whoever finishes a milestone details the next brief as its last task.
 
 ## Order
 
 M15 is done. M16 (frame pacing) is required and independent: do it any time. M17 and M18 are optional and wait for the user to ask.
 
-M19 (hit feel) is independent and can run beside M20. M20, M21, M22 are a chain. M23 needs M22's world flags and M21's kinds. M24 needs M23's items. M25 needs M23 and M24. M26 to M28 each need M25 and the realm before them. M29 needs M25.
+M19 (hit feel) is independent and can run beside M20. M20, M21, M22 are a chain. M23 needs M22's world flags and M21's kinds. M24 needs M23's items. M25 needs M23 and M24. M26 to M28 each need M25 and the realm before them. M29 needs M25. M30 needs M29 and M24; M31 needs M30; M32 needs M30 (M31 only for troughs).

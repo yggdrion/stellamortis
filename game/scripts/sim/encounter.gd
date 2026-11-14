@@ -14,8 +14,8 @@ var phase := Phase.MOBS
 var phase_time := 0
 ## Someone was in the realm last tick; when the last one leaves, the realm resets.
 var occupied := false
-var mobs: Array[Mob] = []
-var boss: Warden
+var mobs: Array[Enemy] = []
+var boss: Enemy
 
 
 func _init() -> void:

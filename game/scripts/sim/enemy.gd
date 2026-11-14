@@ -3,62 +3,68 @@ extends CharacterBody3D
 ## What players fight (PLAN §4.5, §4.6): server-owned, rolled back by netfox with prediction, so
 ## clients simulate it between server states. Players check enemy swings and bolts in their own
 ## rollback tick (SimPlayer._defend) and hit enemies with take_hit + NetworkRollback.mutate.
-## Subclasses: TrainingDummy (M2), Mob and Warden (M5). Every enemy exists on every peer from the
-## start (netfox finds them by path); the encounter hides, wakes and resets them.
+## One class runs every kind (M21): `kind` (rolled back) picks the EnemyDef, whose behavior
+## dispatches the tick to TrainingDummy, Mob or Warden (static logic without state of their own),
+## so a slot can change kind at runtime. Every enemy exists on every peer from the start (netfox
+## finds them by path); the encounter hides, wakes and resets them.
 
 enum Action { IDLE, WINDUP, STRIKE, RECOVER, STAGGER, DOWN, HIDDEN, RISE, FLINCH }
 
 const HEIGHT := 1.8
 const RADIUS := 0.5
 const GROUP := &"enemies"
-## Rolled back state; subclasses append their own.
+## Enemies with a gravity well (the Warden's kind), read by Gravity.pull.
+const WELLS := &"gravity_wells"
+## Rolled back state, the same for every kind (`kind` before what depends on it).
 const STATE := [
 	"transform",
 	"up",
 	"facing",
+	"kind",
 	"health",
+	"max_health",
 	"action",
 	"action_time",
 	"parried",
 	"quiet_time",
 	"flinch_time",
+	"well_time",
+	"combo",
+	"velocity",
+	"attack",
+	"bolt_pos",
+	"bolt_vel",
+	"bolt_life",
 ]
-## State of enemies that walk and shoot (Mob, Warden).
-const ACTOR_STATE := ["velocity", "attack", "bolt_pos", "bolt_vel", "bolt_life"]
 const BOLTS := ["bolt_pos", "bolt_vel", "bolt_life"]
 ## How close a bolt must pass a body's axis to hit it, on top of the body's radius.
 const BOLT_RADIUS := 0.2
 
 ## Stable across peers (World assigns it): the bit in a player's swing_hits.
 var index := 0
-var max_health := 400.0
-var attack_id: StringName = &"dummy_swing"
-## Damage multiplier for hits while staggered by a parry.
-var riposte := 2.5
-var stagger_time := 1.5
-var down_time := 2.0
-## Shortest flinch (seconds, AttackDef.flinch) that interrupts a swing in progress; a hit while
-## idle or walking always flinches. Per kind, not rolled back.
-var poise := 0.3
-## The Warden never flinches, whatever hits it.
-var flinches := true
-## Share of an attack's knockback it takes (heavy bodies slide less).
-var shove := 1.0
-## Body size; set_size() before adding to the tree changes it.
+## Dummy: swings at no one (set by World, not rolled back).
+var passive := false
+## The kind's numbers, Combat.enemy_def(kind).
+var def := Combat.enemy_def(0)
+## Body size, from the def (set_size).
 var height := HEIGHT
 var radius := RADIUS
 ## Where reset() puts it.
 var home := Transform3D.IDENTITY
-## Attack ids this enemy can use, `attack` indexes it (rolled back).
-var attacks: Array[StringName] = []
-## The attack its bolts deal damage with.
-var shot_attack: StringName = &""
 
+## Index into Combat.ENEMY_KINDS (rolled back); a free slot is 0. Changing it swaps the def and
+## the body; health, action and home are the waker's job (become).
+var kind := 0:
+	set(value):
+		kind = value
+		def = Combat.enemy_def(kind)
+		_apply_def()
 ## Which way is up for it: follows the local gravity like a player's up (rolled back; the
 ## transform is rebuilt from it and facing every tick).
 var up := Vector3.UP
 var facing := Vector3.FORWARD
-var health := 400.0
+var health := 90.0
+var max_health := 90.0
 var action := Action.IDLE
 var action_time := 0
 ## Staggered by a parry (riposte bonus), not by something else.
@@ -67,6 +73,10 @@ var parried := false
 var quiet_time := 0
 ## Ticks the current FLINCH lasts.
 var flinch_time := 0
+## Boss: ticks the gravity well still pulls, and attacks started since it rose (picks the next).
+var well_time := 0
+var combo := 0
+## Which of the kind's attacks (def.attacks) runs.
 var attack := 0
 var bolt_pos := PackedVector3Array()
 var bolt_vel := PackedVector3Array()
@@ -98,8 +108,18 @@ func _init() -> void:
 	floor_snap_length = 0.3
 	_shape = CollisionShape3D.new()
 	add_child(_shape)
-	set_size(RADIUS, HEIGHT)
 	add_to_group(GROUP)
+	_apply_def()
+
+
+## The body and the well group follow the def.
+func _apply_def() -> void:
+	if _shape.shape == null or radius != def.radius or height != def.height:
+		set_size(def.radius, def.height)
+	if def.well_time > 0.0:
+		add_to_group(WELLS)
+	elif is_in_group(WELLS):
+		remove_from_group(WELLS)
 
 
 func set_size(body_radius: float, body_height: float) -> void:
@@ -121,8 +141,8 @@ func make_bolts(slots: int) -> void:
 
 
 ## Server-owned, predicted on clients. Call before adding it to the tree, on every peer. state
-## is every rolled back field (Enemy.STATE, plus ACTOR_STATE and subclass fields); netfox
-## synchronizes them as transform, velocity, net_combat and net_bolts (Wire.pack).
+## is every rolled back field (Enemy.STATE); netfox synchronizes them as transform, velocity,
+## net_combat and net_bolts (Wire.pack).
 func networked(state: Array) -> void:
 	var synced := ["transform", "net_combat"]
 	_combat_fields = []
@@ -145,13 +165,11 @@ func networked(state: Array) -> void:
 
 
 func attack_def() -> AttackDef:
-	if attacks.is_empty():
-		return Combat.attack(attack_id)
-	return Combat.attack(attacks[attack])
+	return Combat.attack(def.attacks[attack])
 
 
 func shot_def() -> AttackDef:
-	return Combat.attack(shot_attack)
+	return Combat.attack(def.shot_attack)
 
 
 func center() -> Vector3:
@@ -172,13 +190,25 @@ func striking() -> bool:
 	return action == Action.STRIKE and attack_def().melee()
 
 
+## The boss is below half health.
+func phase_2() -> bool:
+	return def.behavior == EnemyDef.Behavior.BOSS_WARDEN and health < max_health / 2.0
+
+
 ## Windup length scale (the Warden speeds up in phase 2).
 func pace() -> float:
-	return 1.0
+	return def.phase_2_pace if phase_2() else 1.0
 
 
 func windup_ticks() -> int:
 	return maxi(1, roundi(attack_def().windup_ticks() * pace()))
+
+
+## The pull while the well is up, null otherwise.
+func well_zone() -> GravityZone:
+	if well_time <= 0 or not alive():
+		return null
+	return GravityZone.sphere("gravity well", center(), def.well_reach, def.well_pull)
 
 
 ## A player's hit from a point: pushes it away along its ground and flinches it (a swing in
@@ -187,16 +217,21 @@ func take_hit(amount: float, from: Vector3, knockback := 0.0, flinch := 0.0) -> 
 	if not alive() or action == Action.RISE:
 		return 0.0
 	if action == Action.STAGGER and parried:
-		amount *= riposte
+		amount *= def.riposte
 	health -= amount
 	quiet_time = 0
 	if health <= 0.0:
 		health = 0.0
 		_set_action(Action.DOWN)
 		return amount
-	velocity += SimPlayer._tangent(global_position - from, up) * knockback * shove
+	velocity += SimPlayer._tangent(global_position - from, up) * knockback * def.shove
 	var busy := action == Action.WINDUP or action == Action.STRIKE or action == Action.RECOVER
-	if flinches and flinch > 0.0 and action != Action.STAGGER and (not busy or flinch >= poise):
+	if (
+		def.flinches
+		and flinch > 0.0
+		and action != Action.STAGGER
+		and (not busy or flinch >= def.poise)
+	):
 		_set_action(Action.FLINCH)
 		flinch_time = Combat.ticks(flinch)
 	return amount
@@ -208,10 +243,23 @@ func _end_flinch() -> void:
 		_set_action(Action.IDLE)
 
 
+## RISE counts down, then it is idle again.
+func _end_rise() -> void:
+	if action_time >= Combat.ticks(def.rise_time):
+		_set_action(Action.IDLE)
+
+
 ## A player parried its swing.
 func parry() -> void:
 	_set_action(Action.STAGGER)
 	parried = true
+
+
+## Makes the slot a kind at a post and resets it (waking a pool slot is this, never a spawn).
+func become(new_kind: int, post: Transform3D, start: Action) -> void:
+	kind = new_kind
+	home = post
+	reset(start)
 
 
 ## Back to where and how it started (encounter reset).
@@ -220,12 +268,26 @@ func reset(start: Action) -> void:
 	up = home.basis.y
 	facing = -home.basis.z
 	velocity = Vector3.ZERO
+	max_health = def.health
 	health = max_health
 	attack = 0
 	quiet_time = 0
+	well_time = 0
+	combo = 0
 	for i in bolt_life.size():
 		bolt_life[i] = 0
 	_set_action(start)
+	_sync_body()
+
+
+## Rises with health for this many players (def.per_player of def.health for each beyond the
+## first).
+func wake(players := 1) -> void:
+	max_health = def.health * (1.0 + def.per_player * maxi(0, players - 1))
+	health = max_health
+	combo = 0
+	well_time = 0
+	_set_action(Action.RISE)
 	_sync_body()
 
 
@@ -241,6 +303,22 @@ func _set_action(next: Action) -> void:
 func _sync_body() -> void:
 	if _shape.disabled == alive():
 		_shape.disabled = not alive()
+
+
+## Hidden slots do next to nothing; the rest run their kind's behavior.
+func _rollback_tick(delta: float, _tick: int, _is_fresh: bool) -> void:
+	if action == Action.HIDDEN:
+		_sync_body()
+		return
+	action_time += 1
+	quiet_time += 1
+	match def.behavior:
+		EnemyDef.Behavior.DUMMY:
+			TrainingDummy.tick(self, delta)
+		EnemyDef.Behavior.MELEE, EnemyDef.Behavior.RANGED:
+			Mob.tick(self, delta)
+		EnemyDef.Behavior.BOSS_WARDEN:
+			Warden.tick(self, delta)
 
 
 ## Nearest living player within range, null if none.
@@ -261,17 +339,17 @@ func nearest_player(within: float) -> SimPlayer:
 ## Runs windup, strike and recover of the current attack; false once it is over (or none runs).
 ## The strike's first tick calls _on_strike.
 func _advance_attack() -> bool:
-	var def := attack_def()
+	var swing := attack_def()
 	match action:
 		Action.WINDUP:
 			if action_time >= windup_ticks():
 				_set_action(Action.STRIKE)
-				_on_strike(def)
+				_on_strike(swing)
 		Action.STRIKE:
-			if action_time >= Combat.ticks(def.active):
+			if action_time >= Combat.ticks(swing.active):
 				_set_action(Action.RECOVER)
 		Action.RECOVER:
-			if action_time >= Combat.ticks(def.recover):
+			if action_time >= Combat.ticks(swing.recover):
 				_set_action(Action.IDLE)
 				return false
 		_:
@@ -284,29 +362,33 @@ func _start_attack(which: int) -> void:
 	_set_action(Action.WINDUP)
 
 
-## The strike begins: ranged attacks fire here (melee ones are checked by the players).
-func _on_strike(def: AttackDef) -> void:
-	if def.bolts == 0:
+## The strike begins: the well opens, ranged attacks fire (melee ones are checked by the
+## players).
+func _on_strike(swing: AttackDef) -> void:
+	if def.well_attack != &"" and def.attacks[attack] == def.well_attack:
+		well_time = Combat.ticks(def.well_time)
+		return
+	if swing.bolts == 0:
 		return
 	var target := nearest_player(60.0)
 	if target:
-		_fire(def, target.center())
+		_fire(swing, target.center())
 
 
-## Fires def.bolts in a fan toward a point, aimed up to make up for the gravity on the way.
-func _fire(def: AttackDef, at: Vector3) -> void:
+## Fires swing.bolts in a fan toward a point, aimed up to make up for the gravity on the way.
+func _fire(swing: AttackDef, at: Vector3) -> void:
 	var muzzle := center() + facing * (radius + 0.3)
 	var to := at - muzzle
-	var flight := to.length() / def.bolt_speed
+	var flight := to.length() / swing.bolt_speed
 	var gravity := Gravity.sample(muzzle)
-	var base := to.normalized() * def.bolt_speed - gravity * (flight / 2.0)
-	for n in def.bolts:
+	var base := to.normalized() * swing.bolt_speed - gravity * (flight / 2.0)
+	for n in swing.bolts:
 		var slot := bolt_life.find(0)
 		if slot < 0:
 			return
 		var fan := 0.0
-		if def.bolts > 1:
-			fan = deg_to_rad(def.spread_degrees) * (float(n) / (def.bolts - 1) - 0.5)
+		if swing.bolts > 1:
+			fan = deg_to_rad(swing.spread_degrees) * (float(n) / (swing.bolts - 1) - 0.5)
 		bolt_pos[slot] = muzzle
 		bolt_vel[slot] = base.rotated(up, fan)
 		bolt_life[slot] = Combat.ticks(4.0)

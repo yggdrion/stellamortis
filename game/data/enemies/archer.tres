@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/enemy_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+look = &"archer"
+behavior = 3
+health = 70.0
+speed = 3.0
+stagger_time = 1.4
+rest = 1.6
+attacks = Array[StringName]([&"mob_shot"])
+shot_attack = &"mob_shot"
+bolt_slots = 2

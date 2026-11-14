@@ -65,14 +65,17 @@ func build(new_seed: int, new_name: String) -> void:
 ## The same dummies, same names and order, on every peer (netfox finds them by path).
 func _add_dummies() -> void:
 	for i in Layout.DUMMIES.size():
-		var dummy := TrainingDummy.new()
+		var dummy := Enemy.new()
 		dummy.name = "Dummy%d" % i
 		dummy.index = i
+		dummy.kind = Combat.enemy_kind(&"dummy")
 		dummy.passive = Layout.DUMMIES[i][1]
 		dummy.networked(Enemy.STATE)
 		dummy.position = Layout.DUMMIES[i][0]
 		dummy.facing = Vector3.BACK
 		dummy.basis = SimPlayer.frame(Vector3.UP, dummy.facing)
+		dummy.health = dummy.def.health
+		dummy.max_health = dummy.def.health
 		if visual:
 			dummy.add_child(EnemyView.new(dummy))
 		_enemies.add_child(dummy)
@@ -83,29 +86,26 @@ func _add_encounter() -> void:
 	encounter = Encounter.new()
 	var next := Layout.DUMMIES.size()
 	for i in Layout.MOBS.size():
-		var mob := Mob.new()
+		var mob := Enemy.new()
 		mob.name = "Mob%d" % i
-		if Layout.MOBS[i][1]:
-			mob.make_ranged()
-		else:
-			mob.make_melee()
-		_add_enemy(mob, next + i, Layout.MOBS[i][0], Enemy.Action.IDLE)
+		var id := &"archer" if Layout.MOBS[i][1] else &"swordsman"
+		_add_enemy(mob, next + i, id, Layout.MOBS[i][0], Enemy.Action.IDLE)
 		encounter.mobs.append(mob)
-	var boss := Warden.new()
+	var boss := Enemy.new()
 	boss.name = "Warden"
-	_add_enemy(boss, next + Layout.MOBS.size(), Layout.BOSS, Enemy.Action.HIDDEN)
+	_add_enemy(boss, next + Layout.MOBS.size(), &"warden", Layout.BOSS, Enemy.Action.HIDDEN)
 	encounter.boss = boss
 	encounter.networked()
 	add_child(encounter)
 
 
-func _add_enemy(enemy: Enemy, index: int, at: Vector3, start: Enemy.Action) -> void:
+## A slot of a kind (its id in Combat.ENEMY_KINDS) with the bolt slots that kind needs.
+func _add_enemy(enemy: Enemy, index: int, id: StringName, at: Vector3, start: Enemy.Action) -> void:
 	enemy.index = index
+	enemy.kind = Combat.enemy_kind(id)
+	enemy.make_bolts(enemy.def.bolt_slots)
 	enemy.home = Transform3D(SimPlayer.frame(Gravity.up_at(at), Vector3.FORWARD), at)
-	var state := Enemy.STATE + Enemy.ACTOR_STATE
-	if enemy is Warden:
-		state += Warden.EXTRA_STATE
-	enemy.networked(state)
+	enemy.networked(Enemy.STATE)
 	if visual:
 		enemy.add_child(EnemyView.new(enemy))
 	_enemies.add_child(enemy)

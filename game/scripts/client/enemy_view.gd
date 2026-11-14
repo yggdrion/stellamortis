@@ -1,7 +1,8 @@
 class_name EnemyView
 extends Node3D
 ## How an enemy looks (PLAN §4.5, §4.6, §3.2): a figure posed from its state, dressed by
-## Gear: training squires as peasants, the dead as grey peasants in dark rags with ember eyes
+## Gear (rebuilt when the slot's kind changes): training squires as peasants, the dead as grey
+## peasants in dark rags with ember eyes
 ## (rusted swords, or crossbows for the archers), and the Warden, a giant dead knight in black
 ## iron.
 ## The telegraph makes dodging fair: an orange glow building up over the windup and the swing's
@@ -54,6 +55,8 @@ const BOOM_DB := 2.0
 const WALKING := 0.4
 
 var enemy: Enemy
+## The kind the model was built for, -1 before the first build.
+var _kind := -1
 var _model: CharacterModel
 var _arc: MeshInstance3D
 var _arc_material: StandardMaterial3D
@@ -82,13 +85,44 @@ var _ember_wait := 0.0
 func _init(of: Enemy) -> void:
 	enemy = of
 	name = "View"
-	_model = _make_model()
-	add_child(_model)
 	_add_arc()
 	_add_bar()
 	if not enemy.bolt_life.is_empty():
 		add_child(BoltsView.new(enemy, BoltsView.ENEMY_COLOR))
-	if enemy is Warden:
+	_rebuild()
+
+
+## Whether the slot's kind is the boss (iron, giant sounds, the well, its bar on the HUD).
+func _boss() -> bool:
+	return enemy.def.behavior == EnemyDef.Behavior.BOSS_WARDEN
+
+
+## Dresses the slot as its kind: drops the old model and well (with its loop), builds the new.
+## A free slot has no model.
+func _rebuild() -> void:
+	_kind = enemy.kind
+	if _model:
+		remove_child(_model)
+		_model.queue_free()
+		_model = null
+	if _well:
+		remove_child(_well)
+		_well.queue_free()
+		_well = null
+		_well_sound = null
+	if _motes:
+		remove_child(_motes)
+		_motes.queue_free()
+		_motes = null
+	_last_health = -1.0
+	_heard_action = enemy.action
+	_hold = 0.0
+	if enemy.def.look == &"free":
+		return
+	_model = _make_model()
+	add_child(_model)
+	_bar.position.y = enemy.height + 0.5
+	if _boss():
 		_add_well()
 
 
@@ -107,7 +141,7 @@ static func _glare() -> OmniLight3D:
 func _make_model() -> CharacterModel:
 	var human := CharacterModel.HUMAN
 	var model: CharacterModel
-	if enemy is Warden:
+	if _boss():
 		_clips = WARDEN_CLIPS
 		model = (
 			CharacterModel
@@ -129,11 +163,12 @@ func _make_model() -> CharacterModel:
 		var iron := Gear.armor(Gear.IRON.lightened(0.08), Color(0.06, 0.04, 0.03))
 		model.skin(iron[0], {1: iron[1]})
 		return model
-	if enemy is Mob:
-		var ranged := (enemy as Mob).ranged
+	if enemy.def.look != &"squire":
+		var ranged := enemy.def.behavior == EnemyDef.Behavior.RANGED
 		_clips = ARCHER_CLIPS if ranged else UNDEAD_CLIPS
 		var weapon := Gear.crossbow() if ranged else Gear.sword(RUST, 0.7)
 		return Gear.dead(ranged, {"weapon": ["RightHand", weapon]})
+	_clips = HUMAN_CLIPS
 	return Gear.squire(enemy.index, {"sword": ["RightHand", Gear.sword()]})
 
 
@@ -223,8 +258,8 @@ func _add_bar() -> void:
 
 func _add_well() -> void:
 	var shell := SphereMesh.new()
-	shell.radius = Warden.WELL_REACH
-	shell.height = Warden.WELL_REACH * 2.0
+	shell.radius = enemy.def.well_reach
+	shell.height = enemy.def.well_reach * 2.0
 	_well_material = ShaderMaterial.new()
 	_well_material.shader = load("res://shaders/gravity_well.gdshader")
 	_well = MeshInstance3D.new()
@@ -240,11 +275,11 @@ func _add_well() -> void:
 	_motes.emitting = false
 	_motes.position.y = enemy.height / 2.0
 	_motes.visibility_aabb = AABB(
-		Vector3.ONE * -Warden.WELL_REACH, Vector3.ONE * Warden.WELL_REACH * 2
+		Vector3.ONE * -enemy.def.well_reach, Vector3.ONE * enemy.def.well_reach * 2
 	)
 	var process := ParticleProcessMaterial.new()
 	process.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE_SURFACE
-	process.emission_sphere_radius = Warden.WELL_REACH - 0.5
+	process.emission_sphere_radius = enemy.def.well_reach - 0.5
 	process.gravity = Vector3.ZERO
 	process.radial_accel_min = -16.0
 	process.radial_accel_max = -10.0
@@ -266,7 +301,15 @@ func _add_well() -> void:
 
 
 func _process(delta: float) -> void:
-	visible = enemy.action != Enemy.Action.HIDDEN and Arena.shows(enemy.global_position)
+	if enemy.kind != _kind:
+		_rebuild()
+	visible = (
+		_model != null
+		and enemy.action != Enemy.Action.HIDDEN
+		and Arena.shows(enemy.global_position)
+	)
+	if _model == null:
+		return
 	if _last_health >= 0.0 and enemy.health < _last_health:
 		_hit_sounds(_last_health - enemy.health)
 	if _last_health >= 0.0 and enemy.health < _last_health and enemy.alive():
@@ -286,7 +329,7 @@ func _process(delta: float) -> void:
 		Sounds.play(self, &"parry")
 	_was_parried = enemy.parried
 	_bar_material.set_shader_parameter("fill", enemy.health / enemy.max_health)
-	_bar.visible = (enemy.health < enemy.max_health and enemy.alive() and not enemy is Warden)
+	_bar.visible = (enemy.health < enemy.max_health and enemy.alive() and not _boss())
 	if _hold > 0.0:
 		_hold -= delta
 	else:
@@ -308,7 +351,7 @@ func _hit(lost: float) -> void:
 		return
 	var flat := enemy.velocity - enemy.up * enemy.velocity.dot(enemy.up)
 	var away := flat.normalized() if flat.length() > 0.5 else -enemy.facing
-	var kind := HitEffects.Kind.SPARKS if enemy is Warden else HitEffects.Kind.BLOOD
+	var kind := HitEffects.Kind.SPARKS if _boss() else HitEffects.Kind.BLOOD
 	HitEffects.burst(
 		self, enemy.global_position + enemy.up * enemy.height * 0.6, away + enemy.up * 0.4, kind
 	)
@@ -323,7 +366,7 @@ func _hit_sounds(lost: float) -> void:
 		Sounds.play(self, &"hit")
 	if not enemy.alive():
 		Sounds.play(self, &"boom", BOOM_DB, BOOM_PITCH)
-	if enemy is Warden:
+	if _boss():
 		Sounds.play(self, &"clang", -4.0)
 
 
@@ -349,7 +392,7 @@ func _sounds() -> void:
 	var action := enemy.action
 	if action == _heard_action:
 		return
-	var giant := enemy is Warden
+	var giant := _boss()
 	var a := Enemy.Action
 	match action:
 		a.WINDUP:
@@ -372,16 +415,15 @@ func _sounds() -> void:
 
 
 func _show_well() -> void:
-	var warden := enemy as Warden
-	var seconds := warden.well_time / 30.0
-	var strength := clampf(minf(seconds, Warden.WELL_TIME - seconds) * 2.0, 0.0, 1.0)
+	var seconds := enemy.well_time / 30.0
+	var strength := clampf(minf(seconds, enemy.def.well_time - seconds) * 2.0, 0.0, 1.0)
 	_well.visible = strength > 0.0
 	_well_material.set_shader_parameter("strength", strength)
-	_motes.emitting = warden.well_time > 0
+	_motes.emitting = enemy.well_time > 0
 	if _well_sound == null:
 		_well_sound = Sounds.loop(_well, &"well", 0.0, 30.0, false)
-	if (warden.well_time > 0) != _well_sound.playing and visible:
-		if warden.well_time > 0:
+	if (enemy.well_time > 0) != _well_sound.playing and visible:
+		if enemy.well_time > 0:
 			_well_sound.play()
 		else:
 			_well_sound.stop()
@@ -422,8 +464,8 @@ func _pose() -> void:
 			_model.play_timed(def.animation, (windup + active + time) / total, seconds)
 			_model.glow(Color(0, 0, 0, 0))
 		Enemy.Action.STAGGER:
-			var ticks := Combat.ticks(enemy.stagger_time)
-			_model.play_timed(_clips["hit"], time / ticks, enemy.stagger_time)
+			var ticks := Combat.ticks(enemy.def.stagger_time)
+			_model.play_timed(_clips["hit"], time / ticks, enemy.def.stagger_time)
 		Enemy.Action.FLINCH:
 			var length := float(enemy.flinch_time) / Combat.TICKRATE
 			_model.play_timed(_clips["hit"], time / enemy.flinch_time, length)
@@ -432,8 +474,8 @@ func _pose() -> void:
 			var fallen := time / Combat.ticks(down)
 			_model.play_timed(_clips["down"], fallen, down)
 		Enemy.Action.RISE:
-			var rise := Combat.ticks(Warden.RISE_TIME)
-			_model.play_timed(_clips["down"], time / rise, Warden.RISE_TIME, true)
+			var rise := Combat.ticks(enemy.def.rise_time)
+			_model.play_timed(_clips["down"], time / rise, enemy.def.rise_time, true)
 		_:
 			_idle_or_walk()
 

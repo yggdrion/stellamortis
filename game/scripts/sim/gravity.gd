@@ -31,8 +31,8 @@ static func zone_at(position: Vector3) -> GravityZone:
 ## sample(): a well drags players sideways without turning their up vector.
 static func pull(from_node: Node, position: Vector3) -> Vector3:
 	var total := Vector3.ZERO
-	for node in from_node.get_tree().get_nodes_in_group(Warden.WELLS):
-		var zone := (node as Warden).well_zone()
+	for node in from_node.get_tree().get_nodes_in_group(Enemy.WELLS):
+		var zone := (node as Enemy).well_zone()
 		if zone and zone.contains(position):
 			total += zone.gravity_at(position)
 	return total

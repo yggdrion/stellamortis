@@ -75,3 +75,9 @@ Enemies follow gravity (task 1, `sim/enemy.gd`, `client/enemy_view.gd`; protocol
 - [ ] An enemy standing or walking on a Barrowlands hillside stands upright along the local up, its feet on the ground, also over a ridge, and turns to follow a player round a hill without sliding sideways or sinking in.
 - [ ] Seen from another client, the same enemy has the same posture (no wobble when `up` follows the gravity while it walks).
 - [ ] Keep dummies, the old realm's mobs and the Warden behave as before.
+
+Enemy kinds as data (task 2, `data/enemies/*.tres`, protocol 18; the old realm's encounter is the only place it shows until the pool exists):
+
+- [ ] The old realm's swordsmen, archer and the Warden fight as before: chase, chop, keep distance and shoot, sweep, slam, volley, phase 2 and the well, the dummies in the keep swing and heal.
+- [ ] Seen from a second client (also one that joins mid-fight), mobs and the Warden look right and carry the right health bar (none on the Warden).
+- [ ] Enemy body hitboxes feel the same (the Warden is 4.2 m tall, 1.2 m wide) and enemies still flinch, slide and parry as in M19.

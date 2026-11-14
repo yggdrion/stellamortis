@@ -10,8 +10,8 @@ const B := PlayerControls.Buttons
 
 var _world: Node3D
 var _player: SimPlayer
-var _passive: TrainingDummy
-var _swinger: TrainingDummy
+var _passive: Enemy
+var _swinger: Enemy
 
 
 func before_test() -> void:
@@ -25,8 +25,9 @@ func before_test() -> void:
 	_player.place(Vector3(0, 0, 0))
 
 
-func _dummy(index: int, at: Vector3, passive: bool) -> TrainingDummy:
-	var dummy := TrainingDummy.new()
+func _dummy(index: int, at: Vector3, passive: bool) -> Enemy:
+	var dummy := Enemy.new()
+	dummy.kind = Combat.enemy_kind(&"dummy")
 	dummy.index = index
 	dummy.passive = passive
 	dummy.facing = Vector3.BACK
@@ -36,7 +37,7 @@ func _dummy(index: int, at: Vector3, passive: bool) -> TrainingDummy:
 
 
 ## Puts the player in front of a dummy (between it and the spawn), facing it.
-func _face(dummy: TrainingDummy, distance := 1.6) -> void:
+func _face(dummy: Enemy, distance := 1.6) -> void:
 	_player.place(dummy.global_position + Vector3.BACK * distance)
 	_player.facing = Vector3.FORWARD
 	_player.ref_forward = Vector3.FORWARD
@@ -89,7 +90,7 @@ func test_attacks_cost_stamina_and_zero_stamina_blocks_them() -> void:
 
 func test_unguarded_hit_staggers_and_hurts() -> void:
 	_face(_swinger)
-	await _run(Combat.ticks(TrainingDummy.REST) + 40)
+	await _run(Combat.ticks(_swinger.def.rest) + 40)
 	assert_float(_player.health).is_equal(
 		Tuning.data().max_health - Combat.attack(&"dummy_swing").damage
 	)
@@ -170,14 +171,14 @@ func test_parry_staggers_and_riposte_hits_harder() -> void:
 	await _run(1)
 	await _press(B.ATTACK)
 	await _run(20)
-	var riposte := Combat.attack(&"light_1").damage * _swinger.riposte
+	var riposte := Combat.attack(&"light_1").damage * _swinger.def.riposte
 	assert_float(_swinger.health).is_equal_approx(_swinger.max_health - riposte, 0.01)
 
 
 func test_death_and_respawn() -> void:
 	_face(_swinger)
 	_player.health = 1.0
-	await _run(Combat.ticks(TrainingDummy.REST) + 40)
+	await _run(Combat.ticks(_swinger.def.rest) + 40)
 	assert_int(_player.action).is_equal(SimPlayer.Action.DEAD)
 	await _run(Combat.ticks(Tuning.data().death_time) + 2)
 	assert_int(_player.action).is_equal(SimPlayer.Action.NONE)
@@ -187,10 +188,10 @@ func test_death_and_respawn() -> void:
 
 
 ## A melee mob standing at `at` (its post), out of the other bodies' way.
-func _mob(at: Vector3) -> Mob:
-	var mob := Mob.new()
+func _mob(at: Vector3) -> Enemy:
+	var mob := Enemy.new()
 	mob.index = 2
-	mob.make_melee()
+	mob.kind = Combat.enemy_kind(&"swordsman")
 	mob.facing = Vector3.BACK
 	_world.add_child(mob)
 	mob.home = Transform3D(SimPlayer.frame(Vector3.UP, mob.facing), at)
@@ -205,7 +206,7 @@ func _run_mob(mob: Enemy, ticks: int) -> void:
 
 
 ## How far a hit from the north pushes the mob at its post, at most.
-func _push(mob: Mob, attack_id: StringName) -> float:
+func _push(mob: Enemy, attack_id: StringName) -> float:
 	var def := Combat.attack(attack_id)
 	mob.take_hit(def.damage, mob.global_position + Vector3.FORWARD * 3.0, def.knockback, def.flinch)
 	var farthest := 0.0
@@ -225,7 +226,7 @@ func test_heavy_pushes_a_mob_further_than_a_light() -> void:
 
 
 ## The mob stands next to the player and winds up a swing; returns it at its first windup tick.
-func _winding_mob() -> Mob:
+func _winding_mob() -> Enemy:
 	var mob := _mob(Vector3(0, 0, -1.6))
 	for i in 60:
 		if mob.action == Enemy.Action.WINDUP:
@@ -257,10 +258,12 @@ func test_a_light_flinch_does_not_interrupt_a_windup() -> void:
 
 
 func test_the_warden_does_not_flinch() -> void:
-	var boss := Warden.new()
+	var boss := Enemy.new()
 	boss.index = 3
+	boss.kind = Combat.enemy_kind(&"warden")
 	_world.add_child(boss)
 	boss.global_position = Vector3(0, 0, -30)
+	boss.health = boss.def.health
 	var heavy := Combat.attack(&"heavy")
 	for action in [Enemy.Action.IDLE, Enemy.Action.WINDUP]:
 		boss._set_action(action)
@@ -309,6 +312,31 @@ func test_rollback_replay_of_a_hit_is_deterministic() -> void:
 	assert_vector(ends[1][0]).is_equal(ends[0][0])
 	assert_that(ends[1]).is_equal(ends[0])
 	assert_float(mob.global_position.distance_to(mob.home.origin)).is_greater(0.5)
+
+
+## One slot, two kinds: the same node that chopped as a swordsman shoots as an archer once its
+## kind changes.
+func test_a_slot_switched_from_swordsman_to_archer_shoots() -> void:
+	var slot := _mob(Vector3(0, 0, -10))
+	slot.make_bolts(2)
+	await _run_mob(slot, 1)
+	assert_int(slot.def.behavior).is_equal(EnemyDef.Behavior.MELEE)
+	slot.become(Combat.enemy_kind(&"archer"), slot.home, Enemy.Action.IDLE)
+	assert_int(slot.def.behavior).is_equal(EnemyDef.Behavior.RANGED)
+	assert_float(slot.max_health).is_equal(Combat.enemy_def(slot.kind).health)
+	assert_str(slot.attack_def().resource_path).contains("mob_shot")
+	var fired := false
+	var closest := INF
+	for i in 120:
+		await _run_mob(slot, 1)
+		fired = fired or slot.bolt_life.count(0) < slot.bolt_life.size()
+		closest = minf(closest, slot.global_position.distance_to(_player.global_position))
+	assert_bool(fired).is_true()
+	# It keeps its distance instead of walking up to chop.
+	assert_float(closest).is_greater(slot.def.keep_near - 1.0)
+	slot.become(Combat.enemy_kind(&"warden"), slot.home, Enemy.Action.IDLE)
+	assert_float(slot.radius).is_equal(slot.def.radius)
+	assert_bool(slot.is_in_group(Enemy.WELLS)).is_true()
 
 
 func test_in_arc() -> void:

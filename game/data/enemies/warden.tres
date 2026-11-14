@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/enemy_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+look = &"warden"
+behavior = 4
+health = 900.0
+speed = 2.8
+turn_rate = 3.5
+radius = 1.2
+height = 4.2
+flinches = false
+shove = 0.15
+riposte = 2.0
+stagger_time = 1.8
+attacks = Array[StringName]([&"warden_sweep", &"warden_slam", &"warden_volley", &"warden_well"])
+shot_attack = &"warden_volley"
+bolt_slots = 10
+per_player = 0.5
+phase_2_pace = 0.7
+phase_2_speed = 3.8
+well_attack = &"warden_well"
+well_time = 5.0
+well_reach = 14.0
+well_pull = 11.0

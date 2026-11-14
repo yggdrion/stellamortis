@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/enemy_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+look = &"squire"
+behavior = 1
+health = 400.0
+turn_rate = 6.0
+notice = 10.0
+rest = 1.2
+heal_after = 4.0
+down_time = 2.0

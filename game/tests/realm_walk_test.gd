@@ -251,20 +251,18 @@ func _feet(direction: Vector3) -> Vector3:
 
 
 ## A mob standing on the realm ground in a direction (its post), facing forward.
-func _mob_at(direction: Vector3, ranged := false) -> Mob:
-	var mob := auto_free(Mob.new()) as Mob
-	if ranged:
-		mob.make_ranged()
-	else:
-		mob.make_melee()
-	mob.home = Transform3D(SimPlayer.frame(direction, Vector3.FORWARD), _feet(direction))
+func _mob_at(direction: Vector3, ranged := false) -> Enemy:
+	var mob := auto_free(Enemy.new()) as Enemy
+	mob.kind = Combat.enemy_kind(&"archer" if ranged else &"swordsman")
+	mob.make_bolts(mob.def.bolt_slots)
 	add_child(mob)
+	mob.home = Transform3D(SimPlayer.frame(direction, Vector3.FORWARD), _feet(direction))
 	mob.reset(Enemy.Action.IDLE)
 	return mob
 
 
 ## One tick of the mob (and of the player when it is stepped), TICKS_PER_FRAME per frame.
-func _mob_ticks(mob: Mob, ticks: int, step_player := false) -> void:
+func _mob_ticks(mob: Enemy, ticks: int, step_player := false) -> void:
 	for i in ticks:
 		if i % TICKS_PER_FRAME == 0:
 			await get_tree().physics_frame
@@ -358,7 +356,7 @@ func test_mob_replay_from_rolled_back_state_is_identical() -> void:
 	_chunks.ensure_around(_player.global_position)
 	await _mob_ticks(mob, 60)
 	var state := {}
-	for property: String in Enemy.STATE + Enemy.ACTOR_STATE:
+	for property: String in Enemy.STATE:
 		state[property] = _copy(mob.get(property))
 	var traces: Array = []
 	for run in 2:

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/enemy_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+look = &"swordsman"
+behavior = 2
+health = 90.0
+speed = 3.6
+stagger_time = 1.4
+attacks = Array[StringName]([&"mob_chop"])

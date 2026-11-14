@@ -12,7 +12,7 @@ extends RefCounted
 ## property cost was what kept the server from holding 30 ticks with 10 players (PLAN M7).
 
 ## Property name -> serializer, for every name in SimPlayer.STATE, PlayerControls.INPUT,
-## Enemy.STATE, Enemy.ACTOR_STATE, Warden.EXTRA_STATE and Encounter.STATE.
+## Enemy.STATE and Encounter.STATE.
 static var _table := {}
 
 
@@ -77,6 +77,7 @@ static func _fill() -> void:
 		"stamina": f32,
 		"charge": f32,
 		"action": u8,
+		"kind": u8,
 		"attack": u8,
 		"queued": u8,
 		"weapon": u8,

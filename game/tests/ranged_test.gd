@@ -11,14 +11,15 @@ const CROSSBOW := SimPlayer.Weapon.CROSSBOW
 
 var _world: Node3D
 var _player: SimPlayer
-var _dummy: TrainingDummy
+var _dummy: Enemy
 
 
 func before_test() -> void:
 	_world = auto_free(Node3D.new()) as Node3D
 	add_child(_world)
 	_world.add_child(Arena.new(false))
-	_dummy = TrainingDummy.new()
+	_dummy = Enemy.new()
+	_dummy.kind = Combat.enemy_kind(&"dummy")
 	_dummy.passive = true
 	_world.add_child(_dummy)
 	_dummy.global_transform = Transform3D(SimPlayer.frame(Vector3.UP, Vector3.BACK), DUMMY_AT[0])

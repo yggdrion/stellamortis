@@ -39,6 +39,8 @@ Steps:
 2. One `Enemy` class runs every kind: its `_rollback_tick` dispatches on `def.behavior` to the existing mob and Warden logic (keep those as script-level functions or small behavior objects; do not create one node class per kind, a slot must be able to change kind). The Warden's extra state (`max_health`, `well_time`, `combo`) becomes part of every slot's state; check the 508 byte limit.
 3. `kind` in `Enemy.STATE` and the packed group; `EnemyView` rebuilds its model when `kind` changes (`_make_model`, `enemy_view.gd:95`, picks look and clip table from the def instead of `is Warden`).
 
+Built (2026-11-14): `Enemy` has `def`, `become(kind, post, start)` and `wake(players)`; `Mob`, `Warden` and `TrainingDummy` are static behavior classes (`tick(enemy, delta)`); `Enemy.STATE` is the one state list (no `ACTOR_STATE`/`EXTRA_STATE`); `Encounter.mobs`/`boss` are `Enemy`. `EnemyView._rebuild` swaps model, well and loop when `kind` changes. Details and open items: `docs/PLAN.md` §8.
+
 Tests: wire test covers the new fields and the size; a slot switched from swordsman to archer behaves as an archer; existing encounter tests pass with defs.
 
 ### 3. The pool (Opus)

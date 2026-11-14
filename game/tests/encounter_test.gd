@@ -27,11 +27,11 @@ func _add_player(at: Vector3) -> SimPlayer:
 	return player
 
 
-func _mob(i: int) -> Mob:
+func _mob(i: int) -> Enemy:
 	return _world.encounter.mobs[i]
 
 
-func _boss() -> Warden:
+func _boss() -> Enemy:
 	return _world.encounter.boss
 
 
@@ -115,9 +115,9 @@ func test_killing_the_mobs_raises_the_warden_with_health_per_player() -> void:
 	await _run(1)
 	assert_int(_world.encounter.phase).is_equal(Encounter.Phase.BOSS)
 	assert_int(_boss().action).is_equal(Enemy.Action.RISE)
-	assert_float(_boss().max_health).is_equal(Warden.BASE_HEALTH * 1.5)
+	assert_float(_boss().max_health).is_equal(_boss().def.health * 1.5)
 	assert_float(_boss().take_hit(50.0, Vector3.ZERO)).is_equal(0.0)
-	await _run(Combat.ticks(Warden.RISE_TIME) + 1)
+	await _run(Combat.ticks(_boss().def.rise_time) + 1)
 	assert_bool(_boss().alive()).is_true()
 	assert_float(_boss().take_hit(50.0, Vector3.ZERO)).is_equal(50.0)
 
@@ -146,7 +146,7 @@ func test_phase_two_speeds_up_and_the_well_pulls() -> void:
 	assert_bool(boss.phase_2()).is_true()
 	assert_int(boss.windup_ticks()).is_less(calm)
 	# Freeze it mid-recover so only the well acts on the player.
-	boss.well_time = Combat.ticks(Warden.WELL_TIME)
+	boss.well_time = Combat.ticks(boss.def.well_time)
 	var player := _players[0]
 	player.place(boss.global_position + Vector3(0, 0, -10))
 	var start := player.global_position.distance_to(boss.global_position)
@@ -158,7 +158,7 @@ func test_phase_two_speeds_up_and_the_well_pulls() -> void:
 
 func test_a_fallen_warden_opens_the_portal_home() -> void:
 	_kill_mobs()
-	await _run(Combat.ticks(Warden.RISE_TIME) + 2)
+	await _run(Combat.ticks(_boss().def.rise_time) + 2)
 	_players[0].place(Vector3(0, 0, -30))
 	_boss().take_hit(100000.0, Vector3.ZERO)
 	await _run(1)

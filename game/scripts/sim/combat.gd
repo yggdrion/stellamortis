@@ -7,6 +7,10 @@ const TICKRATE := 30
 ## Player attacks by index, so the rolled back state can hold an int.
 const PLAYER_ATTACKS: Array[StringName] = [&"light_1", &"light_2", &"light_3", &"heavy"]
 
+## Enemy kinds by index (a slot's rolled back `kind`); 0 is the free slot. The id is the file
+## name in data/enemies/.
+const ENEMY_KINDS: Array[StringName] = [&"free", &"dummy", &"swordsman", &"archer", &"warden"]
+
 ## The aiming camera's geometry, shared with CameraRig so the crosshair is where bolts go.
 const AIM_HEAD := 1.7
 const AIM_SHOULDER := 0.9
@@ -14,6 +18,7 @@ const AIM_ARM := 3.0
 const AIM_RANGE := 120.0
 
 static var _attacks := {}
+static var _enemy_defs := {}
 
 
 static func ticks(seconds: float) -> int:
@@ -24,6 +29,17 @@ static func attack(id: StringName) -> AttackDef:
 	if not _attacks.has(id):
 		_attacks[id] = load("res://data/attacks/%s.tres" % id) as AttackDef
 	return _attacks[id]
+
+
+## The kind index of an id in ENEMY_KINDS.
+static func enemy_kind(id: StringName) -> int:
+	return ENEMY_KINDS.find(id)
+
+
+static func enemy_def(kind: int) -> EnemyDef:
+	if not _enemy_defs.has(kind):
+		_enemy_defs[kind] = load("res://data/enemies/%s.tres" % ENEMY_KINDS[kind]) as EnemyDef
+	return _enemy_defs[kind]
 
 
 static func player_attack(index: int) -> AttackDef:

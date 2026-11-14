@@ -10,7 +10,7 @@ Use Godot 4.7 (latest 4.7.x patch) and its newest features for performance and v
 
 Run `python tools/check.py` (lint, gdUnit4, headless network test) before calling work done. GDScript is statically typed; `enum` names must not shadow native classes (`Button` did).
 
-Every commit is a semantic commit (`type(scope): summary`, Conventional Commits; see the `semantic-git` skill). PR titles too. Pushing to `main` publishes a release (see Release below).
+Every commit is a semantic commit (`type(scope): summary`, Conventional Commits; see the `semantic-git` skill). No pull requests: finished work (a task or a milestone, checks green) is pushed straight to `main`, which publishes a release (see Release below).
 
 ## Where we are
 

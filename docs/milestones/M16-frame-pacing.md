@@ -10,7 +10,7 @@ The player chooses how frames are paced: vsync on or off, or a frame rate cap. S
 
 Nothing.
 
-## Task (Sonnet, one PR)
+## Task (Sonnet)
 
 Files: `game/scripts/client/settings.gd`, `client/settings_panel.gd`, `client/debug_overlay.gd`, `scripts/boot/main.gd`, a test in `game/tests/`.
 

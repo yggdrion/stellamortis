@@ -8,7 +8,7 @@ The Barrowlands gets its own cast and its boss fight on the realm itself. Five e
 
 ## Depends on
 
-M21 (pool, `EnemyDef`, spawner). M19 helps (flinch, deaths) but is not required.
+M21 (pool, `EnemyDef`, spawner; built, `World.POOL` is 20 after the load test, 16 slots for the spawner). M19 helps (flinch, deaths) but is not required.
 
 ## Design
 
@@ -22,7 +22,7 @@ Kinds (all on the humanoid UAL rig, looks from `Gear`):
 | Berserker | fast, low health, a leaping heavy from 8 m | roll the leap, punish the long recovery |
 | Barrow elite | large, armored, two-hit combo and a ground slam; guards a camp's chest | all of it |
 
-Boss site: each realm has one, placed from the seed (`BossSite`: a ring of standing stones on flattened ground far from the arrival point). Entering the ring starts the fight; the site's slots are reserved in the pool for its length. `Encounter` becomes this per realm: phases `IDLE`, `BOSS`, `CLEARED`; it resets when no living player is within the site's reach. `World.flags` (a rolled back or reliably synced set of names, e.g. `warden_fallen`) records the kill; the keep's next gate is open while the flag is set.
+Boss site: each realm has one, placed from the seed (`BossSite`: a ring of standing stones on flattened ground far from the arrival point). Entering the ring starts the fight; the site's slots are reserved in the pool for its length (the old encounter holds `Pool0..3` and `Spawner.FIRST_SLOT` is 4; when `Encounter` moves to the site, lower `FIRST_SLOT` and reserve the boss slot there, keeping the pool at 20: a larger pool does not hold 29 tps, `docs/PLAN.md` §8). `Encounter` becomes this per realm: phases `IDLE`, `BOSS`, `CLEARED`; it resets when no living player is within the site's reach. `World.flags` (a rolled back or reliably synced set of names, e.g. `warden_fallen`) records the kill; the keep's next gate is open while the flag is set.
 
 ## Tasks
 
@@ -32,7 +32,7 @@ Files: `game/scripts/sim/enemy.gd`, `sim/enemy_def.gd`, `sim/sim_player.gd`, `si
 
 Steps:
 
-1. Frontal block: `EnemyDef.guard_arc`; `Enemy.take_hit` from inside that arc deals a fraction and plays a guard reaction, unless the enemy is staggered or in recovery. Player bolts too.
+1. Frontal block: a new `EnemyDef.guard_arc` (the fields of `EnemyDef` are in `sim/enemy_def.gd`); `Enemy.take_hit` from inside that arc deals a fraction and plays a guard reaction, unless the enemy is staggered or in recovery. Player bolts too.
 2. Leap: an attack with `AttackDef.leap` (distance) moves the enemy on a fixed arc during windup and lands the hit area at the end; it commits to the target point chosen at the start.
 3. Two-hit combo for enemies through `AttackDef.next` (players use it already).
 
@@ -42,9 +42,9 @@ Tests: a front hit on a shield bearer is reduced, a flank hit is not, a parry op
 
 Files: `game/data/enemies/*.tres`, `game/data/attacks/*.tres`, `client/gear.gd`, `client/enemy_view.gd`, `client/sounds.gd`, `sim/spawner.gd` (camp recipes).
 
-Reuse: `Gear.dead`, `helm`, `pauldrons`, `sword`, `shield`, `crossbow`, `eyes`; the clip tables in `enemy_view.gd:14`; `AttackDef.animation`.
+Reuse: `Gear.dead`, `helm`, `pauldrons`, `sword`, `shield`, `crossbow`, `eyes`; the clip tables at the top of `enemy_view.gd` (`HUMAN_CLIPS`, `UNDEAD_CLIPS`, `ARCHER_CLIPS`, `WARDEN_CLIPS`); `AttackDef.animation`.
 
-Steps: one `.tres` per kind and attack; looks built in `Gear` (shield bearer: helm and tower shield; berserker: bare, two axes, war paint; elite: iron, larger scale); camp recipes that mix kinds (archers behind bearers); telegraph sounds per kind. Screenshots of each kind in idle, windup and strike.
+Steps: one `.tres` per kind and attack, the kind added to `Combat.ENEMY_KINDS` (after `warden`; the index is rolled back state, a new kind is a protocol bump) and its look and clip table picked in `EnemyView._rebuild`; looks built in `Gear` (shield bearer: helm and tower shield; berserker: bare, two axes, war paint; elite: iron, larger scale); camp recipes that mix kinds (`Spawner._point` picks swordsman or archer by `ARCHER_SHARE` today; a camp wakes whole, so a recipe of 6 needs 6 free slots) (archers behind bearers); telegraph sounds per kind. Screenshots of each kind in idle, windup and strike.
 
 ### 3. Boss site and world flags (Opus)
 

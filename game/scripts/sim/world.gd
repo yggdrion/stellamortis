@@ -6,7 +6,7 @@ extends Node3D
 signal player_spawned(player: SimPlayer)
 
 ## Enemy slots after the dummies (a fixed pool, PLAN §4.8).
-const POOL := 24
+const POOL := 20
 
 var visual := false
 ## The seed everything generated comes from, set by build() (identical on every peer).

@@ -82,9 +82,9 @@ Enemy kinds as data (task 2, `data/enemies/*.tres`, protocol 18; the old realm's
 - [ ] Seen from a second client (also one that joins mid-fight), mobs and the Warden look right and carry the right health bar (none on the Warden).
 - [ ] Enemy body hitboxes feel the same (the Warden is 4.2 m tall, 1.2 m wide) and enemies still flinch, slide and parry as in M19.
 
-The pool (task 3, `World._add_pool`, protocol 19; 24 hidden slots, only the old realm's four are awake):
+The pool (task 3, `World._add_pool`, protocol 19; hidden slots, 24 then and 20 after task 5; only the old realm's four are awake):
 
-- [ ] The keep and the old realm play as before with 24 hidden slots in the world: swings land on every mob and the Warden once per swing, bolts hit, no new hitching on a client (F3 frame time at the keep, in the realm fight).
+- [ ] The keep and the old realm play as before with the hidden slots in the world: swings land on every mob and the Warden once per swing, bolts hit, no new hitching on a client (F3 frame time at the keep, in the realm fight).
 - [ ] A second client joining mid-fight sees the same mobs and Warden, and no stray enemy models at the world origin.
 
 The spawner (task 4, `sim/spawner.gd`; camps and roamers on the Barrowlands):
@@ -94,3 +94,8 @@ The spawner (task 4, `sim/spawner.gd`; camps and roamers on the Barrowlands):
 - [ ] A camp you cleared stays empty while you stay near and comes back after about 10 minutes; leaving one mid-fight does not make the survivors vanish while you can still see them.
 - [ ] Two players near the same camp see the same enemies at the same places; one who walks up later sees them already there (no flicker).
 - [ ] Camps feel right: skeletons reach you one or two at a time or all at once (notice 16 m, leash 24 m), the archers are placed so they can be hunted.
+
+The pool size (task 5, `World.POOL` 20 after the load test with bots):
+
+- [ ] Fight a camp of 5 or 6 with a second player, then walk to a camp nearby: both stay awake and the frame time and ping (F3) stay steady; no rubberbanding in rolls and blocks while three or more camps are awake around you (the bots' load test held 29 tps with a tick loop of 60 to 90 ms, so a real fight is the check).
+- [ ] With the pool full (three camps near), a fourth camp stays asleep until slots free up: it is not frozen half awake, and the camps you cleared do not make it wake with missing members.

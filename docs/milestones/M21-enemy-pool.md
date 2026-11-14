@@ -1,10 +1,10 @@
 # M21 Enemy pool
 
-Status: planned.
+Status: Built (2026-11-14, v0.19.0), play-test pending (`docs/PLAYTEST.md`).
 
 ## Goal
 
-The Barrowlands is inhabited: camps and roamers everywhere, generated from the seed. Enemies stay rolled back, so rolls, blocks and parries are as exact as today; a fixed pool of 24 slots serves whatever is near the players.
+The Barrowlands is inhabited: camps and roamers everywhere, generated from the seed. Enemies stay rolled back, so rolls, blocks and parries are as exact as today; a fixed pool of 20 slots (24 was planned; the load test decided, task 5) serves whatever is near the players.
 
 ## Depends on
 
@@ -12,7 +12,7 @@ M20 (realm, terrain, `Layout.realm_at`). M19 task 1 if merged (its `FLINCH` and 
 
 ## Design
 
-- All enemy nodes exist on every peer from the start, at fixed paths, as today (`World._add_enemy`, `world.gd:76`). Indices: the keep's dummies 0–1, pool slots 2–25. The old encounter's mobs and Warden (2–5 today) become pool slots in this milestone; M22 moves the boss fight.
+- All enemy nodes exist on every peer from the start, at fixed paths, as today (`World._add_enemy`, `world.gd:76`). Indices: the keep's dummies 0–1, pool slots 2–21 (`World.POOL` 20). The old encounter's mobs and Warden (2–5 today) become pool slots in this milestone; M22 moves the boss fight.
 - A slot is an `Enemy` with a rolled back `kind` (index into `EnemyDef` list; 0 is "free"). Waking a slot sets `kind`, `home`, health and `Action.RISE` or `IDLE`; freeing sets `Action.HIDDEN`. Both happen on the server inside the rollback tick and reach clients as state.
 - `EnemyDef` (resource, `game/data/enemies/*.tres`): health, speed, turn rate, radius and height, poise, notice and leash ranges, behavior (`MELEE`, `RANGED`, `BOSS_WARDEN`), attack ids, bolt slots, look id.
 - `Spawner` (server side decision, rolled back result): spawn points are a pure function of seed and realm (`Spawner.points(realm) -> Array[SpawnPoint]`: position direction, kind, camp id). Each tick slice it wakes points within `WAKE` (about 90 m) of a player while free slots exist, nearest first, and frees slots further than `SLEEP` (about 140 m) from every player and not in a fight. A camp whose enemies all died is cleared and stays cleared for `RESPAWN` minutes (server memory in M21, saved in M23).
@@ -49,7 +49,7 @@ Files: `sim/world.gd`, `sim/sim_player.gd`, `net/wire.gd`, `net/net.gd`, `tests/
 
 Steps: `World.POOL := 24`; create the slots hidden; `swing_hits` becomes 32 bit (`wire.gd:94` is `u16`; indices above 15 are silently lost today); every loop over `Enemy.GROUP` in a player's tick (`_defend`, `_catch_bolts`, `_strike`, `Combat.enemy_on_segment`) skips hidden slots first. Protocol bump.
 
-Built (2026-11-14): `World.POOL` 24 slots `Pool0..23` (indices 2 to 25) are created hidden in `World._add_pool`; `Encounter` keeps slots 0 to 3 (3 mobs, then the Warden) until M22, so the spawner (task 4) must use `Pool4` and up. A hidden slot's `net_combat` is its action byte alone; `net_bolts` carries only bolts in flight. Details and numbers: `docs/PLAN.md` §8.
+Built (2026-11-14): `World.POOL` slots `Pool0..` (24 then, 20 after task 5; indices from 2) are created hidden in `World._add_pool`; `Encounter` keeps slots 0 to 3 (3 mobs, then the Warden) until M22, so the spawner (task 4) must use `Pool4` and up. A hidden slot's `net_combat` is its action byte alone; `net_bolts` carries only bolts in flight. Details and numbers: `docs/PLAN.md` §8.
 
 Tests: a hit on slot index 20 registers once per swing; wire round trip of a 32 bit mask.
 
@@ -64,6 +64,8 @@ Built (2026-11-14): `sim/spawner.gd` (`Spawner.points(realm, world_seed)`, the s
 Tests (`tests/spawner_test.gd`): same seed gives the same points; walking toward a camp wakes it, walking away frees it; a full pool wakes nothing more and never frees a fighting enemy; a cleared camp stays empty; late joiner sees awake enemies (state only); woken enemies stand on built ground.
 
 ### 5. Measure (Sonnet)
+
+Built (2026-11-14): decision `World.POOL` 20 (16 spawner slots). With camps close enough to wake 21 slots, pool 24 held 29 tps in one of two runs (the other 9.5) and its worst second fell to 16 tps; pool 20 held 29.8 to 30.2 tps in four runs (min second 20 to 25, `--lag=100` included) but the tick loop averages 60 to 90 ms. The load test takes `--seed` and `--spawn=X,Y,Z;X,Y,Z` and prints `awake` slots; `--bench` works again. Numbers and open items: `docs/PLAN.md` §8.
 
 Run `python tools/run_load_test.py --players=6` and `--lag=100` with bots standing in a camp so the pool is full (add a bot spawn flag if needed), and `--bench`. Write tps, tick loop and kB/s to `docs/PLAN.md` §8. If 29 tps does not hold, lower `World.POOL` until it does and record the number; do not optimise netfox here.
 

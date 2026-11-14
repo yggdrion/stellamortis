@@ -29,6 +29,8 @@ var solo := false
 var bind_ip := "*"
 ## Debug: where players spawn instead of the ring around the origin (--spawn=x,y,z).
 var spawn_at: Variant = null
+## Debug: more spawn points (--spawn=x,y,z;x,y,z), handed out to players in turn (load test).
+var spawn_list: Array[Vector3] = []
 ## The seed the world is generated from (--seed=N, random without) and its name (--world).
 var world_seed := randi()
 var world_name := "default"
@@ -44,6 +46,7 @@ var room := ""
 var _rtc: WebRTCMultiplayerPeer
 
 var _world: World
+var _spawned := 0
 var _names := {}
 ## Peer ids whose client has built the world (Net.world_ready).
 var _built := {}
@@ -190,7 +193,7 @@ func _track_stats() -> void:
 			(
 				(
 					"stats players=%d tps=%.1f tick_avg_ms=%.2f tick_max_ms=%.2f resim_ticks=%.1f"
-					+ " out_kbps_per_player=%.2f in_kbps_per_player=%.2f %s"
+					+ " out_kbps_per_player=%.2f in_kbps_per_player=%.2f awake=%d %s"
 				)
 				% [
 					_names.size(),
@@ -200,6 +203,7 @@ func _track_stats() -> void:
 					float(_stats_rollback_ticks) / maxi(_stats_loops, 1),
 					out_kbps,
 					in_kbps,
+					_awake_slots(),
 					_profile.take(),
 				]
 			)
@@ -237,6 +241,9 @@ func _on_hello(id: int, version: int, player_name: String) -> void:
 		if not _names.has(id):
 			return
 	var at := Layout.spawn_point(id)
+	if not spawn_list.is_empty():
+		at = spawn_list[_spawned % spawn_list.size()]
+		_spawned += 1
 	_world.spawn_player(id, _names[id], spawn_at if spawn_at is Vector3 else at)
 	_heard[id] = Time.get_ticks_msec()
 	print("%s joined (%d)" % [_names[id], id])
@@ -287,3 +294,11 @@ func _remove_player(id: int) -> void:
 		player.queue_free()
 	if solo and _names.is_empty():
 		get_tree().quit()
+
+
+## Pool slots that are awake (not hidden), for the stats line.
+func _awake_slots() -> int:
+	var awake := 0
+	for i in World.POOL:
+		awake += int(_world.pool_slot(i).action != Enemy.Action.HIDDEN)
+	return awake

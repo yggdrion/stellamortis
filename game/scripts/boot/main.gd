@@ -3,7 +3,8 @@ extends Node
 ##   --server --port=N [--solo]     headless game server; --solo: exits with its player
 ##     [--bind=IP]                  listen on that address only (default: every interface;
 ##                                  --solo: 127.0.0.1, so no firewall prompt)
-##     [--spawn=X,Y,Z]              debug: spawn players there (a solo client passes it on)
+##     [--spawn=X,Y,Z[;X,Y,Z]]      debug: spawn players there (several: in turn; a solo client
+##                                  passes it on)
 ##     [--encounter=boss]           debug: start with the mobs dead (a solo client passes it on)
 ##     [--seed=N] [--world=NAME]    the world's seed (random without) and name (solo and host
 ##                                  clients pass them on)
@@ -67,8 +68,11 @@ func _ready() -> void:
 		# A solo server only ever has its own client, on this machine.
 		server.bind_ip = _args.get("bind", "127.0.0.1" if server.solo else "*")
 		if _args.has("spawn"):
-			var p := (_args["spawn"] as String).split(",")
-			server.spawn_at = Vector3(float(p[0]), float(p[1]), float(p[2]))
+			for spot in (_args["spawn"] as String).split(";"):
+				var p := spot.split(",")
+				server.spawn_list.append(Vector3(float(p[0]), float(p[1]), float(p[2])))
+			if server.spawn_list.size() == 1:
+				server.spawn_at = server.spawn_list.pop_back()
 		if _args.has("seed"):
 			server.world_seed = int(_args["seed"])
 		server.world_name = _args.get("world", server.world_name)

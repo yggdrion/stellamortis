@@ -4,7 +4,9 @@ each must see every other bot move. The server prints one stats line per second
 (STELLAMORTIS_SERVER_STATS); once all bots are in, this reads them and reports ticks per second,
 tick loop time, rollback resimulation and bytes per player.
 
-Usage: python tools/run_load_test.py [--players=6] [--seconds=40] [--lag=MS]
+Usage: python tools/run_load_test.py [--players=6] [--seconds=40] [--lag=MS] [--seed=N]
+[--spawn=X,Y,Z;X,Y,Z]  (the server's seed and spawn points, handed out to the bots in turn; put
+them in camps of the Barrowlands to fill the enemy pool, the report shows how many slots woke)
 Fails if a bot fails or the server falls below 29 ticks per second on average. A tick loop
 can run several ticks when the server is behind, so a loop over 33 ms alone is no failure; it
 shows the server has no headroom. All processes share this machine's CPU.
@@ -45,6 +47,7 @@ def start(*cmd, **kwargs):
 
 server = start(
     "--server", f"--port={PORT}", "--bind=127.0.0.1",
+    *[f"--{k}={options[k]}" for k in ("seed", "spawn") if k in options],
     env={**os.environ, "STELLAMORTIS_SERVER_STATS": "1"},
     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
 )
@@ -103,6 +106,7 @@ report = (
     f"resim ticks per loop {statistics.mean(column('resim_ticks')):.1f}, "
     f"per player out {statistics.mean(column('out_kbps_per_player')):.1f} kB/s, "
     f"in {statistics.mean(column('in_kbps_per_player')):.1f} kB/s, "
+    f"awake slots avg {statistics.mean(column('awake')):.1f} (max {max(column('awake')):.0f}), "
     f"packet limit warnings {len(warnings)}; per resimulated tick: "
     f"restore {statistics.mean(column('restore_ms')):.2f} ms, "
     f"simulate {statistics.mean(column('simulate_ms')):.2f} ms, "

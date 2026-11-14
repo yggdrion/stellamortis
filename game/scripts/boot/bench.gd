@@ -21,6 +21,12 @@ func _ready() -> void:
 		world.players.add_child(body)
 		body.place(Layout.spawn_point(body.peer_id))
 		bodies.append(body)
+	# Every pool slot awake as a swordsman near the players (the spawner's slots, from FIRST_SLOT).
+	for i in range(Spawner.FIRST_SLOT, World.POOL):
+		var slot := world.pool_slot(i)
+		var post := Transform3D(Basis.IDENTITY, Layout.spawn_point(2) + Vector3(i * 2.0, 0.0, 8.0))
+		slot.become(Combat.enemy_kind(&"swordsman"), post, Enemy.Action.IDLE)
+		slot.wake(players)
 	var enemies := get_tree().get_nodes_in_group(Enemy.GROUP)
 	await get_tree().physics_frame
 	var player_us := 0
@@ -30,8 +36,8 @@ func _ready() -> void:
 		var started := Time.get_ticks_usec()
 		for body in bodies:
 			var b := PlayerControls.Buttons
-			var buttons: int = [b.JUMP, b.ATTACK, b.LOCK, b.HEAVY, b.ROLL, b.BLOCK, 0][
-				(tick / 15 + body.peer_id) % 7
+			var buttons: int = [b.JUMP, b.ATTACK, b.HEAVY, b.ROLL, b.BLOCK, 0][
+				(tick / 15 + body.peer_id) % 6
 			]
 			body.step(Vector2(0, 1), fposmod(tick * 0.03 + body.peer_id, TAU), buttons, DELTA)
 		var after_players := Time.get_ticks_usec()

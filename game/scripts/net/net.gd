@@ -6,16 +6,18 @@ extends Node
 # Server side.
 signal hello_received(peer_id: int, version: int, player_name: String)
 signal pinged(peer_id: int, sent_ms: int)
+signal world_ready_received(peer_id: int)
 # Client side.
 signal rejected(reason: String)
 signal ponged(sent_ms: int)
 signal server_stats_received(tps: float, tick_ms: float, tick_avg_ms: float, out_kbps: float)
+signal world_received(world_seed: int, world_name: String)
 signal room_received(code: String)
 signal notice_received(text: String)
 
 ## Bump on any change to the RPCs here or to what netfox synchronizes (SimPlayer.STATE,
 ## PlayerControls) or to what both sides simulate (Layout, Gravity, Tuning).
-const PROTOCOL_VERSION := 14
+const PROTOCOL_VERSION := 15
 
 @rpc("any_peer", "reliable")
 func hello(version: int, player_name: String) -> void:
@@ -41,6 +43,18 @@ func pong(sent_ms: int) -> void:
 ## out_kbps: kB per second the server sends to each player (ENet only, 0 over WebRTC).
 func server_stats(tps: float, tick_ms: float, tick_avg_ms: float, out_kbps: float) -> void:
 	server_stats_received.emit(tps, tick_ms, tick_avg_ms, out_kbps)
+
+
+## The world to build, sent on joining before anything else is spawned. The client builds it
+## (World.build), then answers world_ready; only then does the server spawn its player.
+@rpc("authority", "reliable")
+func world(world_seed: int, world_name: String) -> void:
+	world_received.emit(world_seed, world_name)
+
+
+@rpc("any_peer", "reliable")
+func world_ready() -> void:
+	world_ready_received.emit(multiplayer.get_remote_sender_id())
 
 
 ## Player host: the lobby room code friends join with, on joining and whenever it changes.

@@ -29,6 +29,9 @@ var solo := false
 var bind_ip := "*"
 ## Debug: where players spawn instead of the ring around the origin (--spawn=x,y,z).
 var spawn_at: Variant = null
+## The seed the world is generated from (--seed=N, random without) and its name (--world).
+var world_seed := randi()
+var world_name := "default"
 ## Debug: start with the mobs dead, so the Warden rises at once (--encounter=boss).
 var skip_to_boss := false
 ## Opens a room in this lobby and takes players over WebRTC instead of ENet.
@@ -42,6 +45,8 @@ var _rtc: WebRTCMultiplayerPeer
 
 var _world: World
 var _names := {}
+## Peer ids whose client has built the world (Net.world_ready).
+var _built := {}
 ## Peer id -> Time.get_ticks_msec() of its last ping, for players in the world.
 var _heard := {}
 var _ever_joined := false
@@ -64,6 +69,7 @@ func _init() -> void:
 func start(port: int) -> void:
 	_world = World.new(false)
 	add_child(_world)
+	_world.build(world_seed, world_name)
 	if skip_to_boss:
 		for mob in _world.encounter.mobs:
 			mob.take_hit(1000000.0, Vector3.ZERO)
@@ -88,6 +94,11 @@ func start(port: int) -> void:
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	net.hello_received.connect(_on_hello)
 	net.pinged.connect(_on_ping)
+	net.world_ready_received.connect(
+		func(id: int) -> void:
+			if _names.has(id):
+				_built[id] = true
+	)
 	NetworkTime.before_tick_loop.connect(func() -> void: _loop_began = Time.get_ticks_usec())
 	NetworkTime.after_tick_loop.connect(_track_stats)
 	NetworkTime.on_tick.connect(func(_delta: float, _tick: int) -> void: _stats_ticks += 1)
@@ -213,6 +224,12 @@ func _on_hello(id: int, version: int, player_name: String) -> void:
 	_ever_joined = true
 	if room != "":
 		net.room.rpc_id(id, room)
+	# The client builds the world from the seed before anything is spawned for it.
+	net.world.rpc_id(id, world_seed, world_name)
+	while not _built.has(id):
+		await net.world_ready_received
+		if not _names.has(id):
+			return
 	# netfox needs the client's clock in sync before it can take part in rollback.
 	while not NetworkTime.is_client_synced(id):
 		await NetworkTime.after_client_sync
@@ -263,6 +280,7 @@ func _on_peer_disconnected(id: int) -> void:
 
 
 func _remove_player(id: int) -> void:
+	_built.erase(id)
 	var player := _world.player(id)
 	if player:
 		player.queue_free()

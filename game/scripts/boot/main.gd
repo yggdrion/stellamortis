@@ -5,6 +5,8 @@ extends Node
 ##                                  --solo: 127.0.0.1, so no firewall prompt)
 ##     [--spawn=X,Y,Z]              debug: spawn players there (a solo client passes it on)
 ##     [--encounter=boss]           debug: start with the mobs dead (a solo client passes it on)
+##     [--seed=N] [--world=NAME]    the world's seed (random without) and name (solo and host
+##                                  clients pass them on)
 ##     [--lobby=URL [--room-file=PATH]]   instead of the port: open a room in this lobby and
 ##                                  take players over WebRTC; the code goes to PATH
 ##   --connect=host:port            client joining a running server over ENet
@@ -67,6 +69,9 @@ func _ready() -> void:
 		if _args.has("spawn"):
 			var p := (_args["spawn"] as String).split(",")
 			server.spawn_at = Vector3(float(p[0]), float(p[1]), float(p[2]))
+		if _args.has("seed"):
+			server.world_seed = int(_args["seed"])
+		server.world_name = _args.get("world", server.world_name)
 		server.skip_to_boss = _args.get("encounter", "") == "boss"
 		server.lobby_url = _args.get("lobby", "")
 		server.room_file = _args.get("room-file", "")
@@ -197,7 +202,7 @@ func _host(client: GameClient) -> void:
 ## Debug args a client passes on to the server it spawns.
 func _debug_args() -> PackedStringArray:
 	var passed := PackedStringArray()
-	for key: String in ["spawn", "encounter"]:
+	for key: String in ["spawn", "encounter", "seed", "world"]:
 		if _args.has(key):
 			passed.append("--%s=%s" % [key, _args[key]])
 	return passed

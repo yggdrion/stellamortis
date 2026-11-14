@@ -25,13 +25,13 @@ Nothing. The hand-built realm at the origin and its encounter stay untouched unt
 
 Files: `game/scripts/net/net.gd`, `net/game_server.gd`, `client/game_client.gd`, `sim/world.gd`, `scripts/boot/main.gd`, `game/tests/` (network test scripts under `tools/`).
 
-Reuse: the `room` RPC pattern (`net.gd:48`, sent in `GameServer._on_hello`, `game_server.gd:210`).
+Reuse: the `room` RPC pattern (`Net.room`, sent in `GameServer._on_hello`).
 
 Steps:
 
 1. `GameServer.world_seed` (int) and `world_name`; `--seed=N` and `--world=NAME` flags, passed on by solo and host like `--spawn`. Without a flag the seed is random.
 2. `Net.world(seed, name)` reliable, server to client, sent in `_on_hello` before the clock sync wait.
-3. `World`: keep the node and its `MultiplayerSpawner` created in `_ready` (netfox and the spawner find nodes by path), but move everything generated behind `World.build(seed)`. The server calls it at start; the client calls it when `Net.world` arrives. The server must not spawn the player before the client has built: the client answers `Net.world_ready()`, and `_on_hello` waits for it as it waits for the clock sync.
+3. `World`: keep the node and its `MultiplayerSpawner` created in `_ready` (netfox and the spawner find nodes by path), but move everything generated from the seed behind `World.build(seed, name)` (done in task 1: it only stores the seed; the arena, dummies and encounter stay in `_ready` because netfox finds the enemies by path from the server's first tick, see `docs/PLAN.md` §8). The server calls it at start; the client calls it when `Net.world` arrives. The server must not spawn the player before the client has built: the client answers `Net.world_ready()`, and `_on_hello` waits for it as it waits for the clock sync.
 4. Bump `Net.PROTOCOL_VERSION`. The joining screen (`MainMenu` "Joining room ...") stays up until the world is built.
 
 Tests: the headless network test still passes (ENet with lag, WebRTC); a new gdUnit test builds `World` twice with the same seed and gets the same `Terrain` hash once task 2 exists (add it there).

@@ -6,6 +6,10 @@ extends Node3D
 signal player_spawned(player: SimPlayer)
 
 var visual := false
+## The seed everything generated comes from, set by build() (identical on every peer).
+var world_seed := 0
+var world_name := ""
+var built := false
 var arena: Arena
 var players: Node3D
 var encounter: Encounter
@@ -34,6 +38,17 @@ func _ready() -> void:
 	add_child(_enemies)
 	_add_dummies()
 	_add_encounter()
+
+
+## Builds what is generated from the seed (nothing yet: terrain comes with M20 task 2). Server
+## at start, client when Net.world arrives; the nodes the netcode finds by path (the spawner,
+## players, enemies) already exist from _ready. Once only.
+func build(new_seed: int, new_name: String) -> void:
+	if built:
+		return
+	world_seed = new_seed
+	world_name = new_name
+	built = true
 
 
 ## The same dummies, same names and order, on every peer (netfox finds them by path).

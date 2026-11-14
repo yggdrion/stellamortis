@@ -108,6 +108,11 @@ func _ready() -> void:
 	_pause.left_game.connect(_leave_to_menu)
 	add_child(_pause)
 	net.rejected.connect(func(reason: String) -> void: left.emit(reason))
+	net.world_received.connect(
+		func(world_seed: int, world_name: String) -> void:
+			_world.build(world_seed, world_name)
+			net.world_ready.rpc_id(1)
+	)
 	net.room_received.connect(func(code: String) -> void: room = code)
 	net.ponged.connect(
 		func(sent: int) -> void:

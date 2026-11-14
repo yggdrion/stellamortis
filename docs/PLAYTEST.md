@@ -81,3 +81,9 @@ Enemy kinds as data (task 2, `data/enemies/*.tres`, protocol 18; the old realm's
 - [ ] The old realm's swordsmen, archer and the Warden fight as before: chase, chop, keep distance and shoot, sweep, slam, volley, phase 2 and the well, the dummies in the keep swing and heal.
 - [ ] Seen from a second client (also one that joins mid-fight), mobs and the Warden look right and carry the right health bar (none on the Warden).
 - [ ] Enemy body hitboxes feel the same (the Warden is 4.2 m tall, 1.2 m wide) and enemies still flinch, slide and parry as in M19.
+
+The pool (task 3, `World._add_pool`, protocol 19; 24 hidden slots, only the old realm's four are awake):
+
+- [ ] The keep and the old realm play as before with 24 hidden slots in the world: swings land on every mob and the Warden once per swing, bolts hit, no new hitching on a client (F3 frame time at the keep, in the realm fight).
+- [ ] A second client joining mid-fight sees the same mobs and Warden, and no stray enemy models at the world origin.
+

@@ -15,15 +15,16 @@ const RADIUS := 0.5
 const GROUP := &"enemies"
 ## Enemies with a gravity well (the Warden's kind), read by Gravity.pull.
 const WELLS := &"gravity_wells"
-## Rolled back state, the same for every kind (`kind` before what depends on it).
+## Rolled back state, the same for every kind (`kind` before what depends on it, `action` first:
+## net_combat of a hidden slot is that one byte).
 const STATE := [
 	"transform",
+	"action",
 	"up",
 	"facing",
 	"kind",
 	"health",
 	"max_health",
-	"action",
 	"action_time",
 	"parried",
 	"quiet_time",
@@ -39,6 +40,10 @@ const STATE := [
 const BOLTS := ["bolt_pos", "bolt_vel", "bolt_life"]
 ## How close a bolt must pass a body's axis to hit it, on top of the body's radius.
 const BOLT_RADIUS := 0.2
+
+## net_combat of a hidden slot (its action alone), _pack_bolts without a bolt in flight (the count).
+static var _hidden_net := PackedByteArray([Action.HIDDEN])
+static var _no_bolts := PackedByteArray([0])
 
 ## Stable across peers (World assigns it): the bit in a player's swing_hits.
 var index := 0
@@ -83,20 +88,23 @@ var bolt_vel := PackedVector3Array()
 ## Ticks left in flight, 0 for a free slot.
 var bolt_life := PackedInt32Array()
 
-## The packed groups netfox synchronizes (the synced list in networked()).
+## The packed property netfox synchronizes (the synced list in networked()): every field, then
+## the bolts in flight (_pack_bolts; a slot has room for the biggest kind's bolts, World.
+## _add_pool, most of the time none fly). A hidden slot is its action byte alone: nothing else
+## of it matters until it wakes (become).
 var net_combat: PackedByteArray:
 	get:
-		return Wire.pack(self, _combat_fields)
+		if action == Action.HIDDEN:
+			return _hidden_net
+		return Wire.pack(self, _combat_fields) + _pack_bolts()
 	set(value):
-		Wire.unpack(self, _combat_fields, value)
-var net_bolts: PackedByteArray:
-	get:
-		return Wire.pack(self, BOLTS)
-	set(value):
-		Wire.unpack(self, BOLTS, value)
+		if value.size() == 1:
+			action = value[0] as Action
+			return
+		_unpack_bolts(value.slice(Wire.unpack(self, _combat_fields, value)))
 
 var _shape: CollisionShape3D
-## The rolled back fields besides transform, velocity and bolts, packed into net_combat.
+## The rolled back fields besides the bolts, packed into net_combat.
 var _combat_fields: Array = []
 
 
@@ -140,19 +148,58 @@ func make_bolts(slots: int) -> void:
 		bolt_life.append(0)
 
 
+## Bolts this kind can have in flight, within the slot's room.
+func bolt_slots() -> int:
+	return mini(def.bolt_slots, bolt_life.size())
+
+
+func _pack_bolts() -> PackedByteArray:
+	if bolt_slots() == 0 or action == Action.HIDDEN:
+		return _no_bolts
+	var flying := 0
+	for i in bolt_slots():
+		if bolt_life[i] > 0:
+			flying += 1
+	if flying == 0:
+		return _no_bolts
+	var buffer := StreamPeerBuffer.new()
+	buffer.put_u8(flying)
+	for i in bolt_slots():
+		if bolt_life[i] <= 0:
+			continue
+		buffer.put_u8(i)
+		var at := bolt_pos[i]
+		var toward := bolt_vel[i]
+		for value in [at.x, at.y, at.z, toward.x, toward.y, toward.z]:
+			buffer.put_float(value as float)
+		buffer.put_u8(clampi(bolt_life[i], 0, 255))
+	return buffer.data_array
+
+
+## Reads what _pack_bolts wrote: bolts not in the bytes are over (their position and velocity
+## are not read until fired again).
+func _unpack_bolts(bytes: PackedByteArray) -> void:
+	if bytes.is_empty():
+		return
+	bolt_life.fill(0)
+	var buffer := StreamPeerBuffer.new()
+	buffer.data_array = bytes
+	for n in buffer.get_u8():
+		var slot := buffer.get_u8()
+		bolt_pos[slot] = Vector3(buffer.get_float(), buffer.get_float(), buffer.get_float())
+		bolt_vel[slot] = Vector3(buffer.get_float(), buffer.get_float(), buffer.get_float())
+		bolt_life[slot] = buffer.get_u8()
+
+
 ## Server-owned, predicted on clients. Call before adding it to the tree, on every peer. state
-## is every rolled back field (Enemy.STATE); netfox synchronizes them as transform, velocity,
-## net_combat and net_bolts (Wire.pack).
+## is every rolled back field (Enemy.STATE); netfox synchronizes them as one property,
+## net_combat (`action` first, then the fields, then the bolts in flight): its cost grows with
+## the properties of every node, and the pool has dozens.
 func networked(state: Array) -> void:
-	var synced := ["transform", "net_combat"]
-	_combat_fields = []
+	var synced := ["net_combat"]
+	_combat_fields = ["action"]
 	for field: String in state:
-		if field == "velocity":
-			synced.append(field)
-		elif field in BOLTS:
-			if not "net_bolts" in synced:
-				synced.append("net_bolts")
-		elif field != "transform":
+		if field != "action" and not field in BOLTS:
 			_combat_fields.append(field)
 	var rollback := RollbackSynchronizer.new()
 	rollback.name = "Rollback"
@@ -383,7 +430,7 @@ func _fire(swing: AttackDef, at: Vector3) -> void:
 	var gravity := Gravity.sample(muzzle)
 	var base := to.normalized() * swing.bolt_speed - gravity * (flight / 2.0)
 	for n in swing.bolts:
-		var slot := bolt_life.find(0)
+		var slot := _free_bolt()
 		if slot < 0:
 			return
 		var fan := 0.0
@@ -394,10 +441,18 @@ func _fire(swing: AttackDef, at: Vector3) -> void:
 		bolt_life[slot] = Combat.ticks(4.0)
 
 
+## A bolt slot of this kind (bolt_slots()) not in flight, -1 if none.
+func _free_bolt() -> int:
+	for i in bolt_slots():
+		if bolt_life[i] <= 0:
+			return i
+	return -1
+
+
 ## Moves its bolts one tick under the local gravity; walls end them (players end them in
 ## their own tick, SimPlayer._defend).
 func _fly_bolts(delta: float) -> void:
-	for i in bolt_life.size():
+	for i in bolt_slots():
 		if bolt_life[i] <= 0:
 			continue
 		bolt_life[i] -= 1

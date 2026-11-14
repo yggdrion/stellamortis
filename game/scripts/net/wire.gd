@@ -39,14 +39,16 @@ static func pack(node: Object, fields: Array) -> PackedByteArray:
 	return buffer.data_array
 
 
-## Sets the fields from bytes made by pack(); empty bytes change nothing.
-static func unpack(node: Object, fields: Array, bytes: PackedByteArray) -> void:
+## Sets the fields from bytes made by pack(); empty bytes change nothing. Returns how many bytes
+## it read.
+static func unpack(node: Object, fields: Array, bytes: PackedByteArray) -> int:
 	if bytes.is_empty():
-		return
+		return 0
 	var buffer := StreamPeerBuffer.new()
 	buffer.data_array = bytes
 	for field: String in fields:
 		node.set(field, serializer(field).decode(buffer))
+	return buffer.get_position()
 
 
 static func has(property: String) -> bool:
@@ -93,7 +95,7 @@ static func _fill() -> void:
 		"flinch_time": counter,
 		"well_time": counter,
 		"phase_time": counter,
-		"swing_hits": u16,
+		"swing_hits": NetworkSchemas.uint32(),
 		"last_buttons": u16,
 		"bolt_pos": PackedVectors.new(),
 		"bolt_vel": PackedVectors.new(),

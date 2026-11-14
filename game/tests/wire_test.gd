@@ -109,3 +109,64 @@ func test_packed_groups_restore_the_player() -> void:
 	assert_int(other.action).is_equal(SimPlayer.Action.ROLL)
 	assert_int(other.action_time).is_equal(300)
 	assert_int(other.bolt_life[1]).is_equal(44)
+
+
+func test_swing_hits_is_a_32_bit_mask() -> void:
+	var player := auto_free(SimPlayer.new()) as SimPlayer
+	player.swing_hits = (1 << 25) | (1 << 16) | 1
+	_round_trip(player, ["swing_hits"])
+	var other := auto_free(SimPlayer.new()) as SimPlayer
+	Wire.unpack(other, SimPlayer.COMBAT, Wire.pack(player, SimPlayer.COMBAT))
+	assert_int(other.swing_hits).is_equal(player.swing_hits)
+
+
+func _packed(field: String) -> bool:
+	return field != "action" and not field in Enemy.BOLTS
+
+
+func test_hidden_slot_is_one_byte_and_wakes_from_full_state() -> void:
+	var slot := auto_free(Enemy.new()) as Enemy
+	slot._combat_fields = ["action"] + Enemy.STATE.filter(_packed)
+	slot.make_bolts(10)
+	slot.action = Enemy.Action.HIDDEN
+	assert_int(slot.net_combat.size()).is_equal(1)
+	slot.kind = Combat.enemy_kind(&"warden")
+	slot.become(slot.kind, Transform3D.IDENTITY, Enemy.Action.IDLE)
+	slot.health = 321.0
+	var other := auto_free(Enemy.new()) as Enemy
+	other._combat_fields = slot._combat_fields
+	other.make_bolts(10)
+	other.action = Enemy.Action.HIDDEN
+	other.net_combat = slot.net_combat
+	assert_int(other.kind).is_equal(slot.kind)
+	assert_float(other.health).is_equal(321.0)
+	assert_int(other.action).is_equal(Enemy.Action.IDLE)
+	# Hidden again: only the action travels, the slot hides.
+	slot.action = Enemy.Action.HIDDEN
+	other.net_combat = slot.net_combat
+	assert_int(other.action).is_equal(Enemy.Action.HIDDEN)
+
+
+func test_enemy_bolts_travel_only_when_in_flight() -> void:
+	var slot := auto_free(Enemy.new()) as Enemy
+	slot.kind = Combat.enemy_kind(&"warden")
+	slot.make_bolts(10)
+	assert_int(slot._pack_bolts().size()).is_equal(1)
+	slot.bolt_pos[7] = Vector3(-4, 1.5, 30)
+	slot.bolt_vel[7] = Vector3(1, 2, 3)
+	slot.bolt_life[7] = 120
+	slot.bolt_pos[3] = Vector3(9, 8, 7)
+	slot.bolt_life[3] = 5
+	var bytes := slot._pack_bolts()
+	assert_int(bytes.size()).is_equal(1 + 2 * 26)
+	var other := auto_free(Enemy.new()) as Enemy
+	other.kind = slot.kind
+	other.make_bolts(10)
+	other.bolt_life[0] = 50
+	other._unpack_bolts(bytes)
+	assert_int(other.bolt_life[0]).is_equal(0)
+	assert_int(other.bolt_life[7]).is_equal(120)
+	assert_int(other.bolt_life[3]).is_equal(5)
+	assert_vector(other.bolt_pos[7]).is_equal(Vector3(-4, 1.5, 30))
+	assert_vector(other.bolt_vel[7]).is_equal(Vector3(1, 2, 3))
+	assert_vector(other.bolt_pos[3]).is_equal(Vector3(9, 8, 7))

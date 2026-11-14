@@ -65,6 +65,21 @@ func test_light_hits_once_per_swing() -> void:
 	assert_int(_player.action).is_equal(SimPlayer.Action.NONE)
 
 
+## A pool slot far up the indices takes a hit once per swing (swing_hits is 32 bit), and a hidden
+## slot at the same spot is skipped.
+func test_high_slot_index_takes_one_hit_per_swing() -> void:
+	var slot := _dummy(20, DUMMY_AT[0] + Vector3(0, 0, 8), true)
+	var hidden := _dummy(21, slot.global_position, true)
+	hidden.action = Enemy.Action.HIDDEN
+	_face(slot)
+	await _press(B.ATTACK)
+	await _run(25)
+	assert_float(slot.health).is_equal(slot.max_health - Combat.attack(&"light_1").damage)
+	assert_bool(_player.swing_hits & (1 << 20) != 0).is_true()
+	assert_float(hidden.health).is_equal(hidden.max_health)
+	assert_bool(_player.swing_hits & (1 << 21) != 0).is_false()
+
+
 func test_combo_chains_three_lights() -> void:
 	_face(_passive)
 	var expected := _passive.max_health

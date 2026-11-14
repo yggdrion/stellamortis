@@ -49,6 +49,8 @@ Files: `sim/world.gd`, `sim/sim_player.gd`, `net/wire.gd`, `net/net.gd`, `tests/
 
 Steps: `World.POOL := 24`; create the slots hidden; `swing_hits` becomes 32 bit (`wire.gd:94` is `u16`; indices above 15 are silently lost today); every loop over `Enemy.GROUP` in a player's tick (`_defend`, `_catch_bolts`, `_strike`, `Combat.enemy_on_segment`) skips hidden slots first. Protocol bump.
 
+Built (2026-11-14): `World.POOL` 24 slots `Pool0..23` (indices 2 to 25) are created hidden in `World._add_pool`; `Encounter` keeps slots 0 to 3 (3 mobs, then the Warden) until M22, so the spawner (task 4) must use `Pool4` and up. A hidden slot's `net_combat` is its action byte alone; `net_bolts` carries only bolts in flight. Details and numbers: `docs/PLAN.md` §8.
+
 Tests: a hit on slot index 20 registers once per swing; wire round trip of a 32 bit mask.
 
 ### 4. Spawner (Opus)

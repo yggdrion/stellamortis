@@ -466,7 +466,7 @@ func _defend(t: Tuning) -> void:
 		return
 	for node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
-		if not enemy.striking():
+		if enemy.action == Enemy.Action.HIDDEN or not enemy.striking():
 			continue
 		var def := enemy.attack_def()
 		var origin := enemy.strike_origin()
@@ -489,7 +489,10 @@ func _catch_bolts(t: Tuning) -> void:
 	var head := global_position + up * (HEIGHT - RADIUS)
 	for node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
-		for i in enemy.bolt_life.size():
+		# Free slots (most of the pool) have no bolts; so do kinds without any.
+		if enemy.action == Enemy.Action.HIDDEN or enemy.bolt_slots() == 0:
+			continue
+		for i in enemy.bolt_slots():
 			if enemy.bolt_life[i] <= 0:
 				continue
 			var at := enemy.bolt_pos[i]
@@ -537,6 +540,8 @@ func _strike() -> void:
 		return
 	for node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
+		if enemy.action == Enemy.Action.HIDDEN:
+			continue
 		var bit := 1 << enemy.index
 		if swing_hits & bit or not enemy.alive():
 			continue

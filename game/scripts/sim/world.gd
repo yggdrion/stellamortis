@@ -5,6 +5,9 @@ extends Node3D
 
 signal player_spawned(player: SimPlayer)
 
+## Enemy slots after the dummies (a fixed pool, PLAN §4.8).
+const POOL := 24
+
 var visual := false
 ## The seed everything generated comes from, set by build() (identical on every peer).
 var world_seed := 0
@@ -38,7 +41,7 @@ func _ready() -> void:
 	_enemies.name = "Enemies"
 	add_child(_enemies)
 	_add_dummies()
-	_add_encounter()
+	_add_pool()
 
 
 ## Builds what is generated from the seed: the terrain collision of every realm, streamed
@@ -81,35 +84,43 @@ func _add_dummies() -> void:
 		_enemies.add_child(dummy)
 
 
-## The mobs and the Warden (hidden until the mobs are dead), indices after the dummies.
-func _add_encounter() -> void:
+## The enemy pool (M21): POOL free slots, hidden, at fixed names and indices after the dummies;
+## waking one is `Enemy.become`, never a spawn. Every slot has room for the biggest kind's bolts.
+## The old encounter keeps the first slots until M22: the mobs, then the Warden (hidden).
+func _add_pool() -> void:
+	var bolts := 0
+	for kind in Combat.ENEMY_KINDS.size():
+		bolts = maxi(bolts, Combat.enemy_def(kind).bolt_slots)
+	var free := Combat.enemy_kind(&"free")
+	for i in POOL:
+		var slot := Enemy.new()
+		slot.name = "Pool%d" % i
+		slot.index = Layout.DUMMIES.size() + i
+		slot.kind = free
+		slot.make_bolts(bolts)
+		slot.networked(Enemy.STATE)
+		if visual:
+			slot.add_child(EnemyView.new(slot))
+		_enemies.add_child(slot)
+		slot.reset(Enemy.Action.HIDDEN)
 	encounter = Encounter.new()
-	var next := Layout.DUMMIES.size()
 	for i in Layout.MOBS.size():
-		var mob := Enemy.new()
-		mob.name = "Mob%d" % i
 		var id := &"archer" if Layout.MOBS[i][1] else &"swordsman"
-		_add_enemy(mob, next + i, id, Layout.MOBS[i][0], Enemy.Action.IDLE)
-		encounter.mobs.append(mob)
-	var boss := Enemy.new()
-	boss.name = "Warden"
-	_add_enemy(boss, next + Layout.MOBS.size(), &"warden", Layout.BOSS, Enemy.Action.HIDDEN)
-	encounter.boss = boss
+		encounter.mobs.append(_wake_post(i, id, Layout.MOBS[i][0], Enemy.Action.IDLE))
+	encounter.boss = _wake_post(Layout.MOBS.size(), &"warden", Layout.BOSS, Enemy.Action.HIDDEN)
 	encounter.networked()
 	add_child(encounter)
 
 
-## A slot of a kind (its id in Combat.ENEMY_KINDS) with the bolt slots that kind needs.
-func _add_enemy(enemy: Enemy, index: int, id: StringName, at: Vector3, start: Enemy.Action) -> void:
-	enemy.index = index
-	enemy.kind = Combat.enemy_kind(id)
-	enemy.make_bolts(enemy.def.bolt_slots)
-	enemy.home = Transform3D(SimPlayer.frame(Gravity.up_at(at), Vector3.FORWARD), at)
-	enemy.networked(Enemy.STATE)
-	if visual:
-		enemy.add_child(EnemyView.new(enemy))
-	_enemies.add_child(enemy)
-	enemy.reset(start)
+## Pool slot i as a kind at a point on the ground, facing forward.
+func _wake_post(i: int, id: StringName, at: Vector3, start: Enemy.Action) -> Enemy:
+	var slot := _enemies.get_node("Pool%d" % i) as Enemy
+	slot.become(
+		Combat.enemy_kind(id),
+		Transform3D(SimPlayer.frame(Gravity.up_at(at), Vector3.FORWARD), at),
+		start
+	)
+	return slot
 
 
 ## Server only: spawns a player on every peer.

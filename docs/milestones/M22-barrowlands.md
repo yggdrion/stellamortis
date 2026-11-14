@@ -62,7 +62,7 @@ Tests: entering the ring raises the Warden; leaving resets it; the kill sets the
 
 Files: `sim/arena.gd` or a new `client/site_view.gd`, `docs/milestones/M23-inventory-loot-saves.md`.
 
-Steps: standing stones, torches, a barrow door, embers when the Warden rises; then detail M23's brief to file level against the code as it is now, and close the milestone (`CLAUDE.md`, `docs/PLAN.md` §6, `VERSION`).
+Steps: standing stones, torches, a barrow door, embers when the Warden rises; then detail M23's brief to file level against the code as it is now, and close the milestone (`CLAUDE.md`, the row moved to `docs/milestones/DONE.md`, `VERSION`).
 
 ## Out of scope
 

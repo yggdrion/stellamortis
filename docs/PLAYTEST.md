@@ -87,3 +87,10 @@ The pool (task 3, `World._add_pool`, protocol 19; 24 hidden slots, only the old 
 - [ ] The keep and the old realm play as before with 24 hidden slots in the world: swings land on every mob and the Warden once per swing, bolts hit, no new hitching on a client (F3 frame time at the keep, in the realm fight).
 - [ ] A second client joining mid-fight sees the same mobs and Warden, and no stray enemy models at the world origin.
 
+The spawner (task 4, `sim/spawner.gd`; camps and roamers on the Barrowlands):
+
+- [ ] Walking the Barrowlands you meet something every minute or two (a camp of 3 to 6 or a lone skeleton); too many or too few: tune `Spawner.CAMP_AREA`, `ROAMER_AREA`.
+- [ ] Camps wake as you come near (about 90 m: they rise from the ground over 3 s) and are gone again once you are well away (about 140 m); no enemy pops in or out in view, none stands in a tree or boulder or on a cliff, and the arrival and gates are calm.
+- [ ] A camp you cleared stays empty while you stay near and comes back after about 10 minutes; leaving one mid-fight does not make the survivors vanish while you can still see them.
+- [ ] Two players near the same camp see the same enemies at the same places; one who walks up later sees them already there (no flicker).
+- [ ] Camps feel right: skeletons reach you one or two at a time or all at once (notice 16 m, leash 24 m), the archers are placed so they can be hunted.

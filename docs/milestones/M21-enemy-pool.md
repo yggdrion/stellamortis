@@ -59,7 +59,9 @@ Files: new `sim/spawner.gd`, `sim/world.gd`, `sim/terrain_chunks.gd` (enemy anch
 
 Steps: `Spawner.points(realm)` from the seed (camps of 3 to 6 around a center on walkable ground, roamers alone; density tuned so a player meets something every minute or two); wake and free as in the design; awake enemies are terrain anchors; cleared camps. The spawner node is server only; clients learn everything from slot state.
 
-Tests: same seed gives the same points; walking toward a camp wakes it, walking away frees it; a full pool wakes nothing more and never frees a fighting enemy; a cleared camp stays empty; late joiner sees awake enemies (state only).
+Built (2026-11-14): `sim/spawner.gd` (`Spawner.points(realm, world_seed)`, the server-only node added by `World.add_spawner`, deciding every 6 ticks in `NetworkRollback.after_process_tick`); awake enemies on a realm are `TerrainChunks` anchors (`_default_anchors`). Camps wake whole from `Pool4` up. Numbers and open items: `docs/PLAN.md` §8.
+
+Tests (`tests/spawner_test.gd`): same seed gives the same points; walking toward a camp wakes it, walking away frees it; a full pool wakes nothing more and never frees a fighting enemy; a cleared camp stays empty; late joiner sees awake enemies (state only); woken enemies stand on built ground.
 
 ### 5. Measure (Sonnet)
 

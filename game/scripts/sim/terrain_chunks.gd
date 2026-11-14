@@ -2,7 +2,7 @@ class_name TerrainChunks
 extends Node3D
 ## Streams the collision of the generated realms (M20): one StaticBody3D with a
 ## ConcavePolygonShape3D per chunk (Terrain.chunk_arrays) on the world layer, kept alive around
-## the anchors (server: every player, M21 adds enemies; client: the own player) and freed
+## the anchors (server: every player and awake enemy; client: the own player) and freed
 ## beyond them. Triangles are built on WorkerThreadPool, shapes and bodies on the main
 ## thread with a per-frame budget. Chunks are static and a pure function of the world seed, so
 ## streaming never touches rollback state: peers only ever differ in which chunks far from every
@@ -270,4 +270,10 @@ func _default_anchors() -> Array:
 		var player := node as SimPlayer
 		if not own_only or player.peer_id == multiplayer.get_unique_id():
 			found.append(player)
+	if not own_only:
+		# Awake enemies on a realm (the pool's spawner wakes them): they walk and fall too.
+		for node in get_tree().get_nodes_in_group(Enemy.GROUP):
+			var enemy := node as Enemy
+			if enemy.action != Enemy.Action.HIDDEN and Layout.realm_at(enemy.global_position):
+				found.append(enemy)
 	return found

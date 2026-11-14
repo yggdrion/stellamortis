@@ -17,6 +17,8 @@ var arena: Arena
 var players: Node3D
 var encounter: Encounter
 var chunks: TerrainChunks
+## Server only (add_spawner): wakes and frees pool slots.
+var spawner: Spawner
 var _spawner: MultiplayerSpawner
 var _enemies: Node3D
 
@@ -112,15 +114,26 @@ func _add_pool() -> void:
 	add_child(encounter)
 
 
+## Pool slot i (0 to POOL - 1).
+func pool_slot(i: int) -> Enemy:
+	return _enemies.get_node("Pool%d" % i) as Enemy
+
+
+## Server only, after build: the camps and roamers of the realms wake and sleep in pool slots.
+func add_spawner() -> void:
+	spawner = Spawner.new(self)
+	add_child(spawner)
+
+
 ## Pool slot i as a kind at a point on the ground, facing forward.
 func _wake_post(i: int, id: StringName, at: Vector3, start: Enemy.Action) -> Enemy:
-	var slot := _enemies.get_node("Pool%d" % i) as Enemy
-	slot.become(
+	var enemy := pool_slot(i)
+	enemy.become(
 		Combat.enemy_kind(id),
 		Transform3D(SimPlayer.frame(Gravity.up_at(at), Vector3.FORWARD), at),
 		start
 	)
-	return slot
+	return enemy
 
 
 ## Server only: spawns a player on every peer.

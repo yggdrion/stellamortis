@@ -70,6 +70,7 @@ func start(port: int) -> void:
 	_world = World.new(false)
 	add_child(_world)
 	_world.build(world_seed, world_name)
+	_world.add_spawner()
 	if skip_to_boss:
 		for mob in _world.encounter.mobs:
 			mob.take_hit(1000000.0, Vector3.ZERO)

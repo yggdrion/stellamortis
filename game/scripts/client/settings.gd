@@ -1,7 +1,8 @@
 class_name Settings
 extends RefCounted
 ## The player's settings besides the graphics preset (Graphics keeps that one), saved in the
-## same user://settings.cfg: name, mouse sensitivity, fullscreen, vsync, frame cap, volume.
+## same user://settings.cfg: name, mouse sensitivity, fullscreen, vsync, frame cap, volume,
+## camera shake.
 
 const SENSITIVITY_MIN := 0.2
 const SENSITIVITY_MAX := 3.0
@@ -21,6 +22,8 @@ static var vsync_flag := -1
 static var max_fps_flag := -1
 ## Master volume, 0..1.
 static var volume := 0.8
+## Camera shake on hits, 0 (off) to 1.
+static var shake := 1.0
 
 
 static func load_saved() -> void:
@@ -40,6 +43,7 @@ static func load_saved() -> void:
 	if max_fps not in FPS_CAPS:
 		max_fps = 0
 	volume = clampf(float(config.get_value("audio", "volume", volume)), 0.0, 1.0)
+	shake = clampf(float(config.get_value("input", "shake", shake)), 0.0, 1.0)
 
 
 static func save() -> void:
@@ -51,6 +55,7 @@ static func save() -> void:
 	config.set_value("display", "vsync", vsync)
 	config.set_value("display", "max_fps", max_fps)
 	config.set_value("audio", "volume", volume)
+	config.set_value("input", "shake", shake)
 	config.save(Graphics.SETTINGS)
 
 

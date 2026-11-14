@@ -292,6 +292,8 @@ Moved to milestones:
 
 M19 task 1 (knockback and flinch, 2026-11-14), open: the numbers (`knockback` m/s and `flinch` s in `data/attacks/*.tres`, `Tuning.block_knockback`, `bolt_knockback`, `bolt_flinch`, `Enemy.poise`/`shove`/`flinches`) were set without a play-test: check in the M19 play-test that lights stagger without stopping mobs, heavies interrupt windups, and the Warden slides a hair. Killed enemies are not pushed (they skip the push, `DOWN` has no `_walk`). Enemy `flinch` on enemy attacks is unused (players stagger for `Tuning.hurt_time`). `TrainingDummy` flinches but does not slide (it never walks).
 
+M19 task 2 (hit stop, shake, bursts): views react to what they see (`EnemyView` health drop, `PlayerView` health drop and new `swing_hits` bits), so nothing is deduplicated beyond comparing with the last seen value, as `_sounds` does. Left open: blocked hits were not screenshotted (no bot plan blocks a swing); a hit on an enemy shakes only through the attacker's `swing_hits` (bolt hits do not shake); hit stop on the attacker waits for the next frame after the hit lands, so it lags the victim's by one frame; the numbers (`HitEffects` constants) wait for the play-test.
+
 Still open (§3.1, not in a milestone yet):
 
 - The compositor screen-space distortion for the gravity well (a glowing shell with motes for now).

@@ -65,6 +65,8 @@ var _was_parried := false
 var _heard_action := -1
 var _well_sound: AudioStreamPlayer3D
 var _clips := HUMAN_CLIPS
+## Hit stop: seconds left of the held pose.
+var _hold := 0.0
 
 
 func _init(of: Enemy) -> void:
@@ -253,17 +255,22 @@ func _add_well() -> void:
 	add_child(_motes)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	visible = enemy.action != Enemy.Action.HIDDEN and Arena.shows(enemy.global_position)
 	if _last_health >= 0.0 and enemy.health < _last_health:
 		Sounds.play(self, &"hit")
 		if enemy is Warden:
 			Sounds.play(self, &"clang", -4.0)
 	if _last_health >= 0.0 and enemy.health < _last_health and enemy.alive():
-		_model.flash(Color(1, 1, 1, 0.6), 0.1)
+		_model.flash(
+			Color(1, 1, 1, clampf(0.5 + HitEffects.weight(_last_health - enemy.health), 0.5, 1.0)),
+			0.12
+		)
 		_pop_number(_last_health - enemy.health, enemy.parried)
 	elif _last_health >= 0.0 and enemy.health < _last_health:
 		_pop_number(_last_health - enemy.health, false)
+	if _last_health >= 0.0 and enemy.health < _last_health:
+		_hit(_last_health - enemy.health)
 	_last_health = enemy.health
 	if enemy.parried and not _was_parried:
 		_model.flash(Color(1, 0.9, 0.2, 0.7), 0.3)
@@ -272,10 +279,30 @@ func _process(_delta: float) -> void:
 	_was_parried = enemy.parried
 	_bar_material.set_shader_parameter("fill", enemy.health / enemy.max_health)
 	_bar.visible = (enemy.health < enemy.max_health and enemy.alive() and not enemy is Warden)
-	_pose()
+	if _hold > 0.0:
+		_hold -= delta
+	else:
+		_pose()
 	_sounds()
 	if _well:
 		_show_well()
+
+
+## A hit seen in the health: hold the pose a moment (view only, never sim time), punch the model
+## and throw blood, or sparks off the Warden's iron. Called once per drop; a respawn or reset
+## refills health and never counts.
+func _hit(lost: float) -> void:
+	_hold = HitEffects.stop_time(lost)
+	_model.freeze()
+	_model.punch(0.03 + 0.05 * clampf(HitEffects.weight(lost), 0.0, 1.0), 0.15)
+	if not visible:
+		return
+	var flat := enemy.velocity - enemy.up() * enemy.velocity.dot(enemy.up())
+	var away := flat.normalized() if flat.length() > 0.5 else -enemy.facing
+	var kind := HitEffects.Kind.SPARKS if enemy is Warden else HitEffects.Kind.BLOOD
+	HitEffects.burst(
+		self, enemy.global_position + enemy.up() * enemy.height * 0.6, away + enemy.up() * 0.4, kind
+	)
 
 
 ## Windups growl, strikes swoosh (embers hiss for shots), falls thud, the Warden stomps as it
@@ -384,16 +411,17 @@ func _idle_or_walk() -> void:
 
 
 func _pop_number(amount: float, riposte: bool) -> void:
-	_pop_text("%d" % roundi(amount), Color(1, 0.85, 0.3) if riposte else Color.WHITE)
+	var size := roundi(64 * (1.0 + 0.6 * clampf(HitEffects.weight(amount), 0.0, 1.0)))
+	_pop_text("%d" % roundi(amount), Color(1, 0.85, 0.3) if riposte else Color.WHITE, size)
 
 
-func _pop_text(text: String, color: Color) -> void:
+func _pop_text(text: String, color: Color, size := 64) -> void:
 	var label := Label3D.new()
 	label.text = text
 	label.modulate = color
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.no_depth_test = true
-	label.font_size = 64
+	label.font_size = size
 	label.pixel_size = 0.006
 	label.outline_size = 14
 	label.position = Vector3(randf_range(-0.3, 0.3), enemy.height + 0.2, 0)

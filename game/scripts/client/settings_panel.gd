@@ -47,6 +47,16 @@ func _ready() -> void:
 	volume.value_changed.connect(_on_volume)
 	add_child(Menus.row("Volume", volume))
 
+	var shake := HSlider.new()
+	shake.min_value = 0.0
+	shake.max_value = 1.0
+	shake.step = 0.05
+	shake.value = Settings.shake
+	shake.custom_minimum_size.x = 160
+	shake.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	shake.value_changed.connect(_on_shake)
+	add_child(Menus.row("Camera shake", shake))
+
 	var fullscreen := CheckBox.new()
 	fullscreen.button_pressed = get_window().mode == Window.MODE_FULLSCREEN
 	fullscreen.toggled.connect(_on_fullscreen)
@@ -84,6 +94,11 @@ func _on_sensitivity(value: float) -> void:
 func _on_volume(value: float) -> void:
 	Settings.volume = value
 	Sounds.apply_volume()
+	Settings.save()
+
+
+func _on_shake(value: float) -> void:
+	Settings.shake = value
 	Settings.save()
 
 

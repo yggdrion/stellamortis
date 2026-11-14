@@ -16,6 +16,13 @@ const UP_FOLLOW := 8.0
 const AIM_FOLLOW := 12.0
 const FOV := 70.0
 const AIM_FOV := 55.0
+## Shake: how fast trauma dies down (per second), and the largest offset (m) and roll (rad).
+const SHAKE_DECAY := 2.5
+const SHAKE_OFFSET := 0.12
+const SHAKE_ROLL := 0.02
+
+## Shake left, 0..1; views add to it with shake().
+static var trauma := 0.0
 
 var target: SimPlayer
 var yaw := 0.0
@@ -43,6 +50,11 @@ func _ready() -> void:
 	camera.make_current()
 
 
+## Kicks the camera for a hit (strength 0..1, scaled by Settings.shake).
+static func shake(strength: float) -> void:
+	trauma = minf(1.0, trauma + strength * Settings.shake)
+
+
 func look(relative: Vector2) -> void:
 	yaw = fposmod(yaw - relative.x * Controls.MOUSE_SENSITIVITY * Settings.sensitivity, TAU)
 	pitch = clampf(
@@ -62,6 +74,11 @@ func _process(delta: float) -> void:
 	_arm.spring_length = lerpf(ARM_LENGTH, Combat.AIM_ARM, a)
 	_arm.position.x = lerpf(SHOULDER_OFFSET, Combat.AIM_SHOULDER, a)
 	camera.fov = lerpf(FOV, AIM_FOV, a)
+	trauma = maxf(0.0, trauma - SHAKE_DECAY * delta)
+	var kick := trauma * trauma
+	camera.h_offset = randf_range(-1.0, 1.0) * kick * SHAKE_OFFSET
+	camera.v_offset = randf_range(-1.0, 1.0) * kick * SHAKE_OFFSET
+	camera.rotation.z = randf_range(-1.0, 1.0) * kick * SHAKE_ROLL
 	global_transform = Transform3D(
 		base * Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, pitch),
 		feet + _up * lerpf(HEAD_HEIGHT, Combat.AIM_HEAD, a)

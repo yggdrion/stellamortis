@@ -242,6 +242,20 @@ func flash(color: Color, seconds: float) -> void:
 	_flash_left = seconds
 
 
+## Hit stop: stops the clip where it is; the next play_timed or loop sets its speed again.
+func freeze() -> void:
+	animation.speed_scale = 0.0
+
+
+## A short scale punch (amount: how much bigger, seconds: there and back).
+func punch(amount: float, seconds: float) -> void:
+	if _headless():
+		return
+	var tween := create_tween()
+	tween.tween_property(self, "scale", Vector3.ONE * (1.0 + amount), seconds * 0.4)
+	tween.tween_property(self, "scale", Vector3.ONE, seconds * 0.6)
+
+
 ## A steady tint (telegraph); a running flash() wins.
 func glow(color: Color) -> void:
 	if _flash_left > 0.0:

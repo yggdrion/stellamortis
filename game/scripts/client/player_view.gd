@@ -17,6 +17,9 @@ const ROLL_CLIP_TRAVEL := 0.6
 var player: SimPlayer
 var _model: CharacterModel
 var _last_health := -1.0
+## Hit stop: seconds left of the held pose; swing_hits bits already counted.
+var _hold := 0.0
+var _counted_hits := 0
 var _turned := Quaternion.IDENTITY
 var _respawns := -1
 ## Sounds: the state last frame, and distance walked since the last footstep.
@@ -64,13 +67,56 @@ func _process(delta: float) -> void:
 		_model.flash(Color(1, 0.15, 0.1, 0.35), 0.15)
 		var blocked := player.action == SimPlayer.Action.BLOCK
 		Sounds.play(self, &"block" if blocked else &"hurt")
+		_taken(_last_health - player.health, blocked)
 	_last_health = player.health
+	_dealt()
 	_sounds(delta)
 	var crossbow := player.weapon == SimPlayer.Weapon.CROSSBOW
 	_model.show_prop("sword", not crossbow)
 	_model.show_prop("shield", not crossbow)
 	_model.show_prop("crossbow", crossbow)
-	_pose()
+	if _hold > 0.0:
+		_hold -= delta
+	else:
+		_pose()
+
+
+## A hit on this player, seen in the health (a respawn refills it and never counts): hold the
+## pose, kick the camera if it is ours, throw blood, or splinters and sparks off the shield.
+func _taken(lost: float, blocked: bool) -> void:
+	_hold = HitEffects.stop_time(lost)
+	_model.freeze()
+	_model.punch(0.02, 0.12)
+	if _local():
+		CameraRig.shake(HitEffects.shake_strength(lost * (4.0 if blocked else 1.0)))
+	if not visible:
+		return
+	var flat := player.velocity - player.up * player.velocity.dot(player.up)
+	var away := flat.normalized() if flat.length() > 0.5 else player.up
+	var at := player.global_position + player.up * SimPlayer.HEIGHT * 0.6
+	if blocked:
+		HitEffects.burst(self, at, away + player.up * 0.4, HitEffects.Kind.WOOD)
+		HitEffects.burst(self, at, away + player.up * 0.4, HitEffects.Kind.SPARKS)
+	else:
+		HitEffects.burst(self, at, away + player.up * 0.4, HitEffects.Kind.BLOOD)
+
+
+## A swing of this player landing, seen as a new bit in swing_hits (cleared when the next swing
+## starts, so the bits are compared to what was counted): hold the pose and kick the camera.
+func _dealt() -> void:
+	var fresh := player.swing_hits & ~_counted_hits
+	_counted_hits = player.swing_hits
+	if fresh == 0 or player.action != SimPlayer.Action.ATTACK:
+		return
+	var damage := Combat.player_attack(player.attack).damage
+	_hold = maxf(_hold, HitEffects.stop_time(damage))
+	_model.freeze()
+	if _local():
+		CameraRig.shake(HitEffects.shake_strength(damage))
+
+
+func _local() -> bool:
+	return player.peer_id == multiplayer.get_unique_id()
 
 
 ## The model's rotation follows the body's with a short lag (global, so the body's own turn

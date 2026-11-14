@@ -101,7 +101,7 @@ func _add_encounter() -> void:
 
 func _add_enemy(enemy: Enemy, index: int, at: Vector3, start: Enemy.Action) -> void:
 	enemy.index = index
-	enemy.home = Transform3D(SimPlayer.frame(Vector3.UP, Vector3.FORWARD), at)
+	enemy.home = Transform3D(SimPlayer.frame(Gravity.up_at(at), Vector3.FORWARD), at)
 	var state := Enemy.STATE + Enemy.ACTOR_STATE
 	if enemy is Warden:
 		state += Warden.EXTRA_STATE

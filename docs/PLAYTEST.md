@@ -67,3 +67,11 @@ The look (task 5, `client/terrain_view.gd`, `sim/scatter.gd`, `shaders/terrain.g
 - [ ] Scatter density and view distance per preset (F4): Low 35% density out to 120 m and ground to 250 m, Medium 60%, High and Ultra everything out to 260 and 340 m. Is each preset still a forest? Does switching preset while standing in the realm rebuild the scatter without a hitch?
 - [ ] Frame time on Low and High while running through the forest and over the ridge: no hitch when chunks stream in (meshes and scatter are built on workers, 2 chunks per frame), the F3 frame time near the numbers in `docs/PLAN.md` §3.1 (measured on an RTX 4080 only: vsync-bound, GPU 1.3 to 2.4 ms on Low and High; the 1050 Ti numbers were not measured).
 - [ ] Two players on the realm see the same trees and stones in the same places (the scatter is seeded, nothing is sent).
+
+## M21 Enemy pool
+
+Enemies follow gravity (task 1, `sim/enemy.gd`, `client/enemy_view.gd`; protocol 17; only reachable once task 4 puts enemies on the realm, or by placing one there with a test):
+
+- [ ] An enemy standing or walking on a Barrowlands hillside stands upright along the local up, its feet on the ground, also over a ridge, and turns to follow a player round a hill without sliding sideways or sinking in.
+- [ ] Seen from another client, the same enemy has the same posture (no wobble when `up` follows the gravity while it walks).
+- [ ] Keep dummies, the old realm's mobs and the Warden behave as before.

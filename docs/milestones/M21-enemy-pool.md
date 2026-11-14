@@ -23,9 +23,9 @@ M20 (realm, terrain, `Layout.realm_at`). M19 task 1 if merged (its `FLINCH` and 
 
 Files: `game/scripts/sim/enemy.gd`, `sim/mob.gd`, `sim/warden.gd`, `sim/world.gd`, `client/enemy_view.gd`, `game/tests/encounter_test.gd`, new test in `tests/realm_walk_test.gd`.
 
-Reuse: `SimPlayer._turn_frame` (`sim_player.gd:602`), `SimPlayer.frame`, `SimPlayer._tangent`, `Combat.in_arc` (already up aware).
+Reuse: `SimPlayer.up_turn` (the rotation behind `_turn_frame`), `SimPlayer.frame`, `SimPlayer._tangent`, `Gravity.up_at`, `Combat.in_arc` (already up aware).
 
-Steps: give `Enemy` an `up` that follows `-Gravity.sample` like the player's (move the shared frame math to a static helper instead of copying it); `Enemy.up()` returns it; `_walk`, `_orient`, `_turn_toward` use it; `home` is built from the ground normal (`world.gd:78` uses `Vector3.UP`); `up` joins `Enemy.STATE` with a wire serializer.
+Steps: give `Enemy` an `up` that follows `-Gravity.sample` like the player's (move the shared frame math to a static helper instead of copying it); `up` is a variable (`Enemy.up()` is gone, as `SimPlayer.up`); `_walk`, `_orient`, `_turn_toward` use it; `home` is built from the ground normal (`World._add_enemy` uses `Gravity.up_at`); `up` joins `Enemy.STATE` with a wire serializer.
 
 Tests: a mob placed on the realm chases a player 60 m over a hill and stays on the ground; a ranged mob's bolts still hit; the old encounter tests pass unchanged.
 

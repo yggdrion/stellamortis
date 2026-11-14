@@ -16,6 +16,9 @@ const JITTER := 0.005
 const WALKABLE_DEGREES := 50.0
 ## Normals come from the height function, the collision from triangles.
 const SLOPE_SLACK_DEGREES := 6.0
+## The mob walk: a player this far (m) ahead of it, LEGS times.
+const LEG := 12.0
+const LEGS := 6
 
 var _realm: RealmDef
 var _field: Terrain.Field
@@ -238,3 +241,136 @@ func test_steep_slope_is_not_climbed() -> void:
 		if _player.grounded and slope > WALKABLE_DEGREES + SLOPE_SLACK_DEGREES:
 			climbed += 1
 	assert_int(climbed).is_equal(0)
+
+
+## --- Enemies on the realm (M21 task 1): they stand and walk along the local gravity. ---
+
+
+func _feet(direction: Vector3) -> Vector3:
+	return _realm.center + _field.surface(direction) + direction * 0.05
+
+
+## A mob standing on the realm ground in a direction (its post), facing forward.
+func _mob_at(direction: Vector3, ranged := false) -> Mob:
+	var mob := auto_free(Mob.new()) as Mob
+	if ranged:
+		mob.make_ranged()
+	else:
+		mob.make_melee()
+	mob.home = Transform3D(SimPlayer.frame(direction, Vector3.FORWARD), _feet(direction))
+	add_child(mob)
+	mob.reset(Enemy.Action.IDLE)
+	return mob
+
+
+## One tick of the mob (and of the player when it is stepped), TICKS_PER_FRAME per frame.
+func _mob_ticks(mob: Mob, ticks: int, step_player := false) -> void:
+	for i in ticks:
+		if i % TICKS_PER_FRAME == 0:
+			await get_tree().physics_frame
+		_player.health = 100.0
+		mob._rollback_tick(DELTA, 0, true)
+		if step_player:
+			_tick(Vector2.ZERO)
+
+
+## Meters above the height function under a point.
+func _over_ground(point: Vector3) -> float:
+	var local := point - _realm.center
+	return local.length() - (_realm.radius + _field.height(local.normalized()))
+
+
+## The direction `arc` meters further along the great circle around axis.
+func _ahead(from: Vector3, axis: Vector3, arc: float) -> Vector3:
+	return from.rotated(axis, arc / _realm.radius)
+
+
+## The axis of the great circle through a direction, heading forward (-Z).
+func _axis(from: Vector3) -> Vector3:
+	return from.cross(SimPlayer._tangent(Vector3.FORWARD, from)).normalized()
+
+
+func test_mob_chases_a_player_over_the_hills_and_stays_on_the_ground() -> void:
+	var start := _realm.arrival
+	var axis := _axis(start)
+	_spawn(start)
+	var mob := _mob_at(start)
+	_chunks.ensure_around(mob.global_position)
+	var low := INF
+	var high := -INF
+	var low_ground := INF
+	var worst := 0.0
+	var direction := start
+	for leg in LEGS:
+		direction = _ahead(direction, axis, LEG)
+		var feet := _feet(direction)
+		_chunks.ensure_around(feet)
+		_player.place(feet)
+		mob.home.origin = feet
+		await _mob_ticks(mob, 150)
+		var local := mob.global_position - _realm.center
+		low = minf(low, _over_ground(mob.global_position))
+		high = maxf(high, _field.height(local.normalized()))
+		low_ground = minf(low_ground, _field.height(local.normalized()))
+		worst = maxf(worst, mob.up.angle_to(local.normalized()))
+	var walked := _arc(_feet(start), mob.global_position)
+	print(
+		(
+			"mob walked %.0f m, lowest %.3f m, up off by %.1f degrees"
+			% [walked, low, rad_to_deg(worst)]
+		)
+	)
+	print("ground heights %.1f to %.1f m" % [low_ground, high])
+	assert_float(high - low_ground).is_greater(1.0)
+	assert_float(walked).is_greater(55.0)
+	assert_float(low).is_greater(-BELOW)
+	assert_float(_over_ground(mob.global_position)).is_less(BELOW + 0.5)
+	# Its up is the local gravity's opposite (the terrain is not the sphere: slack for the lag
+	# of 0.25 s up_turn_time while it walks).
+	assert_float(rad_to_deg(worst)).is_less(8.0)
+	assert_vector(mob.global_basis.y).is_equal_approx(mob.up, Vector3.ONE * 0.001)
+	assert_float(mob.global_position.distance_to(_player.global_position)).is_less(6.0)
+
+
+func test_ranged_mob_bolts_hit_on_the_realm() -> void:
+	var start := _realm.arrival
+	_spawn(_ahead(start, _axis(start), 11.0))
+	var mob := _mob_at(start, true)
+	_chunks.ensure_around(mob.global_position)
+	await _settle()
+	_player.health = 100.0
+	var lowest := 100.0
+	for i in 240:
+		if i % TICKS_PER_FRAME == 0:
+			await get_tree().physics_frame
+		mob._rollback_tick(DELTA, 0, true)
+		_tick(Vector2.ZERO)
+		lowest = minf(lowest, _player.health)
+	assert_float(lowest).is_less(100.0)
+	assert_vector(mob.global_basis.y).is_equal_approx(mob.up, Vector3.ONE * 0.001)
+
+
+func test_mob_replay_from_rolled_back_state_is_identical() -> void:
+	var start := _realm.arrival
+	_spawn(_ahead(start, _axis(start), 30.0))
+	var mob := _mob_at(start)
+	mob.home.origin = _player.global_position
+	_chunks.ensure_around(_player.global_position)
+	await _mob_ticks(mob, 60)
+	var state := {}
+	for property: String in Enemy.STATE + Enemy.ACTOR_STATE:
+		state[property] = _copy(mob.get(property))
+	var traces: Array = []
+	for run in 2:
+		for property: String in state:
+			mob.set(property, _copy(state[property]))
+		var trace: Array[Vector3] = []
+		for i in 150:
+			if i % TICKS_PER_FRAME == 0:
+				await get_tree().physics_frame
+			_player.health = 100.0
+			mob._rollback_tick(DELTA, 0, true)
+			trace.append(mob.global_position)
+			trace.append(mob.up)
+		traces.append(trace)
+	assert_array(traces[1]).is_equal(traces[0])

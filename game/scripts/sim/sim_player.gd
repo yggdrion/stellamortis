@@ -471,7 +471,7 @@ func _defend(t: Tuning) -> void:
 		var def := enemy.attack_def()
 		var origin := enemy.strike_origin()
 		if not Combat.in_arc(
-			origin, enemy.facing, enemy.up(), def.reach, def.arc_degrees, center(), RADIUS
+			origin, enemy.facing, enemy.up, def.reach, def.arc_degrees, center(), RADIUS
 		):
 			continue
 		if dodging():
@@ -626,19 +626,30 @@ static func _mutate(target: Node) -> void:
 
 
 ## Turns up by weight (0..1) of the way to target and carries ref_forward and facing along
-## (parallel transport). Axis-angle, because slerp and arc quaternions are undefined for
-## opposite vectors, which happens when leaving the asteroid's underside.
+## (parallel transport; the rotation comes from up_turn).
 func _turn_frame(target: Vector3, weight: float) -> void:
-	var angle := up.angle_to(target)
-	if angle < 0.0001:
+	var turn := up_turn(up, target, weight, ref_forward)
+	if turn == Quaternion.IDENTITY:
 		return
-	var axis := up.cross(target)
-	if axis.length_squared() < 0.000001:
-		axis = ref_forward
-	var turn := Quaternion(axis.normalized(), angle * weight)
 	up = (turn * up).normalized()
 	ref_forward = _tangent(turn * ref_forward, up)
 	facing = _tangent(turn * facing, up)
+
+
+## The rotation that turns up_vector by weight (0..1) of the way to target, identity when it
+## is there already; apply it to every vector carried along (players and enemies). Axis-angle,
+## because slerp and arc quaternions are undefined for opposite vectors, which happens when
+## leaving the asteroid's underside; fallback is the axis then.
+static func up_turn(
+	up_vector: Vector3, target: Vector3, weight: float, fallback: Vector3
+) -> Quaternion:
+	var angle := up_vector.angle_to(target)
+	if angle < 0.0001:
+		return Quaternion.IDENTITY
+	var axis := up_vector.cross(target)
+	if axis.length_squared() < 0.000001:
+		axis = fallback
+	return Quaternion(axis.normalized(), angle * weight)
 
 
 ## Walks up a step the slide stopped at: from where the tick began, lifts by STEP_HEIGHT, moves

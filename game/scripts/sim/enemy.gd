@@ -13,7 +13,15 @@ const RADIUS := 0.5
 const GROUP := &"enemies"
 ## Rolled back state; subclasses append their own.
 const STATE := [
-	"transform", "facing", "health", "action", "action_time", "parried", "quiet_time", "flinch_time"
+	"transform",
+	"up",
+	"facing",
+	"health",
+	"action",
+	"action_time",
+	"parried",
+	"quiet_time",
+	"flinch_time",
 ]
 ## State of enemies that walk and shoot (Mob, Warden).
 const ACTOR_STATE := ["velocity", "attack", "bolt_pos", "bolt_vel", "bolt_life"]
@@ -46,6 +54,9 @@ var attacks: Array[StringName] = []
 ## The attack its bolts deal damage with.
 var shot_attack: StringName = &""
 
+## Which way is up for it: follows the local gravity like a player's up (rolled back; the
+## transform is rebuilt from it and facing every tick).
+var up := Vector3.UP
 var facing := Vector3.FORWARD
 var health := 400.0
 var action := Action.IDLE
@@ -147,10 +158,6 @@ func center() -> Vector3:
 	return global_position + global_basis.y * (height / 2.0)
 
 
-func up() -> Vector3:
-	return global_basis.y
-
-
 ## Where the current attack's hit area is centered.
 func strike_origin() -> Vector3:
 	return center() + facing * attack_def().offset
@@ -187,7 +194,7 @@ func take_hit(amount: float, from: Vector3, knockback := 0.0, flinch := 0.0) -> 
 		health = 0.0
 		_set_action(Action.DOWN)
 		return amount
-	velocity += SimPlayer._tangent(global_position - from, up()) * knockback * shove
+	velocity += SimPlayer._tangent(global_position - from, up) * knockback * shove
 	var busy := action == Action.WINDUP or action == Action.STRIKE or action == Action.RECOVER
 	if flinches and flinch > 0.0 and action != Action.STAGGER and (not busy or flinch >= poise):
 		_set_action(Action.FLINCH)
@@ -210,6 +217,7 @@ func parry() -> void:
 ## Back to where and how it started (encounter reset).
 func reset(start: Action) -> void:
 	global_transform = home
+	up = home.basis.y
 	facing = -home.basis.z
 	velocity = Vector3.ZERO
 	health = max_health
@@ -300,7 +308,7 @@ func _fire(def: AttackDef, at: Vector3) -> void:
 		if def.bolts > 1:
 			fan = deg_to_rad(def.spread_degrees) * (float(n) / (def.bolts - 1) - 0.5)
 		bolt_pos[slot] = muzzle
-		bolt_vel[slot] = base.rotated(up(), fan)
+		bolt_vel[slot] = base.rotated(up, fan)
 		bolt_life[slot] = Combat.ticks(4.0)
 
 
@@ -322,24 +330,38 @@ func _fly_bolts(delta: float) -> void:
 			bolt_life[i] = 0
 
 
+## Turns up toward the local gravity's opposite and carries facing along.
+func _follow_gravity(gravity: Vector3, delta: float) -> void:
+	var strength := gravity.length()
+	if strength < 0.001:
+		return
+	var weight := minf(1.0, delta / Tuning.data().up_turn_time)
+	var turn := SimPlayer.up_turn(up, -gravity / strength, weight, facing)
+	if turn == Quaternion.IDENTITY:
+		return
+	up = (turn * up).normalized()
+	facing = SimPlayer._tangent(turn * facing, up)
+
+
 ## Walks along wish (tangent, length up to 1) at speed, under gravity, on its own up.
 func _walk(wish: Vector3, speed: float, delta: float) -> void:
-	var body_up := up()
-	var vertical := body_up * velocity.dot(body_up)
+	var gravity := Gravity.sample(global_position)
+	_follow_gravity(gravity, delta)
+	var vertical := up * velocity.dot(up)
 	var horizontal := velocity - vertical
 	horizontal = horizontal.move_toward(wish * speed, 30.0 * delta)
-	vertical += Gravity.sample(global_position) * delta
+	vertical += gravity * delta
 	velocity = horizontal + vertical
-	up_direction = body_up
+	up_direction = up
 	velocity *= NetworkTime.physics_factor
 	move_and_slide()
 	velocity /= NetworkTime.physics_factor
 
 
 func _turn_toward(point: Vector3, rate: float, delta: float) -> void:
-	var to := SimPlayer._tangent(point - global_position, up())
-	facing = SimPlayer._tangent(facing.slerp(to, minf(1.0, delta * rate)), up())
+	var to := SimPlayer._tangent(point - global_position, up)
+	facing = SimPlayer._tangent(facing.slerp(to, minf(1.0, delta * rate)), up)
 
 
 func _orient() -> void:
-	global_basis = SimPlayer.frame(up(), facing)
+	global_basis = SimPlayer.frame(up, facing)

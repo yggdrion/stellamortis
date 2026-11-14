@@ -12,6 +12,12 @@ static func sample(position: Vector3) -> Vector3:
 	return DEFAULT if zone == null else zone.gravity_at(position)
 
 
+## Which way is up at a point: against the gravity, world up where there is none.
+static func up_at(position: Vector3) -> Vector3:
+	var gravity := sample(position)
+	return -gravity.normalized() if gravity.length_squared() > 0.000001 else Vector3.UP
+
+
 ## The winning zone at a point, null for the world default.
 static func zone_at(position: Vector3) -> GravityZone:
 	var best: GravityZone = null

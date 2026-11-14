@@ -103,7 +103,7 @@ func _rollback_tick(delta: float, _tick: int, _is_fresh: bool) -> void:
 ## Picks the next move by distance and phase; returns where to walk.
 func _engage(target: SimPlayer, delta: float) -> Vector3:
 	_turn_toward(target.global_position, TURN_RATE, delta)
-	var to := SimPlayer._tangent(target.global_position - global_position, up())
+	var to := SimPlayer._tangent(target.global_position - global_position, up)
 	var distance := target.global_position.distance_to(global_position)
 	if action_time < Combat.ticks(0.5 if phase_2() else 0.9):
 		return to if distance > 4.0 else Vector3.ZERO

@@ -306,11 +306,11 @@ func _hit(lost: float) -> void:
 	_model.punch(0.03 + 0.05 * clampf(HitEffects.weight(lost), 0.0, 1.0), 0.15)
 	if not visible:
 		return
-	var flat := enemy.velocity - enemy.up() * enemy.velocity.dot(enemy.up())
+	var flat := enemy.velocity - enemy.up * enemy.velocity.dot(enemy.up)
 	var away := flat.normalized() if flat.length() > 0.5 else -enemy.facing
 	var kind := HitEffects.Kind.SPARKS if enemy is Warden else HitEffects.Kind.BLOOD
 	HitEffects.burst(
-		self, enemy.global_position + enemy.up() * enemy.height * 0.6, away + enemy.up() * 0.4, kind
+		self, enemy.global_position + enemy.up * enemy.height * 0.6, away + enemy.up * 0.4, kind
 	)
 
 
@@ -339,8 +339,8 @@ func _burn(delta: float) -> void:
 	_ember_wait -= delta
 	if burned > 0.0 and burned < 1.0 and visible and _ember_wait <= 0.0:
 		_ember_wait = EMBER_EVERY
-		var at := enemy.global_position + enemy.up() * enemy.height * randf()
-		HitEffects.burst(self, at, enemy.up(), HitEffects.Kind.EMBERS)
+		var at := enemy.global_position + enemy.up * enemy.height * randf()
+		HitEffects.burst(self, at, enemy.up, HitEffects.Kind.EMBERS)
 
 
 ## Windups growl, strikes swoosh (embers hiss for shots), falls thud, the Warden stomps as it
@@ -440,7 +440,7 @@ func _pose() -> void:
 
 func _idle_or_walk() -> void:
 	_model.glow(Color(0, 0, 0, 0))
-	var moving := enemy.velocity - enemy.up() * enemy.velocity.dot(enemy.up())
+	var moving := enemy.velocity - enemy.up * enemy.velocity.dot(enemy.up)
 	var speed := moving.length()
 	if speed > WALKING:
 		_model.loop(_clips["walk"], speed / 2.0)

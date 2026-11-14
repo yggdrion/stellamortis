@@ -64,7 +64,7 @@ func _rollback_tick(delta: float, _tick: int, _is_fresh: bool) -> void:
 	elif target:
 		wish = _engage(target, delta)
 	elif global_position.distance_to(home.origin) > 1.0:
-		wish = SimPlayer._tangent(home.origin - global_position, up())
+		wish = SimPlayer._tangent(home.origin - global_position, up)
 		_turn_toward(home.origin, TURN_RATE, delta)
 	_walk(wish, speed, delta)
 	_orient()
@@ -82,7 +82,7 @@ func _target() -> SimPlayer:
 ## Turns to the target, attacks when it can and returns where to walk.
 func _engage(target: SimPlayer, delta: float) -> Vector3:
 	_turn_toward(target.global_position, TURN_RATE, delta)
-	var to := SimPlayer._tangent(target.global_position - global_position, up())
+	var to := SimPlayer._tangent(target.global_position - global_position, up)
 	var distance := target.global_position.distance_to(global_position)
 	var rested := action_time >= Combat.ticks(rest)
 	if ranged:

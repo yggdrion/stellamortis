@@ -23,7 +23,8 @@ concurrency:
 env:
   # Tools inside the checkout, where the caches below look for them.
   STELLAMORTIS_TOOLS: .tools
-  ARTIFACT_DAYS: 3
+  # The release holds the zips for good; the artifacts only carry them between jobs.
+  ARTIFACT_DAYS: 1
 
 jobs:
   check:

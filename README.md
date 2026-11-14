@@ -82,7 +82,7 @@ playing.
 
 Every push to `main` runs `.github/workflows/release.yml`: `tools/check.py` on Linux, then
 `tools/export.py` on a Linux, Windows and macOS runner each (macOS: universal app, ad-hoc signed,
-not notarized). The exports are kept as workflow artifacts for 3 days and published as a
+not notarized). The exports are kept as workflow artifacts for 1 day and published as a
 GitHub Release `v<VERSION>.<patch>` with `stellamortis-<tag>-linux.zip`,
 `stellamortis-<tag>-windows.zip` and `stellamortis-<tag>-macos.zip` (e.g.
 `stellamortis-v0.15.3-macos.zip`). Each release's notes start with `.github/release-notes.md`

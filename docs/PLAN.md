@@ -221,10 +221,10 @@ docs/        PLAN.md, RESOURCES.md
 | M12 | Medieval fantasy theme | Replace M9's sci-fi look with dark, grounded medieval fantasy (worn steel, stone, torches, undead and beasts, muted colors; not cute). Space stays as travel: a home hub (a keep on a small planet) with portals to other planets, each a realm with its own gravity and encounter; one planet is loaded at a time. Replace every M9 piece: knights in armor, swords, round shields, the crossbow back, fantasy mobs and Warden. After the Warden falls: a victory notice and a portal home; the planet resets when the group leaves. A wipe sends everyone back to the hub and resets the planet. Restyle HUD and menus. CC0 packs may be downloaded (Quaternius fantasy outfits on the UAL rig, fantasy environment kits). Fold in the §3.1 rendering items that fit: LightmapGI for static levels, `AreaLight3D` for torches and windows, decals for impacts, `AnimationTree` with blend spaces and foot IK | Done |
 | M13 | Discord Rich Presence | Discord application "Stellamortis", application ID `1563509032348557382` (public). A logo in the M12 style (SVG, exported 1024×1024 PNG for the app icon and the Rich Presence art, also used as the game icon); the user uploads it in the developer portal. Presence shows the mode (in the menu, Solo, Hosting), the party size (n of 6) and the elapsed time; no room code. Client: a GDExtension or the Discord IPC; skipped when Discord is not running | Done |
 | M14 | Sound | CC0 sounds: hits, blocks, parries, telegraphs, footsteps, UI, some ambience per planet | Done |
-| M15 | Test round | One milestone for everything left to verify, after the features are built blind: the user play-tests by hand (solo, with a friend on another network, one player behind a strict NAT without `--relay-only`); the headless network test fights the encounter (mobs, Warden phases, enemy shots) under 100 ms lag; `--host --bot` gives up on its own after `--duration`; screenshots of every enemy state and effect (gravity well, phase 2); numbers (damage, windups, ranges, boss health, well strength) get tuned from the play-test | Planned |
-| M16 | Frame pacing | Settings to turn vsync off and, as an alternative, cap the frame rate (`Engine.max_fps`, e.g. 60/120/144/unlimited), saved with the graphics preset; F3 shows the cap. Later, not relevant for the PoC | Later |
-| M17 | Wooting analog | Analog movement from Wooting keyboards through the Wooting Analog SDK (GDExtension or a small native bridge): WASD depth becomes `PlayerControls.move` length, so walk speed follows key pressure; digital keys stay the fallback when no Wooting device or SDK is present. Later, not relevant for the PoC | Later |
-| M18 | Telemetry | Opt-in game telemetry (sessions, joins, connection type, tick and frame times) through the lobby host. Later, not relevant for the PoC | Later |
+| M15 | Test round | Everything left to verify after the features were built blind: hand play-tests, the network test under lag, screenshots, tuning. Brief: `docs/milestones/M15-test-round.md` | Done (2026-11-14), v0.16.0 |
+| M16 | Frame pacing | Settings for vsync and a frame rate cap, saved, shown in F3. Required; independent of M19 to M29. Brief: `docs/milestones/M16-frame-pacing.md` | Planned |
+| M17 | Wooting analog | Analog movement from Wooting keyboards. Brief: `docs/milestones/M17-wooting-analog.md` | Optional |
+| M18 | Telemetry | Opt-in game telemetry through the lobby host. Brief: `docs/milestones/M18-telemetry.md` | Optional |
 | M19 | Hit feel | Hitting and being hit read clearly and feel heavy: knockback and flinch, hit stop, camera shake, blood and sparks, enemies that fall and burn away. Brief: `docs/milestones/M19-hit-feel.md` | Planned |
 | M20 | Big round realm | A world has a seed. The Barrowlands is a generated realm of 1000 m radius with streamed terrain, reached by a keep gate; two peers stand on identical ground; it looks like northern moorland. Brief: `docs/milestones/M20-big-round-realm.md` | Planned |
 | M21 | Enemy pool | Enemies walk the round realm; kinds are data; a pool of 24 rolled back slots serves seeded camps and roamers near players; the load test holds 29 tps with a full pool. Brief: `docs/milestones/M21-enemy-pool.md` | Planned |
@@ -237,7 +237,7 @@ docs/        PLAN.md, RESOURCES.md
 | M28 | Skyshards | Floating rocks with launch stones, sentries, sky iron, tier 4, a boss fought across rocks. Brief: `docs/milestones/M28-skyshards.md` | Planned |
 | M29 | Base building | Place, snap and remove saved pieces and stations on any realm, within a piece budget. Brief: `docs/milestones/M29-base-building.md` | Planned |
 
-From M19 on every milestone ends with a hand play-test by the user instead of being built blind. M15 keeps the PoC leftovers.
+From M15 on every milestone has a brief in `docs/milestones/`. From M19 on every milestone ends with a hand play-test by the user instead of being built blind.
 
 ## 7. Open questions
 
@@ -295,4 +295,4 @@ Still open (§3.1, not in a milestone yet):
 
 Open from the 2026-11-14 planning (§4.8): food, rest, day and night are not planned yet; whether 1000 m is the right realm radius, and the enemy pool size, wait for M20's play-test and M21's load test.
 
-Milestones not started: M15 test round; M19 to M29 the survival world (§4.8, `docs/milestones/`); Later: M16 frame pacing, M17 Wooting analog, M18 telemetry.
+Milestones not started: M16 frame pacing (required); M19 to M29 the survival world (§4.8); optional: M17 Wooting analog, M18 telemetry. M15 test round is done (2026-11-14). Briefs for all of them are in `docs/milestones/`.

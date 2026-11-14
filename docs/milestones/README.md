@@ -1,6 +1,6 @@
 # Milestone briefs
 
-One file per milestone from M19 on. Each brief splits the milestone into tasks that one worker (a Sonnet or Opus subagent, or a person) can build alone, one PR per task, in the order given unless the brief says tasks are independent.
+One file per milestone from M15 on (M0 to M14 are described in `docs/PLAN.md` §6 and §4). Each brief splits the milestone into tasks that one worker (a Sonnet or Opus subagent, or a person) can build alone, one PR per task, in the order given unless the brief says tasks are independent.
 
 `docs/PLAN.md` stays the source of truth for design (§4.8 for the survival world). A brief says how to build it. When a brief and the code disagree, the code is right: fix the brief in the same PR.
 
@@ -56,5 +56,7 @@ Pitfalls        what has gone wrong before, or will
 M19 to M22 are written to file and function level. M23 to M29 fix goal, tasks, interfaces and done-when; their file level detail is added when the milestone before them lands, because it depends on that code. Whoever finishes a milestone details the next brief as its last task.
 
 ## Order
+
+M15 is done. M16 (frame pacing) is required and independent: do it any time. M17 and M18 are optional and wait for the user to ask.
 
 M19 (hit feel) is independent and can run beside M20. M20, M21, M22 are a chain. M23 needs M22's world flags and M21's kinds. M24 needs M23's items. M25 needs M23 and M24. M26 to M28 each need M25 and the realm before them. M29 needs M25.

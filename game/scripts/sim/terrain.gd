@@ -83,10 +83,10 @@ static func chunks_per_face(realm: RealmDef) -> int:
 
 ## The unit direction of grid vertex (face, i, j), i and j in 0..cells. Only exact integer ratios
 ## and one normalize, so every caller gets the same bits.
-static func vertex_direction(face: int, i: int, j: int, cells: int) -> Vector3:
+static func vertex_direction(face: int, i: float, j: float, cells: int) -> Vector3:
 	var frame: Array = FACES[face]
-	var u := float(2 * i - cells) / float(cells)
-	var v := float(2 * j - cells) / float(cells)
+	var u := (2.0 * i - cells) / float(cells)
+	var v := (2.0 * j - cells) / float(cells)
 	var cube: Vector3 = frame[0] + frame[1] * u + frame[2] * v
 	return cube.normalized()
 
@@ -122,20 +122,48 @@ static func _normal(field: Field, direction: Vector3) -> Vector3:
 	return n if n.dot(direction) > 0.0 else -n
 
 
-## Collision triangles of chunk (face, x, y), realm-relative. No scene tree access.
-static func chunk_arrays(
-	realm: RealmDef, world_seed: int, face: int, x: int, y: int
+## The grid of surface points of chunk (face, x, y), realm-relative, row by row (b * side + a,
+## side = CHUNK_CELLS + 1 + 2 * margin). A margin of 1 adds the ring of points of the neighbours
+## around it (views take their normals from it).
+static func chunk_points(
+	realm: RealmDef, world_seed: int, face: int, x: int, y: int, margin := 0
+) -> PackedVector3Array:
+	return grid_points(
+		realm,
+		world_seed,
+		face,
+		grid_cells(realm),
+		Vector2i(x * CHUNK_CELLS, y * CHUNK_CELLS),
+		CHUNK_CELLS,
+		margin
+	)
+
+
+## The surface points of a span x span block of cells of a face cut into cells x cells, from grid
+## vertex first, row by row, with margin extra rings (the coarse far shell uses a coarser grid
+## than the chunks).
+static func grid_points(
+	realm: RealmDef, world_seed: int, face: int, cells: int, first: Vector2i, span: int, margin := 0
 ) -> PackedVector3Array:
 	var field := Field.new(realm, world_seed)
-	var cells := grid_cells(realm)
-	var side := CHUNK_CELLS + 1
+	var side := span + 1 + 2 * margin
 	var points := PackedVector3Array()
 	points.resize(side * side)
 	for b in side:
 		for a in side:
-			var i := x * CHUNK_CELLS + a
-			var j := y * CHUNK_CELLS + b
-			points[b * side + a] = field.surface(vertex_direction(face, i, j, cells))
+			var direction := vertex_direction(
+				face, first.x + a - margin, first.y + b - margin, cells
+			)
+			points[b * side + a] = field.surface(direction)
+	return points
+
+
+## Collision triangles of chunk (face, x, y), realm-relative. No scene tree access.
+static func chunk_arrays(
+	realm: RealmDef, world_seed: int, face: int, x: int, y: int
+) -> PackedVector3Array:
+	var side := CHUNK_CELLS + 1
+	var points := chunk_points(realm, world_seed, face, x, y)
 	var tris := PackedVector3Array()
 	tris.resize(CHUNK_CELLS * CHUNK_CELLS * 6)
 	var n := 0

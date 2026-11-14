@@ -1,6 +1,6 @@
 # M20 Big round realm
 
-Status: planned.
+Status: built (2026-11-14, v0.18.0), play-test pending (`docs/PLAYTEST.md`).
 
 ## Goal
 

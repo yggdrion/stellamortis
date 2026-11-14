@@ -13,6 +13,11 @@ const FINGERPRINT := -2947287787477998241
 const WALKABLE_DEGREES := 50.0
 
 
+## World.build sets the process-global Layout seed; later suites expect it back at 0.
+func after_test() -> void:
+	Layout.set_world_seed(0)
+
+
 func _realm() -> RealmDef:
 	return Layout.realms()[0]
 

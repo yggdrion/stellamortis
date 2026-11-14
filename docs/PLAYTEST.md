@@ -53,3 +53,17 @@ Gates and places (task 4, `sim/layout.gd`, `sim/portal.gd`; protocol 16; the rea
 - [ ] Walking around in the Barrowlands the HUD goal line names the place, the wind sound is the Barrows wind, steps sound like grass, and nothing of the keep or the old realm is drawn.
 - [ ] Gravity feels normal (9.8) on the Barrowlands ground and pulls toward the realm center, also on a hillside; leaving its reach in a jump pad-less fall is not possible to test yet.
 - [ ] Two players travelling together through the gate each arrive on a different spot of the ring on the same ground.
+
+The look (task 5, `client/terrain_view.gd`, `sim/scatter.gd`, `shaders/terrain.gdshader`, `client/graphics.gd`; the realm now has ground, forest and a moving moon):
+
+- [ ] It reads as land, not as a ball: walk 300 m in one direction and over a hill; the ground never feels like a small planet. If it does, raise `radius` and hill height in `data/realms/barrowlands.tres` before anything else.
+- [ ] The horizon is never empty or ragged: from a hilltop the far hills are there (the coarse shell), with no bright or dark seam where the near chunks end and the shell begins, and no ground flickering through the near ground (the shell hangs 4 m below).
+- [ ] Fog and night: dim and cold but never black, trees and stones readable at 100 m; the moon and the banded planet in the sky move with you around the realm (the moon follows your local up, `Arena.follow_up`) and the sky never turns upside down after a long walk, also near the realm's cube-face corners.
+- [ ] The big banded planet in the sky (from the old space sky) may read as sci-fi against the northern look: keep, swap for a moon or remove?
+- [ ] Trees (Kenney Nature Kit, recolored) may read too cartoonish next to the characters: good enough, or look for other CC0 trees?
+- [ ] Grass, heather and rock: the ground changes with height and slope (grey rock on steep ground and on the high ridges, a purple-brown heather in patches); is the heather visible at all, and does the rock read as rock?
+- [ ] Scatter: pines in clumps, a pale-trunked birch fringe, boulders on steep slopes, standing stones on high flat ground and low burial mounds in the open. Tune the numbers in `Scatter` (chances, `PINE_FROM`, `SPACING`) and the sizes and colors in `TerrainView.LOOKS`: trunks look thick, foliage and bark are dark (nearly black bark), boulders are flat.
+- [ ] The arrival is clear of trees (30 m) and the home gate stands in view of it.
+- [ ] Scatter density and view distance per preset (F4): Low 35% density out to 120 m and ground to 250 m, Medium 60%, High and Ultra everything out to 260 and 340 m. Is each preset still a forest? Does switching preset while standing in the realm rebuild the scatter without a hitch?
+- [ ] Frame time on Low and High while running through the forest and over the ridge: no hitch when chunks stream in (meshes and scatter are built on workers, 2 chunks per frame), the F3 frame time near the numbers in `docs/PLAN.md` §3.1 (measured on an RTX 4080 only: vsync-bound, GPU 1.3 to 2.4 ms on Low and High; the 1050 Ti numbers were not measured).
+- [ ] Two players on the realm see the same trees and stones in the same places (the scatter is seeded, nothing is sent).

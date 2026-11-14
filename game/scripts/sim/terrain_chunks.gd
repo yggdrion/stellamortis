@@ -88,7 +88,7 @@ func _physics_process(_delta: float) -> void:
 ## Builds, now, the chunks within radius of a point and keeps them for good (a realm's arrival
 ## point on every peer).
 func pin_around(point: Vector3, radius := ARRIVAL_RADIUS) -> void:
-	for key: Vector4i in _around(point, radius):
+	for key: Vector4i in around(point, radius):
 		_pinned[key] = true
 	ensure_around(point, radius)
 
@@ -96,7 +96,7 @@ func pin_around(point: Vector3, radius := ARRIVAL_RADIUS) -> void:
 ## Builds, now, the chunks within radius of a point that are not there yet. A gate calls it
 ## before it moves a player; it is a no-op when the chunks stand.
 func ensure_around(point: Vector3, radius := ARRIVAL_RADIUS) -> void:
-	for key: Vector4i in _around(point, radius):
+	for key: Vector4i in around(point, radius):
 		if bodies.has(key):
 			continue
 		var job: Job = _jobs.get(key)
@@ -117,7 +117,7 @@ func key_at(point: Vector3) -> Variant:
 	return _key(realm, (point - realm.center).normalized())
 
 
-func _key(realm: RealmDef, direction: Vector3) -> Vector4i:
+static func _key(realm: RealmDef, direction: Vector3) -> Vector4i:
 	var chunk := Terrain.chunk_at(realm, direction)
 	return Vector4i(Layout.realms().find(realm), chunk.x, chunk.y, chunk.z)
 
@@ -131,7 +131,7 @@ func _job(key: Vector4i) -> Job:
 
 
 ## Chunk key -> squared distance (tangent plane) of the chunks within radius of a point.
-func _around(point: Vector3, radius: float) -> Dictionary:
+static func around(point: Vector3, radius: float) -> Dictionary:
 	var found := {}
 	var realm := Layout.realm_at(point)
 	if realm == null:
@@ -176,7 +176,7 @@ func _track(nodes: Array) -> void:
 			# A new anchor (spawn, respawn, join) may stand in a realm already.
 			ensure_around(at)
 		if entry.is_empty() or at.distance_to(entry.pos) >= REFRESH_DISTANCE:
-			_tracked[id] = {"pos": at, "near": _around(at, LOAD_RADIUS)}
+			_tracked[id] = {"pos": at, "near": around(at, LOAD_RADIUS)}
 			dirty = true
 	for id: int in _tracked.keys():
 		if not alive.has(id):

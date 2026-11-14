@@ -19,6 +19,11 @@ const ROCK := "Rock030"
 const ASTEROID := "Rock035"
 const TORCH_LIGHT := Color(1.0, 0.62, 0.32)
 const MOON_LIGHT := Color(0.62, 0.7, 0.92)
+const MOON_ROTATION := Vector3(-38.0, 30.0, 0.0)
+## Where the sky's banded moon-planet hangs when up is the world's up (the sky shader's default).
+const PLANET_DIRECTION := Vector3(-0.45, 0.32, -0.83)
+## How fast the moon follows a walker's local up on a round realm (per second, exponential).
+const MOON_FOLLOW := 1.5
 
 ## Clients: which place is drawn (show_place), for views to hide what is in another one.
 static var shown := Layout.HUB_PLACE
@@ -35,6 +40,8 @@ var hub: Node3D
 var places := {}
 ## Materials by name and tint, shared by every box that uses them.
 var _materials := {}
+## The sky shader: the moon-planet and horizon follow the walker (follow_up).
+var _sky: ShaderMaterial
 ## Torch lights; each flickers with its own phase.
 var _torches: Array[OmniLight3D] = []
 ## The portal that opens where the Warden fell (shown once Encounter.won()).
@@ -78,6 +85,13 @@ func add_seeded_portals() -> void:
 	for portal in Layout.portals():
 		if portal.seeded:
 			_portal(portal)
+
+
+## Clients: the ground, shell and scatter of every generated realm (TerrainView), once the world
+## seed is known.
+func add_terrain_views(world_seed: int) -> void:
+	for def in Layout.realms():
+		(places[StringName(def.id)] as Node3D).add_child(TerrainView.new(def, world_seed))
 
 
 ## Clients: shows one place (only one is drawn at a time).
@@ -463,7 +477,7 @@ func _surface(surface: String, scale_by := 0.25) -> StandardMaterial3D:
 ## Moonlight, the night sky with its moon, and post-processing (PLAN §3.1, §3.2).
 func _add_environment() -> void:
 	var moon := DirectionalLight3D.new()
-	moon.rotation = Vector3(deg_to_rad(-38), deg_to_rad(30), 0)
+	moon.rotation = MOON_ROTATION * (PI / 180.0)
 	moon.light_color = MOON_LIGHT
 	moon.light_energy = 1.4
 	moon.shadow_enabled = true
@@ -478,6 +492,7 @@ func _add_environment() -> void:
 	sky_material.set_shader_parameter("planet_size", 0.2)
 	sky_material.set_shader_parameter("planet_light", Color(0.78, 0.74, 0.66))
 	sky_material.set_shader_parameter("planet_dark", Color(0.5, 0.46, 0.42))
+	_sky = sky_material
 	var sky := Sky.new()
 	sky.sky_material = sky_material
 	sky.process_mode = Sky.PROCESS_MODE_REALTIME
@@ -515,6 +530,24 @@ func _add_environment() -> void:
 	environment = env
 	sun = moon
 	add_child(world_env)
+
+
+## Clients: on a generated realm the moon and the sky's horizon follow the walker's local up (a
+## round ground has no single "up"); elsewhere they stay as built. Eased, so crossing a pole of
+## the frame does not snap.
+func follow_up(point: Vector3, delta: float) -> void:
+	if sun == null:
+		return
+	var def := Layout.realm_at(point)
+	var up := Vector3.UP if def == null else (point - def.center).normalized()
+	var frame := SimPlayer.frame(up, SimPlayer._tangent(Vector3.FORWARD, up))
+	var moon := frame * Basis.from_euler(MOON_ROTATION * (PI / 180.0))
+	sun.basis = sun.basis.slerp(moon, 1.0 - exp(-MOON_FOLLOW * delta))
+	_sky.set_shader_parameter("sky_up", up)
+	_sky.set_shader_parameter(
+		"planet_direction",
+		sun.basis * Basis.from_euler(MOON_ROTATION * (PI / 180.0)).inverse() * PLANET_DIRECTION
+	)
 
 
 ## Gravity zones are tinted mist with drifting motes and a glowing rune line on the ground: pale

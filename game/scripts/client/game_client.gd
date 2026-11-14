@@ -299,7 +299,7 @@ func _bot_controls(controls: PlayerControls) -> void:
 	controls.weapon = int(seconds / 4.0) % 2
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	_hud.room = room
 	_watch_silence()
 	if _snap_log and me != null:
@@ -307,6 +307,7 @@ func _process(_delta: float) -> void:
 	if me != null:
 		var place := Layout.place_at(me.global_position)
 		_world.arena.show_place(place)
+		_world.arena.follow_up(me.global_position, delta)
 		Sounds.ambience(_ambience, place)
 	if me != null and not bot:
 		_rig.aiming = (

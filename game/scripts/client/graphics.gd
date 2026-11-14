@@ -8,6 +8,12 @@ enum Preset { LOW, MEDIUM, HIGH, ULTRA }
 const NAMES := ["Low", "Medium", "High", "Ultra"]
 const SETTINGS := "user://settings.cfg"
 
+## Realm view (TerrainView) per preset: how far chunk meshes reach, how far scatter is drawn
+## and which share of it (Scatter.Point.rank under the density).
+const VIEW_RADIUS := [250.0, 350.0, 450.0, 600.0]
+const SCATTER_RADIUS := [120.0, 180.0, 260.0, 340.0]
+const SCATTER_DENSITY := [0.35, 0.6, 1.0, 1.0]
+
 static var preset := Preset.HIGH
 
 
@@ -15,6 +21,18 @@ static func load_saved() -> void:
 	var config := ConfigFile.new()
 	if config.load(SETTINGS) == OK:
 		preset = clampi(int(config.get_value("graphics", "preset", Preset.HIGH)), 0, 3) as Preset
+
+
+static func view_radius() -> float:
+	return VIEW_RADIUS[preset]
+
+
+static func scatter_radius() -> float:
+	return SCATTER_RADIUS[preset]
+
+
+static func scatter_density() -> float:
+	return SCATTER_DENSITY[preset]
 
 
 static func save() -> void:

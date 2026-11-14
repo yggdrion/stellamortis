@@ -5,6 +5,7 @@ shader_type sky;
 uniform vec3 nebula_warm : source_color = vec3(0.07, 0.09, 0.11);
 uniform vec3 nebula_cold : source_color = vec3(0.02, 0.05, 0.10);
 uniform vec3 horizon_glow : source_color = vec3(0.12, 0.16, 0.21);
+uniform vec3 sky_up = vec3(0.0, 1.0, 0.0);
 uniform vec3 planet_direction = vec3(-0.45, 0.32, -0.83);
 // Angular radius in radians.
 uniform float planet_size = 0.3;
@@ -43,18 +44,19 @@ float fbm(vec3 p) {
 
 void sky() {
 	vec3 d = normalize(EYEDIR);
+	float height = dot(d, sky_up);
 	vec3 cell = floor(d * 320.0);
 	float star = step(star_density, hash(cell)) * (0.4 + 1.6 * hash(cell + 7.3));
 	float n = fbm(d * 2.5 + vec3(3.0));
 	vec3 color = mix(nebula_cold, nebula_warm, smoothstep(0.35, 0.75, n)) * pow(n, 2.5) * 0.9;
-	color += vec3(star) * (1.0 - smoothstep(0.0, 0.25, -d.y));
-	color += horizon_glow * pow(1.0 - abs(d.y), 10.0) * 0.7;
+	color += vec3(star) * (1.0 - smoothstep(0.0, 0.25, -height));
+	color += horizon_glow * pow(1.0 - abs(height), 10.0) * 0.7;
 
 	float sun = dot(d, LIGHT0_DIRECTION);
 	color += LIGHT0_COLOR * (smoothstep(0.9993, 0.9998, sun) * 6.0 + pow(max(sun, 0.0), 300.0) * 0.6);
 
 	vec3 pd = normalize(planet_direction);
-	vec3 t = normalize(cross(pd, vec3(0.0, 1.0, 0.1)));
+	vec3 t = normalize(cross(pd, sky_up + vec3(0.0, 0.0, 0.1)));
 	vec3 b = cross(t, pd);
 	vec2 disk = vec2(dot(d, t), dot(d, b)) / sin(planet_size);
 	float r2 = dot(disk, disk);

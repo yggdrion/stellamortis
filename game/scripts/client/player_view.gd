@@ -10,6 +10,9 @@ extends Node3D
 const TURN_FOLLOW := 25.0
 ## Ground speed (m/s) at which UAL's Walk clip plays at its own pace.
 const WALK_CLIP_SPEED := 1.8
+## Where in UAL1's Roll clip the feet plant (its root motion twin Roll_RM stops moving there);
+## the rest of the clip stands up in place. tests/character_model_test.gd checks the number.
+const ROLL_CLIP_TRAVEL := 0.6
 
 var player: SimPlayer
 var _model: CharacterModel
@@ -151,8 +154,26 @@ func _pose() -> void:
 			var def := Combat.player_attack(player.attack)
 			_model.play_timed(def.animation, time / def.total_ticks(), def.total_ticks() / 30.0)
 		SimPlayer.Action.ROLL:
-			var ticks := Combat.ticks(t.roll_time)
-			_model.play_timed(&"Roll", time / ticks, t.roll_time)
+			# The clip travels for ROLL_CLIP_TRAVEL of its length and then stands up in place;
+			# the body travels for SimPlayer.ROLL_TRAVEL of the roll. Each part of the clip is
+			# stretched over its part of the roll, so the feet plant when the body stops.
+			var progress := time / Combat.ticks(t.roll_time)
+			var travel := SimPlayer.ROLL_TRAVEL
+			if progress < travel:
+				_model.play_timed(
+					&"Roll",
+					progress / travel * ROLL_CLIP_TRAVEL,
+					t.roll_time * travel / ROLL_CLIP_TRAVEL
+				)
+			else:
+				_model.play_timed(
+					&"Roll",
+					(
+						ROLL_CLIP_TRAVEL
+						+ (progress - travel) / (1.0 - travel) * (1.0 - ROLL_CLIP_TRAVEL)
+					),
+					t.roll_time * (1.0 - travel) / (1.0 - ROLL_CLIP_TRAVEL)
+				)
 		SimPlayer.Action.BLOCK:
 			_guarded(&"Idle_Shield", &"Walk_Shield")
 		SimPlayer.Action.DRAW:

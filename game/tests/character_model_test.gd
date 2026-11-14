@@ -25,3 +25,23 @@ func test_clips_keep_the_root_in_place() -> void:
 					. override_failure_message("%s moves its root %.2f m" % [clip_name, sideways])
 					. is_less(0.05)
 				)
+
+
+## PlayerView.ROLL_CLIP_TRAVEL: the roll's root motion twin stops moving there, so the feet of
+## the in-place Roll clip are planted from then on.
+func test_roll_clip_plants_its_feet_at_roll_clip_travel() -> void:
+	var scene := auto_free((load(CharacterModel.HUMAN) as PackedScene).instantiate()) as Node
+	var player := scene.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
+	var clip := player.get_animation(&"Roll_RM")
+	var root := -1
+	for track in clip.get_track_count():
+		var path := String(clip.track_get_path(track))
+		if path.ends_with(":Root") and clip.track_get_type(track) == Animation.TYPE_POSITION_3D:
+			root = track
+	assert_int(root).is_greater_equal(0)
+	var at := PlayerView.ROLL_CLIP_TRAVEL * clip.length
+	var planted: Vector3 = clip.position_track_interpolate(root, at)
+	var before: Vector3 = clip.position_track_interpolate(root, at - 0.1 * clip.length)
+	var end: Vector3 = clip.position_track_interpolate(root, clip.length)
+	assert_float(planted.distance_to(end)).is_less(0.05)
+	assert_float(before.distance_to(end)).is_greater(0.5)

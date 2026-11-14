@@ -27,8 +27,12 @@ const GROUP := &"players"
 ## Bolts in flight per player: fixed slots, so they roll back with the player's state.
 const MAX_BOLTS := 4
 const HEAVY_ATTACK := 3
-## The last part of a roll (fraction of roll_time) that eases from roll speed into walking.
-const ROLL_EASE := 0.3
+## The part of a roll (fraction of roll_time) in which the body travels. After it the body
+## brakes and stays put while the model stands up: the Roll clip plants its feet there
+## (PlayerView.ROLL_CLIP_TRAVEL), so any speed later shows as gliding.
+const ROLL_TRAVEL := 0.7
+## Braking after the travel, m/s²: stops the roll speed within two ticks.
+const ROLL_BRAKE := 150.0
 ## Highest ledge (stair riser) a grounded body walks up without jumping, in metres. The capsule's
 ## round bottom alone slides up only a few centimetres.
 const STEP_HEIGHT := 0.45
@@ -261,14 +265,12 @@ func step(
 				horizontal_target = facing * def.lunge
 			accel = t.ground_accel
 		Action.ROLL:
-			# The last ROLL_EASE of the roll eases into walking, so the body stops with the clip
-			# instead of gliding on at roll speed while the model already stands.
-			var left := 1.0 - float(action_time) / Combat.ticks(t.roll_time)
-			var rolling := clampf(left / ROLL_EASE, 0.0, 1.0)
-			horizontal_target = (
-				action_dir * t.roll_speed * rolling + wish * t.walk_speed * (1.0 - rolling)
-			)
-			accel = 1000.0
+			# Travel, then stand up in place: no input moves the body until the roll is over.
+			if action_time < roll_travel_ticks(t):
+				horizontal_target = action_dir * t.roll_speed
+				accel = 1000.0
+			else:
+				accel = ROLL_BRAKE
 	# A gravity well drags the body toward its center: walking out is slow, sprints and rolls
 	# get away. Its pull turns into a drift speed (well_drag seconds of its acceleration).
 	var pull := Gravity.pull(self, global_position)
@@ -312,6 +314,11 @@ func step(
 	if action == Action.ATTACK:
 		_strike()
 	_fly_bolts(delta)
+
+
+## Ticks of a roll in which the body travels.
+static func roll_travel_ticks(t: Tuning) -> int:
+	return roundi(Combat.ticks(t.roll_time) * ROLL_TRAVEL)
 
 
 ## In the roll's invulnerable window.

@@ -108,23 +108,35 @@ func test_roll_dodges_the_swing() -> void:
 	assert_float(_player.health).is_equal(Tuning.data().max_health)
 
 
-## The Roll clip plants the feet at 60 % of its length and stands up in place. The body has to
-## stop there too, also with a direction held, or the standing model glides over the ground.
+## The Roll clip plants the feet at 60 % of its length and stands up in place. Without a
+## direction held the body has to stop there too, or the standing model glides over the ground.
 func test_roll_stops_where_the_model_stands_up() -> void:
 	var t := Tuning.data()
-	var forward := Vector2(0, 1)
 	var from := _player.global_position
-	await _run(1, B.ROLL, forward)
+	await _run(1, B.ROLL, Vector2(0, 1))
 	var planted := from
 	while _player.action == SimPlayer.Action.ROLL:
 		if _player.action_time == SimPlayer.roll_travel_ticks(t) + 2:
 			planted = _player.global_position
-		await _run(1, 0, forward)
+		await _run(1)
 	var rolled := _player.global_position
 	# Two ticks of braking after the travel, then nothing.
 	assert_float(rolled.distance_to(planted)).is_less(0.05)
 	# The roll still covers ground.
 	assert_float(rolled.distance_to(from)).is_greater(3.8)
+
+
+## With a direction held the roll runs into walking: no standstill between them.
+func test_roll_walks_on_with_a_direction_held() -> void:
+	var t := Tuning.data()
+	var forward := Vector2(0, 1)
+	await _run(1, B.ROLL, forward)
+	var slowest := INF
+	while _player.action == SimPlayer.Action.ROLL:
+		slowest = minf(slowest, _player.velocity.length())
+		await _run(1, 0, forward)
+	assert_float(slowest).is_greater(t.walk_speed - 0.5)
+	assert_float(_player.velocity.length()).is_equal_approx(t.walk_speed, 0.5)
 
 
 func test_block_takes_chip_damage_and_stamina() -> void:

@@ -165,6 +165,9 @@ func _pose() -> void:
 					progress / travel * ROLL_CLIP_TRAVEL,
 					t.roll_time * travel / ROLL_CLIP_TRAVEL
 				)
+			elif _ground_speed() > 0.4:
+				# Walking on out of the roll: straight into the walk, no stand-up.
+				_locomotion(t)
 			else:
 				_model.play_timed(
 					&"Roll",

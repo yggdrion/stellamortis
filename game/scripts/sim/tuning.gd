@@ -29,7 +29,7 @@ static var _data: Tuning
 ## The roll's invulnerable window, seconds from its start.
 @export var roll_iframes_start := 0.06
 @export var roll_iframes_end := 0.4
-@export var roll_speed := 9.5
+@export var roll_speed := 11.5
 @export var roll_stamina := 20.0
 @export var block_speed := 2.5
 ## Share of damage a block stops; the rest goes through.

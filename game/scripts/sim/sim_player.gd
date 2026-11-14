@@ -27,12 +27,17 @@ const GROUP := &"players"
 ## Bolts in flight per player: fixed slots, so they roll back with the player's state.
 const MAX_BOLTS := 4
 const HEAVY_ATTACK := 3
-## The part of a roll (fraction of roll_time) in which the body travels. After it the body
-## brakes and stays put while the model stands up: the Roll clip plants its feet there
-## (PlayerView.ROLL_CLIP_TRAVEL), so any speed later shows as gliding.
+## The part of a roll (fraction of roll_time) in which the body travels. The Roll clip plants
+## its feet there (PlayerView.ROLL_CLIP_TRAVEL). After it, without a direction held, the body
+## brakes and stays put while the model stands up (any speed would show as gliding); with one
+## held it walks on, and the view shows the walk instead of the stand-up.
 const ROLL_TRAVEL := 0.7
-## Braking after the travel, m/s²: stops the roll speed within two ticks.
-const ROLL_BRAKE := 150.0
+## Braking after the travel, m/s²: stops what speed is left within two ticks.
+const ROLL_BRAKE := 60.0
+## The last part of the travel (fraction of it) eases from the roll speed to what comes next:
+## walking along the held direction, or ROLL_END of the roll speed before the stop.
+const ROLL_SLOW := 0.5
+const ROLL_END := 0.25
 ## Highest ledge (stair riser) a grounded body walks up without jumping, in metres. The capsule's
 ## round bottom alone slides up only a few centimetres.
 const STEP_HEIGHT := 0.45
@@ -265,10 +270,18 @@ func step(
 				horizontal_target = facing * def.lunge
 			accel = t.ground_accel
 		Action.ROLL:
-			# Travel, then stand up in place: no input moves the body until the roll is over.
+			# Travel, easing into what follows: walking on with a direction held, else a stop
+			# while the model stands up.
+			var walk_on := wish.length_squared() > 0.01
+			var after := wish * t.walk_speed if walk_on else action_dir * t.roll_speed * ROLL_END
 			if action_time < roll_travel_ticks(t):
-				horizontal_target = action_dir * t.roll_speed
+				var left := 1.0 - float(action_time) / roll_travel_ticks(t)
+				var rolling := clampf(left / ROLL_SLOW, 0.0, 1.0)
+				horizontal_target = after.lerp(action_dir * t.roll_speed, rolling)
 				accel = 1000.0
+			elif walk_on:
+				horizontal_target = after
+				accel = t.ground_accel
 			else:
 				accel = ROLL_BRAKE
 	# A gravity well drags the body toward its center: walking out is slow, sprints and rolls

@@ -212,7 +212,6 @@ def main() -> None:
     write("travel", travel(61))
     write("well", rumble(70, 4.0))
     write("whoom", whoom(80))
-    write("wind_keep", wind(90, 12.0, 500, 1.0))
     write("wind_barrows", wind(91, 12.0, 320, 2.5))
     write("torch", crackle(100, 5.0))
 

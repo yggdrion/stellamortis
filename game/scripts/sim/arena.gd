@@ -16,6 +16,10 @@ const GROUND := "Ground020"
 const BRICK := "village:UnevenBrick"
 const ROCK := "Rock030"
 const ASTEROID := "Rock035"
+const NATURE := "res://assets/kenney/nature/"
+const STONE_COUNT := 10
+const STONE_RING := 6.0
+const STONE_SCALE := 2.4
 const TORCH_LIGHT := Color(1.0, 0.62, 0.32)
 const MOON_LIGHT := Color(0.62, 0.7, 0.92)
 const MOON_ROTATION := Vector3(-38.0, 30.0, 0.0)
@@ -79,6 +83,7 @@ func add_seeded_portals() -> void:
 	for portal in Layout.portals():
 		if portal.seeded:
 			_portal(portal)
+	_arrival_look(Layout.start_realm())
 
 
 ## Clients: the ground, shell and scatter of every generated realm (TerrainView), once the world
@@ -236,6 +241,55 @@ func _prop(
 	node.basis = orientation.scaled(Vector3.ONE * scale_by)
 	parent.add_child(node)
 	return node
+
+
+## The start: standing stones in a ring around the arrival point (gaps ahead where the
+## dummies stand and behind where the gate does) and two torches on posts; visual only, placed
+## from the world seed like the gate.
+func _arrival_look(realm: RealmDef) -> void:
+	var parent := places[StringName(realm.id)] as Node3D
+	var rock := StandardMaterial3D.new()
+	rock.albedo_color = Color(0.2, 0.2, 0.22)
+	rock.roughness = 1.0
+	for k in range(1, STONE_COUNT):
+		var angle := TAU * k / STONE_COUNT
+		if absf(angle - PI) < 0.1:
+			continue
+		var spot := Layout.arrival_spot(realm, cos(angle) * STONE_RING, sin(angle) * STONE_RING)
+		var frame := _frame_at(spot)
+		var root := Node3D.new()
+		root.position = spot[0]
+		root.basis = frame
+		parent.add_child(root)
+		var model := _prop(
+			root, NATURE + "stone_tallA.glb", Vector3.ZERO, Basis.IDENTITY, STONE_SCALE
+		)
+		_recolor(model, rock)
+	for side: float in [-1.0, 1.0]:
+		var spot := Layout.arrival_spot(realm, -3.0, side * 5.5)
+		var root := Node3D.new()
+		root.position = spot[0]
+		root.basis = SimPlayer.frame(spot[1], Vector3.BACK)
+		parent.add_child(root)
+		root.add_child(_block(Vector3(0.14, 1.7, 0.14), Vector3(0, 0.85, 0), _surface(BRICK, 0.3)))
+		_torch(root, Vector3(0, 1.45, 0.07), Vector3.BACK, false)
+
+
+## A basis standing along spot's up, looking at the ring's center.
+func _frame_at(spot: Array) -> Basis:
+	var center := Layout.arrival_spot(Layout.start_realm(), 0.0, 0.0)
+	var up: Vector3 = spot[1]
+	var inward := (center[0] as Vector3) - (spot[0] as Vector3)
+	inward -= up * inward.dot(up)
+	return SimPlayer.frame(up, inward.normalized())
+
+
+## Gives every surface of a model's meshes one material.
+func _recolor(node: Node, material: Material) -> void:
+	if node is MeshInstance3D:
+		(node as MeshInstance3D).material_override = material
+	for child in node.get_children():
+		_recolor(child, material)
 
 
 ## A wall torch: the MegaKit's iron torch with a flame and a flickering warm light, mounted on

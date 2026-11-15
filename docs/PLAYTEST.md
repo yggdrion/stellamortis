@@ -125,3 +125,9 @@ Spawn on the realm (task 1, `sim/layout.gd`, `sim/world.gd`; protocol 23; the ga
 - [ ] The old realm resets (mobs back, Warden hidden) once everybody has left it, also when the last player dies there.
 - [ ] Two or more players join one after another: each appears on the ring around the arrival on the ground, and sees the other standing on it.
 - [ ] The HUD goal line, the Discord presence ("In the Barrowlands") and the wind match the Barrowlands from the first second.
+
+The gate's look (task 2, `Arena._arrival_look`; scatter was already clear 30 m around the arrival):
+
+- [ ] The arrival reads as a place: a ring of standing stones (dark gray, about 2.5 m tall, no runes carved yet) around the spawn with gaps ahead (dummies) and behind (the arch), and two torches on posts with flickering light left and right just behind the spawn.
+- [ ] No stone, post or torch floats above the ground or sinks into a slope, and no tree or boulder grows through the ring, the dummies or the arch.
+- [ ] The stones do not block you: you walk through them (they have no collision yet; say if that bothers you).

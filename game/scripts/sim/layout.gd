@@ -126,13 +126,18 @@ static func arrival_gate(realm: RealmDef) -> Portal:
 
 ## Training dummy i's post on the first realm's ground, beside its arrival: [feet, up].
 static func dummy_post(i: int) -> Array:
-	var realm := start_realm()
+	var offset: Array = DUMMIES[i]
+	return arrival_spot(start_realm(), float(offset[0]), float(offset[1]))
+
+
+## A spot on a realm's ground this far ahead of (+Z in the tangent plane) and to the right of its
+## arrival point: [feet, up]. Pure in the realm and the world seed.
+static func arrival_spot(realm: RealmDef, ahead_m: float, right_m: float) -> Array:
 	var ground := Terrain.surface(realm, _world_seed, realm.arrival)
 	var up := (ground - realm.center).normalized()
 	var ahead := SimPlayer._tangent(Vector3.BACK, up)
 	var right := up.cross(ahead)
-	var offset: Array = DUMMIES[i]
-	var spot := ground + ahead * float(offset[0]) + right * float(offset[1])
+	var spot := ground + ahead * ahead_m + right * right_m
 	var direction := (spot - realm.center).normalized()
 	return [Terrain.surface(realm, _world_seed, direction), direction]
 

@@ -1,6 +1,6 @@
 # M34 Start at the gate
 
-Status: Planned.
+Status: Built (2026-11-15, v0.21.0), play-test pending (`docs/PLAYTEST.md`).
 
 ## Goal
 

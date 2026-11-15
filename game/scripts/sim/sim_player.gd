@@ -604,22 +604,29 @@ func _use_portal() -> void:
 		return
 	velocity = Vector3.ZERO
 	var arrival := Layout.arrival_point(portal, peer_id)
-	# A realm's ground must stand before the body does (no-op where it already does).
-	var chunks := get_tree().get_first_node_in_group(TerrainChunks.GROUP) as TerrainChunks
-	if chunks:
-		chunks.ensure_around(arrival)
+	_ensure_ground(arrival)
 	place(arrival, portal.facing)
 	respawns += 1
 	queued = Queued.NOTHING
 	_set_action(Action.NONE)
 
 
-## Back at the keep (PLAN §6 M12: dying sends players home; a wipe empties the realm).
+## A realm's ground must stand before a body does (no-op where it already does).
+func _ensure_ground(point: Vector3) -> void:
+	var chunks := get_tree().get_first_node_in_group(TerrainChunks.GROUP) as TerrainChunks
+	if chunks:
+		chunks.ensure_around(point)
+
+
+## Back at the first realm's arrival gate (dying sends players there; a wipe empties the old
+## realm).
 func _respawn(t: Tuning) -> void:
 	health = t.max_health
 	stamina = t.max_stamina
 	velocity = Vector3.ZERO
-	place(Layout.spawn_point(peer_id), Vector3.BACK)
+	var spawn := Layout.spawn_point(peer_id)
+	_ensure_ground(spawn)
+	place(spawn, Vector3.BACK)
 	respawns += 1
 	_set_action(Action.NONE)
 

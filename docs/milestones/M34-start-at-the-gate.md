@@ -29,8 +29,8 @@ Steps:
 
 1. `Layout.spawn_point` and respawns use the arrival ring; `ensure_around` before placing; joins wait for the chunks like a gate does.
 2. Remove `Layout.HUB`, `HUB_YARD`, `HUB_WALL`, `HUB_PLANET_RADIUS`, `HUB_REACH`, `HUB_PLACE`, `on_hub`, the keep's gates and `Arena._build_hub` with its props. `place_at` returns a realm id or `ORIGIN_PLACE`.
-3. `DUMMIES` become points relative to the arrival gate on the ground; check the dummies are terrain anchors on the server (they are not pool slots).
-4. The arrival gate gets a gate "To the old barrow"; the old realm's gates lead to the arrival.
+3. `DUMMIES` become points relative to the arrival gate on the ground; the dummies never move, so they need no anchor: the arrival chunks are pinned (`World.build`) and cover them (`Layout.dummy_post`, `World._post_dummies`).
+4. The realm's gate behind the arrival (`_home_gate`, now `Layout.arrival_gate(realm)`) becomes "To the old barrow" (`portals()[2]`); the old realm's "Home" gates (`portals()[0]` and the victory one `[1]`) lead to the arrival (`Portal.realm`).
 5. Places that branch on `HUB_PLACE` (HUD, presence, wind ambience, player view) use the realm.
 6. Protocol bump; update `CLAUDE.md` ("Boot", "Look and planets", the screenshot `--spawn` examples).
 

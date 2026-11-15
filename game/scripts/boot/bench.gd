@@ -14,6 +14,7 @@ var players := 10
 func _ready() -> void:
 	var world := World.new(false)
 	add_child(world)
+	world.build(1234, "bench")
 	var bodies: Array[SimPlayer] = []
 	for i in players:
 		var body := SimPlayer.new()

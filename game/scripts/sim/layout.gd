@@ -4,10 +4,11 @@ extends RefCounted
 ## gravity zones, the asteroid, jump pads and portals. Arena builds collision and visuals from it,
 ## Gravity and SimPlayer read it during simulation.
 ##
-## The realm (the encounter) sits at the origin: low-g zone east of the arrival with the
-## asteroid floating above it, high-g zone to the west, the dead to the south. The hub, a keep on
-## a plateau of a small planet, floats far above it. Both share one world, so the netcode needs no
-## level loading; clients only show the place their player is in (Arena.show_place).
+## The old realm (the encounter) sits at the origin: low-g zone east of the arrival with the
+## asteroid floating above it, high-g zone to the west, the dead to the south. The generated
+## realms (the Barrowlands, where every player starts) are round worlds far from it. All share one
+## world, so the netcode needs no level loading; clients only show the place their player is in
+## (Arena.show_place).
 
 const LOW_G_CENTER := Vector3(40.0, 9.0, 0.0)
 const LOW_G_SIZE := Vector3(30.0, 18.0, 40.0)
@@ -24,18 +25,11 @@ const ASTEROID_G := 7.0
 const GROUND_PAD_SPEED := 12.0
 const RETURN_PAD_SPEED := 17.0
 
-## The keep's yard floor center. Players spawn and respawn here.
-const HUB := Vector3(0.0, 400.0, -600.0)
-## The yard inside the keep walls (x by z) and the wall height.
-const HUB_YARD := Vector2(40.0, 44.0)
-const HUB_WALL := 7.0
-const HUB_PLANET_RADIUS := 60.0
-## Anything this close to the hub is on the hub planet; everything else is the realm.
-const HUB_REACH := 200.0
-## Training dummies in the keep's yard: position and whether it only takes hits (true) or also
-## swings back.
-const DUMMIES := [[HUB + Vector3(-4.0, 0.0, -10.0), true], [HUB + Vector3(4.0, 0.0, -10.0), false]]
-## The realm's arrival ring (players face the encounter, +Z).
+## Training dummies beside the first realm's arrival: how far ahead of it (along the way the
+## players face), how far to the side (right is positive), and whether it only takes hits (true)
+## or also swings back.
+const DUMMIES := [[8.0, -4.0, true], [8.0, 4.0, false]]
+## The old realm's arrival ring (players face the encounter, +Z).
 const REALM_ARRIVAL := Vector3.ZERO
 ## The encounter, south of the spawn in front of the long wall: melee mobs, the ranged mob
 ## (true), and where the Warden rises. All face north, toward the spawn.
@@ -46,12 +40,12 @@ const MOBS := [
 ]
 const BOSS := Vector3(0.0, 0.0, 30.0)
 const SPAWN_RADIUS := 3.0
-## Where the Barrowlands gate home stands: this far behind the arrival, in the tangent plane.
+## Where a realm's gate to the old barrow stands: this far behind the arrival, in the tangent
+## plane.
 const REALM_GATE_BEHIND := 10.0
 ## Arrivals on a realm's ground start this far above it (the capsule settles).
 const ARRIVAL_LIFT := 0.1
-## Names of the places a point can be in besides a realm's id (place_at).
-const HUB_PLACE := &"hub"
+## The name of the place a point is in when no realm reaches it (place_at).
 const ORIGIN_PLACE := &"origin"
 ## Places on the spawn ring (more than GameServer.MAX_PLAYERS, so ids spread out).
 const SPAWN_SLOTS := 10
@@ -96,41 +90,51 @@ static func set_world_seed(world_seed: int) -> void:
 	_portals.clear()
 
 
-## The keep's gate to the realm (south of the spawn), the realm's way home behind the arrival,
-## the portal that opens where the Warden fell, then the keep's gate to each generated realm
-## and that realm's gate home (on its ground, so they move with the world seed).
+## The old realm's way back to the first realm's arrival, the portal that opens where the Warden
+## fell (also back), then each realm's gate to the old barrow (on its ground, so it moves with the
+## world seed).
 static func portals() -> Array[Portal]:
 	if _portals.is_empty():
+		var start := start_realm()
 		_portals = [
-			Portal.at(HUB + Vector3(0, 0, 15), REALM_ARRIVAL, Vector3.BACK, "To the Barrows"),
-			Portal.at(Vector3(-10, 0, -3), HUB, Vector3.BACK, "Home"),
-			Portal.at(Vector3(0, 0, 22), HUB, Vector3.BACK, "Home", true),
+			Portal.at(Vector3(-10, 0, -3), Vector3.ZERO, Vector3.BACK, "Home"),
+			Portal.at(Vector3(0, 0, 22), Vector3.ZERO, Vector3.BACK, "Home", true),
 		]
-		var slot := 0
+		_portals[0].realm = start.id
+		_portals[1].realm = start.id
 		for realm in realms():
-			var gate := Portal.at(
-				HUB + Vector3(14.0 - 28.0 * slot, 0, 15),
-				Vector3.ZERO,
-				Vector3.BACK,
-				"To the " + realm.id.capitalize()
-			)
-			gate.realm = realm.id
-			_portals.append(gate)
-			_portals.append(_home_gate(realm))
-			slot += 1
+			_portals.append(arrival_gate(realm))
 	return _portals
 
 
-## The gate standing behind a realm's arrival point, leading to the keep.
-static func _home_gate(realm: RealmDef) -> Portal:
+## The gate standing behind a realm's arrival point, leading to the old realm at the origin.
+static func arrival_gate(realm: RealmDef) -> Portal:
 	var ground := Terrain.surface(realm, _world_seed, realm.arrival)
 	var up := (ground - realm.center).normalized()
 	var behind := Vector3.FORWARD - up * Vector3.FORWARD.dot(up)
 	var direction := (ground - realm.center + behind.normalized() * REALM_GATE_BEHIND).normalized()
-	var gate := Portal.at(Terrain.surface(realm, _world_seed, direction), HUB, Vector3.BACK, "Home")
+	var gate := Portal.at(
+		Terrain.surface(realm, _world_seed, direction),
+		REALM_ARRIVAL,
+		Vector3.BACK,
+		"To the old barrow"
+	)
 	gate.up = direction
 	gate.seeded = true
 	return gate
+
+
+## Training dummy i's post on the first realm's ground, beside its arrival: [feet, up].
+static func dummy_post(i: int) -> Array:
+	var realm := start_realm()
+	var ground := Terrain.surface(realm, _world_seed, realm.arrival)
+	var up := (ground - realm.center).normalized()
+	var ahead := SimPlayer._tangent(Vector3.BACK, up)
+	var right := up.cross(ahead)
+	var offset: Array = DUMMIES[i]
+	var spot := ground + ahead * float(offset[0]) + right * float(offset[1])
+	var direction := (spot - realm.center).normalized()
+	return [Terrain.surface(realm, _world_seed, direction), direction]
 
 
 ## The portal whose ring this body (standing along its local up) is in.
@@ -149,6 +153,12 @@ static func arrival_point(portal: Portal, peer_id: int) -> Vector3:
 	var realm := realm_by_id(portal.realm)
 	if realm == null:
 		return ring_point(portal.to, peer_id)
+	return _ring_on_ground(realm, peer_id)
+
+
+## A place on the ring around a realm's arrival, on its ground (found from the world seed, the
+## same on every peer).
+static func _ring_on_ground(realm: RealmDef, peer_id: int) -> Vector3:
 	var ground := Terrain.surface(realm, _world_seed, realm.arrival)
 	var up := (ground - realm.center).normalized()
 	var spot := ring_point(ground, peer_id, up)
@@ -170,8 +180,12 @@ static func realms() -> Array[RealmDef]:
 	return _realms
 
 
-## The realm whose gravity reaches this point (the nearest center), null in the hub or the old
-## realm.
+## The first realm: where players start and the old realm leads back to.
+static func start_realm() -> RealmDef:
+	return realms()[0]
+
+
+## The realm whose gravity reaches this point (the nearest center), null in the old realm.
 static func realm_at(point: Vector3) -> RealmDef:
 	var best: RealmDef = null
 	var best_distance := INF
@@ -183,16 +197,12 @@ static func realm_at(point: Vector3) -> RealmDef:
 	return best
 
 
-static func on_hub(point: Vector3) -> bool:
-	return point.distance_to(HUB) < HUB_REACH
-
-
-## Which place a point is in: a generated realm (its id), the hub, or the old realm at the origin.
+## Which place a point is in: a generated realm (its id) or the old realm at the origin.
 static func place_at(point: Vector3) -> StringName:
 	var realm := realm_at(point)
 	if realm != null:
 		return StringName(realm.id)
-	return HUB_PLACE if on_hub(point) else ORIGIN_PLACE
+	return ORIGIN_PLACE
 
 
 static func pad_at(feet: Vector3) -> JumpPad:
@@ -202,9 +212,10 @@ static func pad_at(feet: Vector3) -> JumpPad:
 	return null
 
 
-## Where a player (re)spawns: a ring in the keep's yard, by peer id.
+## Where a player (re)spawns: the ring around the first realm's arrival gate, on the ground, by
+## peer id (the chunks under it are pinned, World.build).
 static func spawn_point(peer_id: int) -> Vector3:
-	return ring_point(HUB, peer_id)
+	return _ring_on_ground(start_realm(), peer_id)
 
 
 ## A place on the ring around center for this peer (spawns and portal arrivals), in the plane

@@ -29,7 +29,7 @@ var debug_map := false
 ## The address the ENet server listens on: "*" is every interface. Solo and the test tools
 ## use 127.0.0.1, so the operating system's firewall has nothing to ask about.
 var bind_ip := "*"
-## Debug: where players spawn instead of the ring around the origin (--spawn=x,y,z).
+## Debug: where players spawn instead of the ring around the arrival gate (--spawn=x,y,z).
 var spawn_at: Variant = null
 ## Debug: more spawn points (--spawn=x,y,z;x,y,z), handed out to players in turn (load test).
 var spawn_list: Array[Vector3] = []
@@ -251,7 +251,11 @@ func _on_hello(id: int, version: int, player_name: String) -> void:
 	if not spawn_list.is_empty():
 		at = spawn_list[_spawned % spawn_list.size()]
 		_spawned += 1
-	_world.spawn_player(id, _names[id], spawn_at if spawn_at is Vector3 else at)
+	if spawn_at is Vector3:
+		at = spawn_at
+	# The ground under the spawn stands before the body does (a debug spawn may be elsewhere).
+	_world.chunks.ensure_around(at)
+	_world.spawn_player(id, _names[id], at)
 	_heard[id] = Time.get_ticks_msec()
 	print("%s joined (%d)" % [_names[id], id])
 	_tell_others(id, "%s joined" % _names[id])

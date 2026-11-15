@@ -62,28 +62,42 @@ func build(new_seed: int, new_name: String) -> void:
 	add_child(chunks)
 	for realm in Layout.realms():
 		chunks.pin_around(Terrain.surface(realm, new_seed, realm.arrival))
+	_post_dummies()
 	if visual:
 		arena.add_seeded_portals()
 		arena.add_terrain_views(new_seed)
 
 
-## The same dummies, same names and order, on every peer (netfox finds them by path).
+## The same dummies, same names and order, on every peer (netfox finds them by path). They stand
+## beside the first realm's arrival once the seed is known (build); the ground under them is
+## pinned there, so they need no anchor.
 func _add_dummies() -> void:
 	for i in Layout.DUMMIES.size():
 		var dummy := Enemy.new()
 		dummy.name = "Dummy%d" % i
 		dummy.index = i
 		dummy.kind = Combat.enemy_kind(&"dummy")
-		dummy.passive = Layout.DUMMIES[i][1]
+		dummy.passive = Layout.DUMMIES[i][2]
 		dummy.networked()
-		dummy.position = Layout.DUMMIES[i][0]
-		dummy.facing = Vector3.BACK
-		dummy.basis = SimPlayer.frame(Vector3.UP, dummy.facing)
 		dummy.health = dummy.def.health
 		dummy.max_health = dummy.def.health
 		if visual:
 			dummy.add_child(EnemyView.new(dummy))
 		_enemies.add_child(dummy)
+
+
+## Stands the dummies on the ground by the arrival, facing the spawn ring.
+func _post_dummies() -> void:
+	if _enemies == null:
+		return  # not in the tree yet (a bare build in a test)
+	for i in Layout.DUMMIES.size():
+		var post := Layout.dummy_post(i)
+		var up: Vector3 = post[1]
+		var facing := SimPlayer._tangent(Vector3.FORWARD, up)
+		var dummy := _enemies.get_node("Dummy%d" % i) as Enemy
+		dummy.become(
+			dummy.kind, Transform3D(SimPlayer.frame(up, facing), post[0]), Enemy.Action.IDLE
+		)
 
 
 ## The enemy pool (M21): POOL free slots, hidden, at fixed names and indices after the dummies;

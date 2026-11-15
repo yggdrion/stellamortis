@@ -1,7 +1,7 @@
 class_name Arena
 extends Node3D
-## The two planets (PLAN §4.4, §6 M12): the realm at the origin (the encounter, gravity zones,
-## the asteroid) and the hub keep on a plateau of a small planet far above it (Layout.HUB).
+## The old realm at the origin (the encounter, gravity zones, the asteroid) and a node for every
+## generated realm (the Barrowlands, where players start; TerrainView fills it).
 ## Collision on both sides, meshes, lights and sky only on clients. Built in code so server and
 ## client always get the same collision. Surfaces are tiling PBR materials mapped world
 ## triplanar (ambientCG ground and rock, the Medieval Village MegaKit's brick), dressing comes
@@ -13,7 +13,6 @@ const VILLAGE := "res://assets/quaternius/village/"
 const PROPS := "res://assets/quaternius/props/"
 ## Surfaces: an ambientCG set name, or "village:<name>" for a MegaKit texture set.
 const GROUND := "Ground020"
-const COBBLE := "PavingStones049"
 const BRICK := "village:UnevenBrick"
 const ROCK := "Rock030"
 const ASTEROID := "Rock035"
@@ -26,7 +25,7 @@ const PLANET_DIRECTION := Vector3(-0.45, 0.32, -0.83)
 const MOON_FOLLOW := 1.5
 
 ## Clients: which place is drawn (show_place), for views to hide what is in another one.
-static var shown := Layout.HUB_PLACE
+static var shown := StringName(Layout.start_realm().id)
 
 var visual := false
 ## Clients only: what Graphics presets adjust.
@@ -35,8 +34,7 @@ var sun: DirectionalLight3D
 ## Every node of each planet, so clients can show one (collision lives here too; hiding a node
 ## doesn't change physics).
 var realm: Node3D
-var hub: Node3D
-## Place name (Layout.place_at) -> its node: the hub, the old realm, one per generated realm.
+## Place name (Layout.place_at) -> its node: the old realm, one per generated realm.
 var places := {}
 ## Materials by name and tint, shared by every box that uses them.
 var _materials := {}
@@ -57,17 +55,13 @@ func _ready() -> void:
 	realm = Node3D.new()
 	realm.name = "Realm"
 	add_child(realm)
-	hub = Node3D.new()
-	hub.name = "Hub"
-	add_child(hub)
-	places = {Layout.HUB_PLACE: hub, Layout.ORIGIN_PLACE: realm}
+	places = {Layout.ORIGIN_PLACE: realm}
 	for def in Layout.realms():
 		var node := Node3D.new()
 		node.name = def.id.capitalize()
 		add_child(node)
 		places[StringName(def.id)] = node
 	_build_realm()
-	_build_hub()
 	if visual:
 		_add_environment()
 		for portal in Layout.portals():
@@ -181,83 +175,9 @@ func _add_asteroid() -> void:
 		_box(realm, at, size, ROCK, basis.get_euler())
 
 
-# --- The hub -------------------------------------------------------------------------------
-
-
-## The keep: a cobbled yard inside high brick walls with corner towers, the hall to the north,
-## the gate portal to the south, a training corner with the dummies, a smithy corner.
-func _build_hub() -> void:
-	var yard := Layout.HUB_YARD
-	var wall := Layout.HUB_WALL
-	var half := Vector3(yard.x / 2.0, 0, yard.y / 2.0)
-	_box(hub, _h(0, -0.5, 0), Vector3(yard.x + 4, 1, yard.y + 4), COBBLE, Vector3.ZERO, 0.3)
-	_box(hub, _h(0, -8, 0), Vector3(yard.x + 12, 14, yard.y + 12), ROCK, Vector3.ZERO, 0.1)
-	var thick := 1.2
-	for side: float in [-1.0, 1.0]:
-		var z := side * (half.z + thick / 2.0)
-		_box(hub, _h(0, wall / 2.0, z), Vector3(yard.x + 2 * thick, wall, thick), BRICK)
-		var x := side * (half.x + thick / 2.0)
-		_box(hub, _h(x, wall / 2.0, 0), Vector3(thick, wall, yard.y), BRICK)
-	for corner: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
-		var at := _h(corner.x * (half.x + 0.6), 5.5, corner.y * (half.z + 0.6))
-		_box(hub, at, Vector3(4.5, 11, 4.5), BRICK)
-		if visual:
-			_prop(
-				hub,
-				VILLAGE + "Roof_Tower_RoundTiles.gltf",
-				at + Vector3(0, 6.0, 0),
-				Basis.IDENTITY,
-				0.9
-			)
-	# The hall along the north wall.
-	_box(hub, _h(0, 4.5, -half.z + 3.5), Vector3(22, 9, 7), BRICK)
-	if not visual:
-		return
-	hub.add_child(_sphere_mesh(Layout.HUB_PLANET_RADIUS, ASTEROID, 0.05, _h(0, -64, 0)))
-	_prop(
-		hub, VILLAGE + "DoorFrame_Round_Brick.gltf", _h(0, 0, -half.z + 7.02), Basis.IDENTITY, 1.3
-	)
-	for x: float in [-7.0, 7.0]:
-		_window(_h(x, 4.6, -half.z + 7.05))
-		_torch(hub, _h(x * 0.42, 2.6, -half.z + 7.05), Vector3.BACK, true)
-	for i in 4:
-		var z := -12.0 + i * 8.0
-		_torch(hub, _h(-half.x + 0.05, 3.2, z), Vector3.RIGHT, false)
-		_torch(hub, _h(half.x - 0.05, 3.2, z), Vector3.LEFT, false)
-	for x: float in [-4.0, 4.0]:
-		_torch(hub, _h(x, 3.2, half.z - 0.05), Vector3.FORWARD, false)
-		_prop(hub, PROPS + "Banner_1.gltf", _h(x * 2.5, wall - 1.2, half.z - 0.12), _yaw(PI))
-	for x: float in [-9.0, 9.0]:
-		_prop(hub, PROPS + "Banner_2.gltf", _h(x, 7.6, -half.z + 7.12))
-	# Training corner (the dummies stand at Layout.DUMMIES) and the smithy.
-	_prop(hub, PROPS + "WeaponStand.gltf", _h(-10, 0, -12), _yaw(PI / 2.0))
-	_prop(hub, PROPS + "Barrel.gltf", _h(-17.5, 0, -13))
-	_prop(hub, PROPS + "Barrel.gltf", _h(-17, 0, -11.6))
-	_prop(hub, PROPS + "Crate_Wooden.gltf", _h(-17.6, 0, 6), _yaw(0.3))
-	_prop(hub, PROPS + "Anvil.gltf", _h(11, 0, -10), _yaw(0.4))
-	_prop(hub, PROPS + "Cauldron.gltf", _h(15, 0, -6))
-	_prop(hub, PROPS + "Chest_Wood.gltf", _h(13, 0, -13.5))
-	_prop(hub, PROPS + "Crate_Wooden.gltf", _h(17.5, 0, 10), _yaw(-0.2))
-	_prop(hub, PROPS + "Barrel.gltf", _h(16.8, 0, 12))
-	for i in 6:
-		var vine: String = ["Prop_Vine1", "Prop_Vine2", "Prop_Vine4"][i % 3]
-		var x := -half.x + 0.02 if i < 3 else half.x - 0.02
-		_prop(
-			hub,
-			VILLAGE + vine + ".gltf",
-			_h(x, wall - 0.5, -6 + (i % 3) * 9),
-			_yaw(PI / 2.0 * signf(-x))
-		)
-
-
 ## A turn around the world's up.
 static func _yaw(angle: float) -> Basis:
 	return Basis(Vector3.UP, angle)
-
-
-## A point relative to the keep's yard center.
-static func _h(x: float, y: float, z: float) -> Vector3:
-	return Layout.HUB + Vector3(x, y, z)
 
 
 # --- Pieces --------------------------------------------------------------------------------
@@ -353,34 +273,6 @@ func _torch(parent: Node3D, at: Vector3, out: Vector3, shadows: bool) -> void:
 	Sounds.loop(root, &"torch", -14.0, 10.0)
 
 
-## A lit window in the hall: a warm glowing pane and an area light (Godot 4.7 AreaLight3D)
-## spilling into the yard.
-func _window(at: Vector3) -> void:
-	var pane := MeshInstance3D.new()
-	var quad := QuadMesh.new()
-	quad.size = Vector2(1.2, 1.8)
-	var glass := StandardMaterial3D.new()
-	glass.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	glass.albedo_color = Color(0.5, 0.25, 0.08)
-	glass.emission_enabled = true
-	glass.emission = Color(1.0, 0.5, 0.18)
-	glass.emission_energy_multiplier = 1.2
-	quad.material = glass
-	pane.mesh = quad
-	pane.position = at
-	pane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	hub.add_child(pane)
-	var light := AreaLight3D.new()
-	light.area_size = Vector2(1.2, 1.8)
-	light.area_range = 14.0
-	light.light_color = Color(1.0, 0.66, 0.38)
-	light.light_energy = 4.0
-	light.position = at + Vector3(0, 0, 0.05)
-	# An area light shines along its -Z; turn it to face the yard (+Z).
-	light.rotation.y = PI
-	hub.add_child(light)
-
-
 ## A standing stone gate with a swirling veil, a light and its name; the planet it stands on
 ## owns it.
 func _portal(portal: Portal) -> Node3D:
@@ -465,8 +357,6 @@ func _surface(surface: String, scale_by := 0.25) -> StandardMaterial3D:
 			material.ao_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GRAYSCALE
 		if surface == GROUND:
 			material.albedo_color = Color(0.55, 0.58, 0.5)
-		elif surface == COBBLE:
-			material.albedo_color = Color(0.7, 0.7, 0.72)
 	material.uv1_triplanar = true
 	material.uv1_world_triplanar = true
 	material.uv1_scale = Vector3.ONE * scale_by

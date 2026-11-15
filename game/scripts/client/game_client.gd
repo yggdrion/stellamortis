@@ -324,7 +324,7 @@ func _process(delta: float) -> void:
 		var place := Layout.place_at(me.global_position)
 		_world.arena.show_place(place)
 		_world.arena.follow_up(me.global_position, delta)
-		Sounds.ambience(_ambience, place)
+		Sounds.ambience(_ambience)
 	if me != null and not bot:
 		_rig.aiming = (
 			me.weapon == SimPlayer.Weapon.CROSSBOW

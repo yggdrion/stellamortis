@@ -73,8 +73,6 @@ static func place(client: GameClient) -> String:
 	if client.me == null:
 		return "Arriving"
 	var where := Layout.place_at(client.me.global_position)
-	if where == Layout.HUB_PLACE:
-		return "In the keep"
 	if where != Layout.ORIGIN_PLACE:
 		return "In the " + String(where).capitalize()
 	if Encounter.won(client.me):

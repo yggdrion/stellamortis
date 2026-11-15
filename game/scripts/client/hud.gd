@@ -206,9 +206,6 @@ func _show_encounter() -> void:
 		_goal.text = ""
 		return
 	var place := Layout.place_at(player.global_position)
-	if place == Layout.HUB_PLACE:
-		_goal.text = "THE KEEP   THE GATES TO THE BARROWS LIE SOUTH"
-		return
 	if place != Layout.ORIGIN_PLACE:
 		_goal.text = String(place).to_upper()
 		return

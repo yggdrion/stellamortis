@@ -181,7 +181,7 @@ Technical calls (Claude's, to be corrected by measurement and play-tests):
 
 - Realm radius 1000 m (a lap is 6.3 km; the horizon sits about 60 m away at eye height, and hills and fog hide the curve). Radius is data per realm.
 - Terrain is a cube-sphere cut into chunks. Height is a pure function of world seed and direction (seeded `FastNoiseLite`), quantized, so every peer builds the same collision. Collision chunks exist around every player and awake enemy on the server and around the own player on clients; clients draw near chunks in detail and a coarse far shell. A gate holds the traveller until the destination's chunks exist.
-- Realms sit in the one world at offsets like `Layout.HUB`, all within 6 km of the origin (32 bit floats); clients draw the realm they are on.
+- Realms sit in the one world at offsets from the origin, all within 6 km of the origin (32 bit floats); clients draw the realm they are on.
 - The server sends the world seed and name in the hello handshake, before the client builds `World`.
 - Only combat is rolled back. World objects (resource nodes, drops, graves, built pieces) and inventories are server-authoritative: reliable RPC deltas plus a snapshot at join. Equipped item ids are the only item data in rolled back state. A player's `Stats` block (from perks, gear and sets) is computed on the server and sent to its owner; it is not rolled back.
 - Enemy kinds are data (`EnemyDef`: health, speed, attacks, behavior, look), so any pool slot can be any kind.

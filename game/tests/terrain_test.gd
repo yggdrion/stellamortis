@@ -48,12 +48,10 @@ func test_realm_placement() -> void:
 	var realm := _realm()
 	assert_float(realm.center.length()).is_less(6000.0)
 	assert_float(realm.center.length()).is_greater(realm.radius + 500.0)
-	assert_float(realm.center.distance_to(Layout.HUB)).is_greater(realm.radius + 500.0)
 	assert_object(Layout.realm_at(realm.center + Vector3(0, realm.radius + 100.0, 0))).is_same(
 		realm
 	)
 	assert_object(Layout.realm_at(Vector3.ZERO)).is_null()
-	assert_object(Layout.realm_at(Layout.HUB)).is_null()
 
 
 ## Vertex position -> set of cube faces that produced it, over the given chunks.

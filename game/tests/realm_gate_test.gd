@@ -1,6 +1,6 @@
 extends GdUnitTestSuite
 ## Gates and places on a round realm (M20 task 4): portal reach and ring points along a tilted
-## up, the place a point is in, and travel keep -> realm -> keep landing on the seeded ground.
+## up, the place a point is in, and spawn on the realm and the gates to the old barrow and back.
 
 const DELTA := 1.0 / 30.0
 const SEEDS := [1234, 99]
@@ -56,44 +56,61 @@ func test_ring_point_lies_in_the_tangent_plane() -> void:
 
 
 func test_place_at() -> void:
-	assert_str(Layout.place_at(Layout.HUB)).is_equal(Layout.HUB_PLACE)
 	assert_str(Layout.place_at(Vector3.ZERO)).is_equal(Layout.ORIGIN_PLACE)
 	assert_str(Layout.place_at(_realm().center + Vector3.UP * 1005.0)).is_equal(_realm().id)
 	assert_str(Layout.place_at(_realm().center + Vector3.UP * 1400.0)).is_equal(Layout.ORIGIN_PLACE)
 
 
-func test_travel_keep_realm_keep_lands_on_the_ground() -> void:
+func _build(world_seed: int) -> void:
+	_world = auto_free(World.new(false)) as World
+	add_child(_world)
+	_world.build(world_seed, "t")
+
+
+func test_spawn_dummies_and_the_way_to_the_old_barrow_and_back() -> void:
 	var seen := {}
 	for world_seed: int in SEEDS:
-		_world = auto_free(World.new(false)) as World
-		add_child(_world)
-		_world.build(world_seed, "t")
-		var to_realm := Layout.portals()[3]
-		var home := Layout.portals()[4]
-		assert_str(to_realm.realm).is_equal(_realm().id)
-		assert_float(_over(home.position, world_seed)).is_equal_approx(0.0, 0.001)
+		_build(world_seed)
+		var barrow := Layout.portals()[2]
+		var home := Layout.portals()[0]
+		assert_str(barrow.label).is_equal("To the old barrow")
+		assert_str(home.realm).is_equal(_realm().id)
+		assert_float(_over(barrow.position, world_seed)).is_equal_approx(0.0, 0.001)
+		# The dummies stand on the ground beside the arrival, with a body to hit.
+		for i in Layout.DUMMIES.size():
+			var dummy := _world.get_node("Enemies/Dummy%d" % i) as Enemy
+			assert_float(_over(dummy.global_position, world_seed)).is_equal_approx(0.0, 0.001)
+			assert_float(dummy.global_position.distance_to(Layout.spawn_point(1))).is_less(15.0)
+			assert_float(dummy.take_hit(10.0, Vector3.ZERO)).is_equal(10.0)
+			assert_float(dummy.health).is_equal(dummy.max_health - 10.0)
 		for peer: int in PEERS:
+			var spawn := Layout.spawn_point(peer)
+			assert_str(Layout.place_at(spawn)).is_equal(_realm().id)
+			assert_bool(_world.chunks.bodies.has(_world.chunks.key_at(spawn))).is_true()
 			var player := SimPlayer.new()
 			player.peer_id = peer
 			_world.players.add_child(player)
-			player.place(to_realm.position)
-			player.step(Vector2.ZERO, 0.0, 0, DELTA)
-			assert_str(Layout.place_at(player.global_position)).is_equal(_realm().id)
+			player.place(spawn)
 			assert_float(_over(player.global_position, world_seed)).is_between(0.0, LANDING)
-			# The same peer lands on the same spot every time (a rolled back replay).
-			var key := [world_seed, peer]
-			assert_vector(player.global_position).is_equal(Layout.arrival_point(to_realm, peer))
-			seen[key] = player.global_position
 			for i in 30:
 				await get_tree().physics_frame
 				player.step(Vector2.ZERO, 0.0, 0, DELTA)
 			assert_bool(player.grounded).is_true()
 			assert_float(_over(player.global_position, world_seed)).is_between(-0.3, LANDING)
+			assert_vector(spawn).is_equal(Layout.spawn_point(peer))
+			seen[[world_seed, peer]] = spawn
+			# The gate to the old barrow: the old realm's ring around its origin.
+			player.place(barrow.position)
+			player.step(Vector2.ZERO, 0.0, 0, DELTA)
+			assert_str(Layout.place_at(player.global_position)).is_equal(Layout.ORIGIN_PLACE)
+			assert_vector(player.global_position).is_equal(Layout.arrival_point(barrow, peer))
+			# Its Home gate leads back to the spawn ring.
 			player.place(home.position)
 			player.step(Vector2.ZERO, 0.0, 0, DELTA)
-			assert_str(Layout.place_at(player.global_position)).is_equal(Layout.HUB_PLACE)
+			assert_str(Layout.place_at(player.global_position)).is_equal(_realm().id)
+			assert_vector(player.global_position).is_equal(spawn)
 			player.queue_free()
 		_world.queue_free()
 		await get_tree().process_frame
-	# Different seeds, different ground, different landing.
+	# Different seeds, different ground, different spawn.
 	assert_vector(seen[[SEEDS[0], 1]]).is_not_equal(seen[[SEEDS[1], 1]])

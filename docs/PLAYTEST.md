@@ -2,7 +2,7 @@
 
 The user plays several built milestones at once and gives all feedback in one round (decided 2026-11-14). Every task adds here what only a person playing can judge: feel, look, sound, numbers, anything not caught by tests or screenshots. Tick items off or write the verdict next to them during the play-test; settled items move out (fixes go into the next milestone, decisions into `docs/PLAN.md` §8).
 
-How to start: the latest release from GitHub, or `python tools/dev.py` from a checkout. Solo is the main menu's Solo; the realm mobs are through the keep's portal. Two players: host from the menu and join with the room code.
+How to start: the latest release from GitHub, or `python tools/dev.py` from a checkout. Solo is the main menu's Solo; since M34 you start on the Barrowlands, the old realm's mobs are through the "To the old barrow" gate behind the spawn. Two players: host from the menu and join with the room code.
 
 ## M16 Frame pacing
 
@@ -105,11 +105,23 @@ The pool size (task 5, `World.POOL` 20 after the load test with bots):
 The map (task 1, `client/map_panel.gd`; hold M on the Barrowlands, the mouse is free while it is open and the player stands still):
 
 - [ ] M held on the Barrowlands shows the terrain with you in the middle as an arrow, the camera's forward up; turning the camera turns the map, walking moves it, and releasing M gives the mouse back. Zoom with the wheel from about 150 m to the whole realm; the terrain image appears within a few seconds of the first opening (markers alone until then) with no frame hitch.
-- [ ] The terrain matches the ground: a hill or ridge you can see in the world is light and shaded on the map in the same place and direction; the arrival gate "Home" is where you arrived.
+- [ ] The terrain matches the ground: a hill or ridge you can see in the world is light and shaded on the map in the same place and direction; the arrival gate "To the old barrow" stands 10 m behind where you arrived.
 - [ ] Camps (rings with their size) and roamers (dots) match what you meet; awake enemies show colored by kind and move; hovering a marker names it (kind, slot, action, camp, distance); a second player shows as a green dot.
-- [ ] In the keep and the old realm the map says "No map here". It does not pause the game: enemies keep moving while it is open.
+- [ ] In the old realm the map says "No map here". It does not pause the game: enemies keep moving while it is open.
 
 Debug details (task 2; the wake and sleep rings always, cleared camps only in solo, as host, or on a server started with `--debug-map`):
 
 - [ ] Two rings around every player: yellow at 90 m (camps wake) and blue at 140 m (camps sleep), matching the distances at which you see a camp's enemies appear and vanish.
 - [ ] Kill a whole camp, open the map: its ring shows dimmed with a cross and hovering says "cleared, N s left" counting down from 600; after 10 minutes (or on a fresh world) it is a normal ring again and the enemies are back. On a friend's client (not host, no `--debug-map`) camps are never shown as cleared.
+
+## M34 Start at the gate
+
+Spawn on the realm (task 1, `sim/layout.gd`, `sim/world.gd`; protocol 23; the gate has no look until task 2, only the old stone arch):
+
+- [ ] A fresh solo start puts you on the Barrowlands ground by the arrival, facing the two training dummies about 8 m ahead; no void, no falling, no keep.
+- [ ] Hitting the dummies works as it did in the keep (the left one only takes hits, the right one swings back).
+- [ ] Dying sends you back to the same spot, standing on the ground, with the dummies still there.
+- [ ] Behind you, 10 m back, stands the arch "To the old barrow": walking in lands you in the old realm at the origin (mobs and Warden as before); its "Home" gates, also the portal after the Warden, lead back to the Barrowlands spawn.
+- [ ] The old realm resets (mobs back, Warden hidden) once everybody has left it, also when the last player dies there.
+- [ ] Two or more players join one after another: each appears on the ring around the arrival on the ground, and sees the other standing on it.
+- [ ] The HUD goal line, the Discord presence ("In the Barrowlands") and the wind match the Barrowlands from the first second.

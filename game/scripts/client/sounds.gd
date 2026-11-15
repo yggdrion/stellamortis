@@ -46,7 +46,6 @@ static var library := {
 	&"portal": [SYNTH + "portal_hum.wav"],
 	&"well": [SYNTH + "well.wav"],
 	&"torch": [SYNTH + "torch.wav"],
-	&"wind_keep": [SYNTH + "wind_keep.wav"],
 	&"wind_barrows": [SYNTH + "wind_barrows.wav"],
 }
 static var _streams := {}
@@ -104,12 +103,11 @@ static func loop(
 	return player
 
 
-## The place's ambience on a 2D player (the wind of the keep, or of the Barrows and the realms
-## beyond).
-static func ambience(player: AudioStreamPlayer, place: StringName) -> void:
+## The place's ambience on a 2D player (the wind of the Barrows and the realms).
+static func ambience(player: AudioStreamPlayer) -> void:
 	if _silent():
 		return
-	var stream := _looping(&"wind_keep" if place == Layout.HUB_PLACE else &"wind_barrows")
+	var stream := _looping(&"wind_barrows")
 	if player.stream == stream and player.playing:
 		return
 	player.bus = &"Ambience"

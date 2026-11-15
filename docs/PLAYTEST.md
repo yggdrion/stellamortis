@@ -145,4 +145,7 @@ Task 1 (`sim/scatter_shape.gd`, `data/scatter/*.tres`, `sim/terrain_chunks.gd`, 
 - [ ] Nobody spawns, respawns or arrives through a gate stuck inside a tree, rock or stone, and the dummies stand free.
 - [ ] Two players in a forest (or a friend on a worse connection) walk around trees without rubberbanding at them; tree collision shows the same on every peer, also with graphics on Low (fewer trees drawn, same trees solid).
 - [ ] Frame rate and the server tick (F3: tick loop, tps) look the same in the forest as on the open moor.
-- [ ] Enemies still walk into trees today (task 2 makes them slide around trunks): note how much it bothers you.
+- [ ] Enemies chasing you slide around trunks and boulders instead of sticking: run around a tree with a skeleton behind you, then lead a camp through a forest. Note any that stay stuck, jitter at a trunk, or circle forever.
+- [ ] No enemy wakes inside a tree, rock or stone (walk up to several camps; camps now stand a little differently than before M35).
+- [ ] Is the forest too dense to walk and fight in? M35 task 1 found no 100 m straight line free of trees in 72 headings from one point. Note where it feels tight (pine woods?), and whether fighting a camp among trunks is fun or a chore.
+- [ ] Opening the map (M) for the first time does not freeze noticeably (`Spawner.points` now takes about 1 s in a debug build).

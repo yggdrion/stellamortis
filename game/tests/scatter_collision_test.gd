@@ -204,3 +204,27 @@ func test_nothing_stands_on_the_spawn_ring_or_the_dummy_posts() -> void:
 			assert_float(_flat(stone.origin, spot + _realm.center, up)).is_greater(
 				Arena.STONE_SOLID.x + BODY
 			)
+
+
+func test_a_mob_chasing_a_player_goes_around_a_trunk() -> void:
+	var trunk := _free_trunk(Scatter.Kind.PINE_TALL)
+	assert_int(trunk.size()).is_equal(3)
+	var target: Vector3 = trunk[0]
+	var way: Vector3 = trunk[2]
+	var up: Vector3 = trunk[1]
+	_world.chunks.ensure_around(target)
+	_stand(_on_ground(target + way * 4.0), way)
+	var enemy := _world.pool_slot(Spawner.FIRST_SLOT)
+	var start := _on_ground(target - way * 4.0)
+	var post := Transform3D(SimPlayer.frame(up, way), start)
+	enemy.become(Combat.enemy_kind(&"swordsman"), post, Enemy.Action.IDLE)
+	var reach := enemy.attack_def().reach + 0.2
+	var near := false
+	for i in 300:
+		if i % TICKS_PER_FRAME == 0:
+			await get_tree().physics_frame
+		enemy._rollback_tick(DELTA, 0, true)
+		if enemy.global_position.distance_to(_player.global_position) < reach + 0.8:
+			near = true
+			break
+	assert_bool(near).is_true()

@@ -40,6 +40,8 @@ const STATE := [
 const BOLTS := ["bolt_pos", "bolt_vel", "bolt_life"]
 ## How close a bolt must pass a body's axis to hit it, on top of the body's radius.
 const BOLT_RADIUS := 0.2
+## How far ahead (m) a walker looks for a wall to slide around.
+const SIDESTEP_LOOKAHEAD := 0.6
 
 ## net_combat of a hidden slot (its action alone), _pack_bolts without a bolt in flight (the count).
 static var _hidden_net := PackedByteArray([Action.HIDDEN])
@@ -104,6 +106,7 @@ var net_combat: PackedByteArray:
 		_unpack_bolts(value.slice(_unpack_state(value)))
 
 var _shape: CollisionShape3D
+var _probe := KinematicCollision3D.new()
 
 
 func _init() -> void:
@@ -529,8 +532,33 @@ func _follow_gravity(gravity: Vector3, delta: float) -> void:
 	facing = SimPlayer._tangent(turn * facing, up)
 
 
+## Head-on into a wall (a trunk, a boulder, M35) a body would stick: a wish that the wall ahead
+## mostly stops turns along the wall instead, to the side it already leans to (on the dead
+## center: by the slot's parity). No state: the probe reads the position alone, so every peer
+## and every resimulated tick picks the same way.
+func _around(wish: Vector3, speed: float, delta: float) -> Vector3:
+	if wish == Vector3.ZERO:
+		return wish
+	var ahead := wish.normalized() * maxf(SIDESTEP_LOOKAHEAD, speed * delta * 3.0)
+	if not test_move(global_transform, ahead, _probe):
+		return wish
+	var wall := _probe.get_normal()
+	if absf(wall.dot(up)) > 0.5 or _probe.get_collider() is Enemy:
+		return wish
+	var along := SimPlayer._tangent(up.cross(wall), up).normalized()
+	var lean := along.dot(wish)
+	if absf(lean) < 0.05:
+		lean = 1.0 if index % 2 == 0 else -1.0
+	var length := wish.length()
+	var open := wish - wall * wish.dot(wall)
+	if open.length() > length * 0.7:
+		return wish
+	return along * signf(lean) * length
+
+
 ## Walks along wish (tangent, length up to 1) at speed, under gravity, on its own up.
 func _walk(wish: Vector3, speed: float, delta: float) -> void:
+	wish = _around(wish, speed, delta)
 	var gravity := Gravity.sample(global_position)
 	_follow_gravity(gravity, delta)
 	var vertical := up * velocity.dot(up)

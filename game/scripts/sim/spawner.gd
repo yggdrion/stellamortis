@@ -45,6 +45,8 @@ const FIGHT_QUIET := 6.0
 const RESPAWN_MINUTES := 10.0
 ## Chunks are made right under a camp before it wakes (a no-op when they stand).
 const GROUND_RADIUS := 12.0
+## A member keeps this far (m) from the skin of a scatter solid (its body is about 0.5).
+const SOLID_GAP := 0.7
 
 
 class SpawnPoint:
@@ -64,6 +66,48 @@ class SpawnPoint:
 	func post() -> Transform3D:
 		var facing := SimPlayer._tangent(Vector3.FORWARD, up).rotated(up, yaw)
 		return Transform3D(SimPlayer.frame(up, facing), position)
+
+
+## Where scatter solids stand, by chunk, for the posts `points` picks (M35: nobody wakes inside
+## a trunk). Pure: the scatter is a function of the seed.
+class Solids:
+	extends RefCounted
+	var realm: RealmDef
+	var world_seed: int
+	var _field: Terrain.Field
+	var _by_chunk := {}
+
+	func _init(for_realm: RealmDef, for_seed: int) -> void:
+		realm = for_realm
+		world_seed = for_seed
+		_field = Terrain.Field.new(for_realm, for_seed)
+
+	## A body of this radius at a direction overlaps a solid (the chunk's and the ones across
+	## its edges, found by looking a few meters to each side).
+	func blocked(direction: Vector3) -> bool:
+		var spot := _field.surface(direction)
+		var east := direction.cross(Vector3.UP if absf(direction.y) < 0.9 else Vector3.RIGHT)
+		east = east.normalized()
+		var north := direction.cross(east)
+		var seen := {}
+		for offset: Vector3 in [Vector3.ZERO, east, -east, north, -north]:
+			var near := (direction * realm.radius + offset * 4.0).normalized()
+			var chunk := Terrain.chunk_at(realm, near)
+			if seen.has(chunk):
+				continue
+			seen[chunk] = true
+			for solid: ScatterShape.Solid in _solids(chunk):
+				var apart := solid.transform.origin - spot
+				apart -= direction * apart.dot(direction)
+				var reach := solid.shape.footprint(solid.extents()) + SOLID_GAP
+				if apart.length() < reach:
+					return true
+		return false
+
+	func _solids(chunk: Vector3i) -> Array[ScatterShape.Solid]:
+		if not _by_chunk.has(chunk):
+			_by_chunk[chunk] = ScatterShape.solids(Scatter.points(realm, world_seed, chunk))
+		return _by_chunk[chunk]
 
 
 var world: World
@@ -104,6 +148,7 @@ func _ready() -> void:
 ## The camps and roamers of a realm under a seed, in a fixed order.
 static func points(realm: RealmDef, world_seed: int) -> Array[SpawnPoint]:
 	var field := Terrain.Field.new(realm, world_seed)
+	var solids := Solids.new(realm, world_seed)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(Vector2i(world_seed, realm.seed_salt)) + 23
 	var area := 4.0 * PI * realm.radius * realm.radius
@@ -117,10 +162,10 @@ static func points(realm: RealmDef, world_seed: int) -> Array[SpawnPoint]:
 		while made < wanted and tries < wanted * ATTEMPTS:
 			tries += 1
 			var direction := _random_direction(rng)
-			if not _fits(realm, field, direction, centers):
+			if not _fits(realm, field, solids, direction, centers):
 				continue
 			var count := 1 if lone else rng.randi_range(CAMP_MIN, CAMP_MAX)
-			var members := _members(realm, field, rng, direction, count)
+			var members := _members(realm, field, solids, rng, direction, count)
 			if members.size() < (1 if lone else CAMP_MIN):
 				continue
 			for position in members:
@@ -140,11 +185,15 @@ static func _random_direction(rng: RandomNumberGenerator) -> Vector3:
 
 ## A camp or roamer may stand here: walkable, clear of the arrival and of the others.
 static func _fits(
-	realm: RealmDef, field: Terrain.Field, direction: Vector3, centers: Array[Vector3]
+	realm: RealmDef,
+	field: Terrain.Field,
+	solids: Solids,
+	direction: Vector3,
+	centers: Array[Vector3]
 ) -> bool:
 	if direction.dot(realm.arrival.normalized()) > cos(ARRIVAL_CLEAR / realm.radius):
 		return false
-	if not _walkable(field, direction):
+	if not _walkable(field, direction) or solids.blocked(direction):
 		return false
 	var near := cos(UNIT_GAP / realm.radius)
 	for other in centers:
@@ -159,7 +208,12 @@ static func _walkable(field: Terrain.Field, direction: Vector3) -> bool:
 
 ## Directions for count members around a center (the first stands on it), walkable and apart.
 static func _members(
-	realm: RealmDef, field: Terrain.Field, rng: RandomNumberGenerator, center: Vector3, count: int
+	realm: RealmDef,
+	field: Terrain.Field,
+	solids: Solids,
+	rng: RandomNumberGenerator,
+	center: Vector3,
+	count: int
 ) -> Array[Vector3]:
 	var east := center.cross(Vector3.UP if absf(center.y) < 0.9 else Vector3.RIGHT).normalized()
 	var north := center.cross(east)
@@ -171,7 +225,7 @@ static func _members(
 			var distance := CAMP_RADIUS * sqrt(rng.randf())
 			var offset := (east * cos(angle) + north * sin(angle)) * distance
 			var direction := (center * realm.radius + offset).normalized()
-			if not _walkable(field, direction):
+			if not _walkable(field, direction) or solids.blocked(direction):
 				continue
 			var spot := field.surface(direction)
 			var apart := true

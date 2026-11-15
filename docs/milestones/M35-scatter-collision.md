@@ -1,6 +1,6 @@
 # M35 Scatter collision
 
-Status: Planned.
+Status: Built (2026-11-15, v0.22.0), play-test pending (`docs/PLAYTEST.md`).
 
 ## Goal
 

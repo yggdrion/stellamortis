@@ -282,3 +282,20 @@ func test_woken_enemies_stand_on_the_ground_the_server_built() -> void:
 		assert_float(absf(over)).is_less(0.6)
 		assert_bool(enemy.alive()).is_true()
 		assert_bool(enemy in _world.chunks.anchors.call()).is_true()
+
+
+func test_no_post_stands_in_a_scatter_solid() -> void:
+	var solids := Spawner.Solids.new(_realm, SEED)
+	var points := Spawner.points(_realm, SEED)
+	for point in points:
+		assert_bool(solids.blocked(point.up)).is_false()
+	# The check itself works: a trunk's own spot is blocked.
+	var chunk := Terrain.chunk_at(_realm, _realm.arrival)
+	for dx in range(-3, 4):
+		var found := ScatterShape.solids(
+			Scatter.points(_realm, SEED, Vector3i(chunk.x, chunk.y + dx, chunk.z))
+		)
+		if not found.is_empty():
+			assert_bool(solids.blocked(found[0].transform.origin.normalized())).is_true()
+			return
+	fail("no scatter near the arrival")

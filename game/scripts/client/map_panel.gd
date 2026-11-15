@@ -21,6 +21,8 @@ const GATE := Color(0.45, 0.8, 0.95)
 const FRIEND := Color(0.6, 0.9, 0.6)
 const OWN := Color.WHITE
 const HOVER_RADIUS := 10.0
+const RING_WAKE := Color(0.95, 0.85, 0.3, 0.8)
+const RING_SLEEP := Color(0.4, 0.7, 0.95, 0.6)
 
 ## Image textures per "realm id:seed", and the Jobs still running.
 static var _textures := {}
@@ -32,6 +34,8 @@ var camera: Camera3D
 var world: World
 ## Meters across the view.
 var span := 600.0
+## Cleared camps, camp id -> seconds left, as the server last said (host or --debug-map only).
+var cleared := {}
 
 var _realm: RealmDef
 var _key := ""
@@ -272,8 +276,14 @@ func _draw() -> void:
 	_draw_gates(font)
 	_draw_enemies()
 	_draw_players()
+	_draw_rings()
 	_draw_legend(font)
 	_draw_hover(font)
+
+
+## The realm id the panel shows, "" when none (the client asks the server about its camps).
+func realm_id() -> String:
+	return str(_realm.id) if _realm != null else ""
 
 
 func _inside(p: Vector2) -> bool:
@@ -288,7 +298,14 @@ func _draw_camps(font: Font) -> void:
 		if not _inside(p):
 			continue
 		var count: int = camp[1]
-		if count == 1:
+		if cleared.has(camp[2]):
+			var left := ceili(cleared[camp[2]])
+			var dim := color * Color(1, 1, 1, 0.5)
+			draw_arc(p, 8.0, 0.0, TAU, 16, dim, 1.5)
+			draw_line(p + Vector2(-5, -5), p + Vector2(5, 5), dim, 1.5)
+			draw_line(p + Vector2(-5, 5), p + Vector2(5, -5), dim, 1.5)
+			_hits.append([p, "camp %d, cleared, %d s left" % [camp[2], left]])
+		elif count == 1:
 			draw_circle(p, 3.0, color)
 			_hits.append([p, "roamer, camp %d" % camp[2]])
 		else:
@@ -345,6 +362,19 @@ func _draw_players() -> void:
 		_hits.append([p, "player %s" % player.player_name])
 
 
+## Debug: the distances the server wakes (WAKE) and frees (SLEEP) camps at, around every player.
+func _draw_rings() -> void:
+	var meters := _zoom() / (PI * _realm.radius)
+	for node in world.players.get_children():
+		var player := node as SimPlayer
+		if player == null or Layout.realm_at(player.global_position) != _realm:
+			continue
+		var p := _screen(player.global_position)
+		# Distances are along the ground; a circle is exact only at the map's center.
+		draw_arc(p, Spawner.WAKE * meters, 0.0, TAU, 48, RING_WAKE, 1.5)
+		draw_arc(p, Spawner.SLEEP * meters, 0.0, TAU, 48, RING_SLEEP, 1.5)
+
+
 func _draw_legend(font: Font) -> void:
 	var at := _frame().position + Vector2(14, 22)
 	draw_string(font, at, "%d m across" % roundi(minf(span, _full_span())), 0, -1, 16, OWN)
@@ -352,6 +382,8 @@ func _draw_legend(font: Font) -> void:
 	for id: StringName in KIND_COLORS:
 		rows.append([KIND_COLORS[id], str(id)])
 	rows.append([Menus.PARCHMENT, "camp (ring), roamer (dot)"])
+	rows.append([RING_WAKE, "wake range"])
+	rows.append([RING_SLEEP, "sleep range"])
 	for row: Array in rows:
 		at.y += 20.0
 		draw_circle(at + Vector2(5, -5), 5.0, row[0])

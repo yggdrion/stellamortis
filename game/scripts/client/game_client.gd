@@ -124,6 +124,7 @@ func _ready() -> void:
 			_world.build(world_seed, world_name)
 			net.world_ready.rpc_id(1)
 	)
+	net.cleared_camps_received.connect(func(cleared: Dictionary) -> void: _map.cleared = cleared)
 	net.room_received.connect(func(code: String) -> void: room = code)
 	net.ponged.connect(
 		func(sent: int) -> void:
@@ -380,6 +381,8 @@ func _log_snaps() -> void:
 func _each_second() -> void:
 	if me != null:
 		net.ping.rpc_id(1, Time.get_ticks_msec())
+	if _map.visible and _map.realm_id() != "":
+		net.request_cleared_camps.rpc_id(1, _map.realm_id())
 	if bot:
 		_check_bot()
 

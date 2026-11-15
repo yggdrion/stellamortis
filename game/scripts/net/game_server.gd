@@ -24,6 +24,8 @@ const SILENT_DROP := 10.0
 
 var net: Net
 var solo := false
+## Debug: answer every client's debug map request (--debug-map); else only the host's.
+var debug_map := false
 ## The address the ENet server listens on: "*" is every interface. Solo and the test tools
 ## use 127.0.0.1, so the operating system's firewall has nothing to ask about.
 var bind_ip := "*"
@@ -53,6 +55,8 @@ var _built := {}
 ## Peer id -> Time.get_ticks_msec() of its last ping, for players in the world.
 var _heard := {}
 var _ever_joined := false
+## The first player that joined: the host of a hosted game, the only one when solo.
+var _host_id := 0
 var _started_ms := 0
 var _loop_began := 0
 var _stats_ticks := 0
@@ -98,6 +102,7 @@ func start(port: int) -> void:
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	net.hello_received.connect(_on_hello)
 	net.pinged.connect(_on_ping)
+	net.cleared_camps_requested.connect(_on_cleared_camps_requested)
 	net.world_ready_received.connect(
 		func(id: int) -> void:
 			if _names.has(id):
@@ -227,6 +232,8 @@ func _on_hello(id: int, version: int, player_name: String) -> void:
 		return
 	_names[id] = player_name.substr(0, 24)
 	_ever_joined = true
+	if _host_id == 0:
+		_host_id = id
 	if room != "":
 		net.room.rpc_id(id, room)
 	# The client builds the world from the seed before anything is spawned for it.
@@ -248,6 +255,13 @@ func _on_hello(id: int, version: int, player_name: String) -> void:
 	_heard[id] = Time.get_ticks_msec()
 	print("%s joined (%d)" % [_names[id], id])
 	_tell_others(id, "%s joined" % _names[id])
+
+
+func _on_cleared_camps_requested(id: int, realm_id: String) -> void:
+	if _heard.has(id) and (debug_map or (solo and id == _host_id)):
+		net.cleared_camps.rpc_id(
+			id, _world.spawner.cleared_camps(StringName(realm_id), NetworkTime.tick)
+		)
 
 
 func _on_ping(id: int, sent: int) -> void:

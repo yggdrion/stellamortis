@@ -5,6 +5,8 @@ extends Node
 ##                                  --solo: 127.0.0.1, so no firewall prompt)
 ##     [--spawn=X,Y,Z[;X,Y,Z]]      debug: spawn players there (several: in turn; a solo client
 ##                                  passes it on)
+##     [--debug-map]                debug: answer every client's map request for cleared camps
+##                                  (else only the host's; a solo client passes it on)
 ##     [--encounter=boss]           debug: start with the mobs dead (a solo client passes it on)
 ##     [--seed=N] [--world=NAME]    the world's seed (random without) and name (solo and host
 ##                                  clients pass them on)
@@ -67,6 +69,7 @@ func _ready() -> void:
 		var server := GameServer.new()
 		server.net = _net
 		server.solo = _args.has("solo")
+		server.debug_map = _args.has("debug-map")
 		# A solo server only ever has its own client, on this machine.
 		server.bind_ip = _args.get("bind", "127.0.0.1" if server.solo else "*")
 		if _args.has("spawn"):
@@ -210,7 +213,7 @@ func _host(client: GameClient) -> void:
 ## Debug args a client passes on to the server it spawns.
 func _debug_args() -> PackedStringArray:
 	var passed := PackedStringArray()
-	for key: String in ["spawn", "encounter", "seed", "world"]:
+	for key: String in ["spawn", "encounter", "seed", "world", "debug-map"]:
 		if _args.has(key):
 			passed.append("--%s=%s" % [key, _args[key]])
 	return passed

@@ -234,6 +234,11 @@ func test_a_cleared_camp_stays_empty_until_it_respawns() -> void:
 	_stand(point, 30.0)
 	_update(3)
 	assert_int(_awake(0)).is_equal(0)
+	# The debug map hears of it with the seconds left.
+	var left := _spawner.cleared_camps(_realm.id, _tick)
+	assert_array(left.keys()).is_equal([point.camp])
+	assert_float(left[point.camp]).is_greater(Spawner.RESPAWN_MINUTES * 60.0 - 60.0)
+	assert_dict(_spawner.cleared_camps(&"nowhere", _tick)).is_empty()
 	_tick += Combat.ticks(Spawner.RESPAWN_MINUTES * 60.0) / Spawner.PERIOD * Spawner.PERIOD
 	_update(2)
 	assert_int(_awake(0)).is_equal(_size(0))

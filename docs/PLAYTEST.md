@@ -108,3 +108,8 @@ The map (task 1, `client/map_panel.gd`; hold M on the Barrowlands, the mouse is 
 - [ ] The terrain matches the ground: a hill or ridge you can see in the world is light and shaded on the map in the same place and direction; the arrival gate "Home" is where you arrived.
 - [ ] Camps (rings with their size) and roamers (dots) match what you meet; awake enemies show colored by kind and move; hovering a marker names it (kind, slot, action, camp, distance); a second player shows as a green dot.
 - [ ] In the keep and the old realm the map says "No map here". It does not pause the game: enemies keep moving while it is open.
+
+Debug details (task 2; the wake and sleep rings always, cleared camps only in solo, as host, or on a server started with `--debug-map`):
+
+- [ ] Two rings around every player: yellow at 90 m (camps wake) and blue at 140 m (camps sleep), matching the distances at which you see a camp's enemies appear and vanish.
+- [ ] Kill a whole camp, open the map: its ring shows dimmed with a cross and hovering says "cleared, N s left" counting down from 600; after 10 minutes (or on a fresh world) it is a normal ring again and the enemies are back. On a friend's client (not host, no `--debug-map`) camps are never shown as cleared.

@@ -69,6 +69,8 @@ class SpawnPoint:
 var world: World
 var _units: Array[Array] = []
 var _centers := PackedVector3Array()
+## Unit -> [realm id, camp id], as the clients' map knows a camp.
+var _ids: Array[Array] = []
 ## Unit -> {member index: pool slot index} of the members awake.
 var _awake := {}
 ## Unit -> {member index: tick first seen down}.
@@ -91,6 +93,7 @@ func _init(for_world: World) -> void:
 			for point: SpawnPoint in camp:
 				center += point.position
 			_units.append(camp)
+			_ids.append([realm.id, (camp[0] as SpawnPoint).camp])
 			_centers.append(center / camp.size())
 
 
@@ -197,6 +200,24 @@ static func _point(
 
 func unit_count() -> int:
 	return _units.size()
+
+
+## Debug map (M33): camp id -> seconds until the camp is open again, for the cleared camps of
+## a realm. Read only.
+func cleared_camps(realm_id: StringName, tick: int) -> Dictionary:
+	return cleared_left(_ids, _cleared_until, realm_id, tick)
+
+
+## The answer builder of cleared_camps: `ids` are [realm id, camp id] per unit, `until` unit ->
+## tick the camp is open again.
+static func cleared_left(
+	ids: Array[Array], until: Dictionary, realm_id: StringName, tick: int
+) -> Dictionary:
+	var left := {}
+	for unit: int in until:
+		if ids[unit][0] == realm_id:
+			left[ids[unit][1]] = maxf(0.0, float(until[unit] - tick) / Combat.TICKRATE)
+	return left
 
 
 ## Slots now serving a unit (camp), member index -> slot index.

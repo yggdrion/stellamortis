@@ -14,10 +14,12 @@ signal server_stats_received(tps: float, tick_ms: float, tick_avg_ms: float, out
 signal world_received(world_seed: int, world_name: String)
 signal room_received(code: String)
 signal notice_received(text: String)
+signal cleared_camps_requested(peer_id: int, realm_id: String)
+signal cleared_camps_received(cleared: Dictionary)
 
 ## Bump on any change to the RPCs here or to what netfox synchronizes (SimPlayer.STATE,
 ## PlayerControls) or to what both sides simulate (Layout, Gravity, Tuning).
-const PROTOCOL_VERSION := 21
+const PROTOCOL_VERSION := 22
 
 @rpc("any_peer", "reliable")
 func hello(version: int, player_name: String) -> void:
@@ -67,3 +69,15 @@ func room(code: String) -> void:
 @rpc("authority", "reliable")
 func notice(text: String) -> void:
 	notice_received.emit(text)
+
+
+## Debug map (M33): a client asks which camps of a realm are cleared; the server answers
+## (camp id -> seconds left) only to the host or with --debug-map, else not at all.
+@rpc("any_peer", "unreliable")
+func request_cleared_camps(realm_id: String) -> void:
+	cleared_camps_requested.emit(multiplayer.get_remote_sender_id(), realm_id)
+
+
+@rpc("authority", "unreliable")
+func cleared_camps(cleared: Dictionary) -> void:
+	cleared_camps_received.emit(cleared)

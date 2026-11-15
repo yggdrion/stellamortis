@@ -1,6 +1,6 @@
 # M33 Map
 
-Status: Planned.
+Status: Built (2026-11-15, v0.20.0), play-test pending (`docs/PLAYTEST.md`).
 
 ## Goal
 

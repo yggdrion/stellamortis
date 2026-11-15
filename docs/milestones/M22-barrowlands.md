@@ -4,11 +4,11 @@ Status: planned.
 
 ## Goal
 
-The Barrowlands gets its own cast and its boss fight on the realm itself. Five enemy kinds that ask for different answers, and the Warden rising from a barrow; its death opens the keep's gate to the next realm. The hand-built PoC realm is removed.
+The Barrowlands gets its own cast and its boss fight on the realm itself. Five enemy kinds that ask for different answers, and the Warden rising from a barrow; its death opens the gate to the next realm at the arrival gate (M34). The hand-built PoC realm is removed.
 
 ## Depends on
 
-M21 (pool, `EnemyDef`, spawner; built, `World.POOL` is 20 after the load test, 16 slots for the spawner). M19 helps (flinch, deaths) but is not required.
+M34 (start at the arrival gate, no keep) and M33 (map, for checking spawns). M21 (pool, `EnemyDef`, spawner; built, `World.POOL` is 20 after the load test, 16 slots for the spawner). M19 helps (flinch, deaths) but is not required.
 
 ## Design
 
@@ -22,7 +22,7 @@ Kinds (all on the humanoid UAL rig, looks from `Gear`):
 | Berserker | fast, low health, a leaping heavy from 8 m | roll the leap, punish the long recovery |
 | Barrow elite | large, armored, two-hit combo and a ground slam; guards a camp's chest | all of it |
 
-Boss site: each realm has one, placed from the seed (`BossSite`: a ring of standing stones on flattened ground far from the arrival point). Entering the ring starts the fight; the site's slots are reserved in the pool for its length (the old encounter holds `Pool0..3` and `Spawner.FIRST_SLOT` is 4; when `Encounter` moves to the site, lower `FIRST_SLOT` and reserve the boss slot there, keeping the pool at 20: a larger pool does not hold 29 tps, `docs/PLAN.md` §8). `Encounter` becomes this per realm: phases `IDLE`, `BOSS`, `CLEARED`; it resets when no living player is within the site's reach. `World.flags` (a rolled back or reliably synced set of names, e.g. `warden_fallen`) records the kill; the keep's next gate is open while the flag is set.
+Boss site: each realm has one, placed from the seed (`BossSite`: a ring of standing stones on flattened ground far from the arrival point). Entering the ring starts the fight; the site's slots are reserved in the pool for its length (the old encounter holds `Pool0..3` and `Spawner.FIRST_SLOT` is 4; when `Encounter` moves to the site, lower `FIRST_SLOT` and reserve the boss slot there, keeping the pool at 20: a larger pool does not hold 29 tps, `docs/PLAN.md` §8). `Encounter` becomes this per realm: phases `IDLE`, `BOSS`, `CLEARED`; it resets when no living player is within the site's reach. `World.flags` (a rolled back or reliably synced set of names, e.g. `warden_fallen`) records the kill; the arrival gate's next gate is open while the flag is set.
 
 ## Tasks
 
@@ -55,7 +55,7 @@ Steps:
 1. `BossSite.at(realm)` from the seed; `Terrain.height` blends to a flat disc around it (the height function stays pure: the site position is derived from the same seed).
 2. `Encounter` per realm as in the design; the Warden uses a reserved pool slot with `EnemyDef` behavior `BOSS_WARDEN`; health scales with the players inside the ring when it rises.
 3. `World.flags` with a wire serializer; gates read it (`Layout.portals()`, `Portal`), replacing `Encounter.won()`.
-4. Remove the hand-built realm: `Layout.MOBS`, `BOSS`, `REALM_ARRIVAL`, the low and high gravity boxes, the asteroid and pads at the origin, `Arena._build_realm`, and their tests. Keep `tests/asteroid_test.gd`'s coverage by pointing it at a small test sphere built in the test (the Skyshards need that behavior in M28). The keep's gate now leads only to the Barrowlands. `--encounter=boss` starts the fight at the site.
+4. Remove the hand-built realm: `Layout.MOBS`, `BOSS`, `REALM_ARRIVAL`, the low and high gravity boxes, the asteroid and pads at the origin, `Arena._build_realm`, and their tests. Keep `tests/asteroid_test.gd`'s coverage by pointing it at a small test sphere built in the test (the Skyshards need that behavior in M28). Remove the arrival's "To the old barrow" gate (M34). `--encounter=boss` starts the fight at the site.
 5. HUD boss bar and presence strings read the per realm encounter. Protocol bump.
 
 Tests: entering the ring raises the Warden; leaving resets it; the kill sets the flag and opens the gate; a wipe resets; health per player; the fight works on the curved ground (slam area, volley, well).

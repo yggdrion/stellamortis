@@ -167,7 +167,7 @@ Decided with the user on 2026-11-14. Nothing here is built yet; the briefs in `d
 What the game becomes:
 
 - A persistent survival world in Valheim's spirit. Priority: explore and fight, then gather and craft, then base building.
-- Several round realms, each one biome with its own gravity, enemies, resources and boss. A boss's death opens the keep's gate to the next realm. Realms must be big enough that walking never feels like running around a ball.
+- Several round realms, each one biome with its own gravity, enemies, resources and boss. A boss's death opens the gate to the next realm at the Barrowlands' arrival gate (the hub keep goes in M34, 2026-11-15). Realms must be big enough that walking never feels like running around a ball.
 - Realms: the Barrowlands (normal gravity, start, the Warden), Myrkfen (low gravity, fog and black water, a drowned jotun), Jarnfell (high gravity, ash and old forges, a forge king), the Skyshards (a cluster of small floating rocks with launch stones between them).
 - The theme stays §3.2: dark medieval, Viking, northern fantasy. No sci-fi words or looks: realms and rune gates, sky iron, draugr.
 - Hits and loot must feel satisfying (M19, M23).
@@ -244,8 +244,10 @@ When a milestone's status changes, change it here and in the `Status:` line of i
 | M30 | Planting and cooking | World time, tilled fields, crops per realm that grow while the server runs, cooking stations, three meal slots that raise health and stamina through `Stats`. | Planned | [details](milestones/M30-planting-cooking.md) |
 | M31 | Livestock | Goats, sheep, boars and hens: wild herds, taming by feeding, pens, breeding and products by world time; server-moved, out of rollback, never fighting. | Planned | [details](milestones/M31-livestock.md) |
 | M32 | Mills and station queues | Stations with fuel and queues that work unattended, water wheels and windmills driving machines through shafts, hoppers and chutes by gravity. | Planned | [details](milestones/M32-mills-and-queues.md) |
+| M33 | Map | A map panel (M) of the realm: terrain, players, awake enemies, camps, gates; a debug tool first. Before M22. | Planned | [details](milestones/M33-map.md) |
+| M34 | Start at the gate | The hub keep is removed; players spawn and respawn at the Barrowlands' arrival gate, where the next realms' gates open. After M33, before M22. | Planned | [details](milestones/M34-start-at-the-gate.md) |
 
-M16 is required and independent of the rest. M19 to M32 are the survival world (§4.8), in priority order; from M19 on every milestone ends with a hand play-test by the user instead of being built blind.
+M16 is required and independent of the rest. M19 to M34 are the survival world (§4.8), in priority order (M33 and M34, added 2026-11-15, come before M22); from M19 on every milestone ends with a hand play-test by the user instead of being built blind.
 
 ## 7. Open questions
 

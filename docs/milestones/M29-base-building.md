@@ -15,7 +15,7 @@ M25 (materials, recipes, stations, world objects with collision). Can run before
 - A piece is a world object: `PieceDef` (resource: model, collision shape, snap points, cost, health) and an entry in the world (def, transform, health). Server-authoritative, deltas plus join snapshot, saved. Collision exists on every peer in loaded chunks.
 - Placement: build mode shows a ghost that snaps to the snap points of nearby pieces and to the ground, aligned to the local up (pieces keep the up of where they were placed, so a hall on a round realm is built in its own tangent frame: the first piece of a structure sets the frame, later pieces snap into it). The client sends an intent; the server checks cost, reach, overlap and the budget.
 - Removal returns the materials. Enemies do not attack pieces in M29.
-- Stations as pieces: workbench, forge, chest, bed (sets the owner's respawn point, replacing the keep).
+- Stations as pieces: workbench, forge, chest, bed (sets the owner's respawn point, replacing the arrival gate).
 - Budget: a piece count per world from a load test of join snapshot size, collision cost and frame time; start at 2000 and measure.
 - Pieces: floor, wall, half wall, roof slope, door, stairs, beam, fence, torch. The Medieval Village MegaKit has more than is vendored: add the pieces used and record them.
 

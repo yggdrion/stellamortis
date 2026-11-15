@@ -15,7 +15,7 @@ M23 (items, world objects for drops, saves), M24 (set perks, crafter tree), M20'
 - Resource nodes are world objects derived from the seed (`Scatter.points`, the same function the client used for visuals in M20): the world stores only what differs from the seed (felled, mined, regrowing with a time). Collision exists on every peer, built with the terrain chunks, so players and enemies walk around trees and rocks.
 - Hitting a node is a server decision from the player's swing (the sim tells the server which node a swing with a tool reached; node health is not rolled back). A felled tree falls, breaks into logs as drops, and regrows after a long time; ore veins do not regrow.
 - Tools are weapons with a `tool` kind and tier: axe (wood), pickaxe (stone, ore). A tool too weak for a node bounces off with a clear sound.
-- `Recipe` (resource): station, inputs, output, required flag. Stations: the workbench and the smithy at the keep. Crafting takes materials from the bag and from chests within a few metres. Upgrades raise an item's level for more materials.
+- `Recipe` (resource): station, inputs, output, required flag. Stations: the workbench and the smithy next to the arrival gate (the keep is gone, M34). Crafting takes materials from the bag and from chests within a few metres. Upgrades raise an item's level for more materials.
 - Tier 1: sword, axe, shield, crossbow, bolts, a heavy set (iron scrap: defense, a set perk around blocking) and a light set (leather and bone: stamina, a set perk around rolling).
 
 ## Tasks

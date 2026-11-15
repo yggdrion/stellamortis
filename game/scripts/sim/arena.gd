@@ -20,6 +20,14 @@ const NATURE := "res://assets/kenney/nature/"
 const STONE_COUNT := 10
 const STONE_RING := 6.0
 const STONE_SCALE := 2.4
+## A ring stone's solid: the model (0.98 x 1.0 x 0.68 units) at STONE_SCALE, a little narrower.
+const STONE_SOLID := Vector3(1.9, 2.3, 1.3)
+## A gate's arch: pillar centers either side of the opening, pillar and lintel boxes, the lintel's
+## height. Visual (_portal) and solid (_add_gate_solids) read the same numbers.
+const GATE_PILLAR_X := 1.7
+const GATE_PILLAR := Vector3(0.6, 4.0, 0.7)
+const GATE_LINTEL := Vector3(4.2, 0.7, 0.8)
+const GATE_LINTEL_Y := 4.3
 const TORCH_LIGHT := Color(1.0, 0.62, 0.32)
 const MOON_LIGHT := Color(0.62, 0.7, 0.92)
 const MOON_ROTATION := Vector3(-38.0, 30.0, 0.0)
@@ -84,6 +92,38 @@ func add_seeded_portals() -> void:
 		if portal.seeded:
 			_portal(portal)
 	_arrival_look(Layout.start_realm())
+
+
+## Every peer (M35): the arrival's ring stones and the gates' pillars and lintels are solid, from
+## the same Layout positions the visuals use, so a client predicts against what the server has.
+## Only the pillars and the lintel: the opening a player walks through stays free.
+func add_arrival_solids() -> void:
+	var start := Layout.start_realm()
+	var parent := places[StringName(start.id)] as Node3D
+	for stone in _arrival_stones(start):
+		_solid(parent, stone, STONE_SOLID, Vector3(0, STONE_SOLID.y * 0.5, 0))
+	for portal in Layout.portals():
+		if not portal.seeded:
+			continue
+		var gate := Transform3D(SimPlayer.frame(portal.up, Vector3.FORWARD), portal.position)
+		var place := places[Layout.place_at(portal.position)] as Node3D
+		for x: float in [-GATE_PILLAR_X, GATE_PILLAR_X]:
+			_solid(place, gate, GATE_PILLAR, Vector3(x, GATE_PILLAR.y * 0.5, 0))
+		_solid(place, gate, GATE_LINTEL, Vector3(0, GATE_LINTEL_Y, 0))
+
+
+## A static box of a size at an offset (in the frame of `at`), on the world layer.
+func _solid(parent: Node3D, at: Transform3D, size: Vector3, offset: Vector3) -> void:
+	var body := StaticBody3D.new()
+	body.collision_layer = SimPlayer.LAYER_WORLD
+	body.collision_mask = 0
+	body.transform = at * Transform3D(Basis.IDENTITY, offset)
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = size
+	shape.shape = box
+	body.add_child(shape)
+	parent.add_child(body)
 
 
 ## Clients: the ground, shell and scatter of every generated realm (TerrainView), once the world
@@ -251,15 +291,9 @@ func _arrival_look(realm: RealmDef) -> void:
 	var rock := StandardMaterial3D.new()
 	rock.albedo_color = Color(0.2, 0.2, 0.22)
 	rock.roughness = 1.0
-	for k in range(1, STONE_COUNT):
-		var angle := TAU * k / STONE_COUNT
-		if absf(angle - PI) < 0.1:
-			continue
-		var spot := Layout.arrival_spot(realm, cos(angle) * STONE_RING, sin(angle) * STONE_RING)
-		var frame := _frame_at(spot)
+	for stone in _arrival_stones(realm):
 		var root := Node3D.new()
-		root.position = spot[0]
-		root.basis = frame
+		root.transform = stone
 		parent.add_child(root)
 		var model := _prop(
 			root, NATURE + "stone_tallA.glb", Vector3.ZERO, Basis.IDENTITY, STONE_SCALE
@@ -273,6 +307,18 @@ func _arrival_look(realm: RealmDef) -> void:
 		parent.add_child(root)
 		root.add_child(_block(Vector3(0.14, 1.7, 0.14), Vector3(0, 0.85, 0), _surface(BRICK, 0.3)))
 		_torch(root, Vector3(0, 1.45, 0.07), Vector3.BACK, false)
+
+
+## Where the ring's stones stand (gaps ahead where the dummies are and behind at the gate).
+func _arrival_stones(realm: RealmDef) -> Array[Transform3D]:
+	var found: Array[Transform3D] = []
+	for k in range(1, STONE_COUNT):
+		var angle := TAU * k / STONE_COUNT
+		if absf(angle - PI) < 0.1:
+			continue
+		var spot := Layout.arrival_spot(realm, cos(angle) * STONE_RING, sin(angle) * STONE_RING)
+		found.append(Transform3D(_frame_at(spot), spot[0]))
+	return found
 
 
 ## A basis standing along spot's up, looking at the ring's center.
@@ -335,9 +381,9 @@ func _portal(portal: Portal) -> Node3D:
 	root.basis = SimPlayer.frame(portal.up, Vector3.FORWARD)
 	(places[Layout.place_at(portal.position)] as Node3D).add_child(root)
 	var stone := _surface(BRICK, 0.6)
-	for x: float in [-1.7, 1.7]:
-		root.add_child(_block(Vector3(0.6, 4.0, 0.7), Vector3(x, 2.0, 0), stone))
-	root.add_child(_block(Vector3(4.2, 0.7, 0.8), Vector3(0, 4.3, 0), stone))
+	for x: float in [-GATE_PILLAR_X, GATE_PILLAR_X]:
+		root.add_child(_block(GATE_PILLAR, Vector3(x, GATE_PILLAR.y * 0.5, 0), stone))
+	root.add_child(_block(GATE_LINTEL, Vector3(0, GATE_LINTEL_Y, 0), stone))
 	var veil := MeshInstance3D.new()
 	var quad := QuadMesh.new()
 	quad.size = Vector2(2.8, 3.9)

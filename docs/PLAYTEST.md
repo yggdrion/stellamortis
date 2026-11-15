@@ -130,4 +130,19 @@ The gate's look (task 2, `Arena._arrival_look`; scatter was already clear 30 m a
 
 - [ ] The arrival reads as a place: a ring of standing stones (dark gray, about 2.5 m tall, no runes carved yet) around the spawn with gaps ahead (dummies) and behind (the arch), and two torches on posts with flickering light left and right just behind the spawn.
 - [ ] No stone, post or torch floats above the ground or sinks into a slope, and no tree or boulder grows through the ring, the dummies or the arch.
-- [ ] The stones do not block you: you walk through them (they have no collision yet; say if that bothers you).
+- [ ] The stones are solid since M35 (see "M35 Scatter collision").
+
+## M35 Scatter collision
+
+Task 1 (`sim/scatter_shape.gd`, `data/scatter/*.tres`, `sim/terrain_chunks.gd`, `Arena.add_arrival_solids`; protocol 24). Run with `--show-collision` to see the shapes (blue wireframes, the ground too):
+
+- [ ] Pines, birches, boulders and standing stones stop you: you cannot walk, sprint or roll through a trunk or rock, and you slide along them instead of sticking when you hit one at an angle.
+- [ ] The shapes match what you see: a trunk stops you at the trunk (not at the crown, you can walk under branches), a boulder at its rock, a standing stone at the stone; no invisible walls beside them and no gaps you walk through.
+- [ ] Burial mounds are low domes you can walk up and over without getting stuck.
+- [ ] Crossbow bolts stop in trunks and rocks, and you cannot aim or shoot through a tree at an enemy behind it.
+- [ ] The arrival's stone ring is solid: the stones stop you, the gaps between them let you through, and the two gaps ahead (dummies) and behind (arch) are open.
+- [ ] The arch "To the old barrow": its two pillars are solid, the opening between them is not; walking through the middle still takes you to the old realm. The lintel is over your head (jump under it).
+- [ ] Nobody spawns, respawns or arrives through a gate stuck inside a tree, rock or stone, and the dummies stand free.
+- [ ] Two players in a forest (or a friend on a worse connection) walk around trees without rubberbanding at them; tree collision shows the same on every peer, also with graphics on Low (fewer trees drawn, same trees solid).
+- [ ] Frame rate and the server tick (F3: tick loop, tps) look the same in the forest as on the open moor.
+- [ ] Enemies still walk into trees today (task 2 makes them slide around trunks): note how much it bothers you.

@@ -31,6 +31,9 @@ func before_test() -> void:
 	_field = Terrain.Field.new(_realm, SEED)
 	_chunks = auto_free(TerrainChunks.new(SEED)) as TerrainChunks
 	_chunks.anchors = func() -> Array: return [_player]
+	# These walks are about the ground (500 m through the forest cannot avoid every tree); the
+	# trees' own collision is tested in scatter_collision_test.
+	_chunks.scatter_solids = false
 	add_child(_chunks)
 
 

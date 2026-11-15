@@ -1,7 +1,8 @@
 class_name TerrainChunks
 extends Node3D
 ## Streams the collision of the generated realms (M20): one StaticBody3D with a
-## ConcavePolygonShape3D per chunk (Terrain.chunk_arrays) on the world layer, kept alive around
+## ConcavePolygonShape3D per chunk (Terrain.chunk_arrays) plus the scatter's solid shapes
+## (ScatterShape) on the world layer, kept alive around
 ## the anchors (server: every player and awake enemy; client: the own player) and freed
 ## beyond them. Triangles are built on WorkerThreadPool, shapes and bodies on the main
 ## thread with a per-frame budget. Chunks are static and a pure function of the world seed, so
@@ -39,6 +40,8 @@ const ARRIVAL_RADIUS := 40.0
 ## Replaceable (tests): returns the Node3Ds to keep ground under.
 var anchors := _default_anchors
 var world_seed := 0
+## Whether chunks carry the scatter's solids (tests of the ground alone turn it off).
+var scatter_solids := true
 ## Client: only the own player anchors.
 var own_only := false
 ## Vector4i(realm index, face, x, y) -> StaticBody3D.
@@ -50,9 +53,10 @@ var _pinned := {}
 var _tracked := {}
 
 
-## One chunk build, run on a worker thread: only the triangles. Nothing here touches the scene
-## tree or the physics server (not thread safe in this project); the shape is made on the main
-## thread in _add_body.
+## One chunk build, run on a worker thread: the triangles and the scatter's solids (M35: trees,
+## rocks, stones and mounds, from Scatter.points alone, whatever the client draws). Nothing here
+## touches the scene tree or the physics server (not thread safe in this project); the shapes
+## are made on the main thread in _add_body.
 class Job:
 	extends RefCounted
 	var key: Vector4i
@@ -60,9 +64,14 @@ class Job:
 	var world_seed: int
 	var task := -1
 	var faces: PackedVector3Array
+	var with_solids := true
+	var solids: Array[ScatterShape.Solid]
 
 	func run() -> void:
 		faces = Terrain.chunk_arrays(realm, world_seed, key.y, key.z, key.w)
+		if with_solids:
+			var chunk := Vector3i(key.y, key.z, key.w)
+			solids = ScatterShape.solids(Scatter.points(realm, world_seed, chunk))
 
 
 func _init(seed_value := 0, for_client := false) -> void:
@@ -106,7 +115,7 @@ func ensure_around(point: Vector3, radius := ARRIVAL_RADIUS) -> void:
 		else:
 			WorkerThreadPool.wait_for_task_completion(job.task)
 			_jobs.erase(key)
-		_add_body(key, job.faces)
+		_add_body(key, job)
 
 
 ## The key of the chunk under a world point, null outside every realm.
@@ -127,6 +136,7 @@ func _job(key: Vector4i) -> Job:
 	job.key = key
 	job.realm = Layout.realms()[key.x]
 	job.world_seed = world_seed
+	job.with_solids = scatter_solids
 	return job
 
 
@@ -229,7 +239,7 @@ func _pump() -> void:
 		WorkerThreadPool.wait_for_task_completion(job.task)
 		_jobs.erase(key)
 		if _keep(key):
-			_add_body(key, job.faces)
+			_add_body(key, job)
 			added += 1
 	while _jobs.size() < MAX_JOBS and not _queue.is_empty():
 		var next: Vector4i = _queue.pop_front()
@@ -240,9 +250,9 @@ func _pump() -> void:
 		_jobs[next] = job
 
 
-func _add_body(key: Vector4i, faces: PackedVector3Array) -> void:
+func _add_body(key: Vector4i, job: Job) -> void:
 	var shape := ConcavePolygonShape3D.new()
-	shape.set_faces(faces)
+	shape.set_faces(job.faces)
 	var body := StaticBody3D.new()
 	body.name = "Chunk_%d_%d_%d_%d" % [key.x, key.y, key.z, key.w]
 	body.collision_layer = SimPlayer.LAYER_WORLD
@@ -251,6 +261,12 @@ func _add_body(key: Vector4i, faces: PackedVector3Array) -> void:
 	var collider := CollisionShape3D.new()
 	collider.shape = shape
 	body.add_child(collider)
+	# One body per chunk: the scatter's shapes beside the ground (a body is a compound).
+	for solid in job.solids:
+		var part := CollisionShape3D.new()
+		part.shape = solid.shape.make(solid.extents())
+		part.transform = solid.transform
+		body.add_child(part)
 	add_child(body)
 	bodies[key] = body
 	chunk_added.emit(key)

@@ -63,6 +63,8 @@ func build(new_seed: int, new_name: String) -> void:
 	for realm in Layout.realms():
 		chunks.pin_around(Terrain.surface(realm, new_seed, realm.arrival))
 	_post_dummies()
+	if arena != null:
+		arena.add_arrival_solids()
 	if visual:
 		arena.add_seeded_portals()
 		arena.add_terrain_views(new_seed)

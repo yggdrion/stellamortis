@@ -34,6 +34,7 @@ extends Node
 ##   --max-fps=N                    frame rate cap for this run (0 unlimited; not saved)
 ##   --map[=METERS|full]            open the map at the start and keep it open (METERS across,
 ##                                  default 600; for screenshots)
+##   --show-collision               draw the collision shapes (debug; the ground too)
 ##   --look=YAW,PITCH               start the camera there (degrees, yaw 0 looks along -Z)
 ##   --bench=N                      time N simulated players and the enemies per tick, then quit
 ##   (none of the above)            the main menu (MainMenu); --spawn, --encounter, --look and
@@ -88,6 +89,7 @@ func _ready() -> void:
 		server.start(int(_args.get("port", DEFAULT_PORT)))
 		return
 	Controls.setup()
+	get_tree().debug_collisions_hint = _args.has("show-collision")
 	if not _args.has("bot") and not _args.has("screenshot"):
 		_presence = Presence.new()
 		add_child(_presence)

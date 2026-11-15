@@ -33,6 +33,9 @@ var screenshot_frames := 1
 var graphics := ""
 ## Camera yaw and pitch in degrees to start with (screenshots), null for the default.
 var look: Variant = null
+## Opens the map at the start and keeps it open (--map): "" no, "full" the whole realm, else the
+## meters across.
+var map_start := ""
 
 var me: SimPlayer
 var ping_ms := 0
@@ -63,6 +66,7 @@ var _heard_ms := 0
 var _overlay: DebugOverlay
 var _hud: Hud
 var _pause: PauseMenu
+var _map: MapPanel
 ## The planet's wind (Sounds.ambience).
 var _ambience: AudioStreamPlayer
 var _started_ms := 0
@@ -102,6 +106,13 @@ func _ready() -> void:
 	add_child(_overlay)
 	_ambience = AudioStreamPlayer.new()
 	add_child(_ambience)
+	_map = MapPanel.new()
+	_map.world = _world
+	_map.camera = _rig.camera
+	var map_layer := CanvasLayer.new()
+	map_layer.layer = 5
+	map_layer.add_child(_map)
+	add_child(map_layer)
 	_pause = PauseMenu.new()
 	_pause.on_graphics = func() -> void: Graphics.apply(get_viewport(), _world.arena)
 	_pause.resumed.connect(_resume)
@@ -230,6 +241,7 @@ func _on_player_spawned(player: SimPlayer) -> void:
 		_first_seen[player.peer_id] = player.global_position
 		return
 	me = player
+	_map.me = me
 	_hud.player = me
 	_hud.encounter = _world.encounter
 	me.controls.reader = _bot_controls if bot else _read_controls
@@ -239,6 +251,9 @@ func _on_player_spawned(player: SimPlayer) -> void:
 		_rig.pitch = deg_to_rad((look as Vector2).y)
 	if not bot and not _pause.visible:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if map_start != "":
+		_map.span = INF if map_start == "full" else float(map_start)
+		_map.visible = true
 	entered.emit()
 
 
@@ -419,6 +434,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			_pause.room = room
 			_pause.open()
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	elif event.is_action(&"map") and not event.is_echo() and me != null and map_start == "":
+		# Held: the mouse is free for hover and zoom while it is open (the player stands still).
+		_map.visible = event.is_pressed() and not _pause.visible
+		Input.mouse_mode = (Input.MOUSE_MODE_VISIBLE if _map.visible else Input.MOUSE_MODE_CAPTURED)
 	elif _pause.visible:
 		return
 	elif event is InputEventMouseButton and event.is_pressed() and me != null:

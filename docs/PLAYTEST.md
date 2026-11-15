@@ -99,3 +99,12 @@ The pool size (task 5, `World.POOL` 20 after the load test with bots):
 
 - [ ] Fight a camp of 5 or 6 with a second player, then walk to a camp nearby: both stay awake and the frame time and ping (F3) stay steady; no rubberbanding in rolls and blocks while three or more camps are awake around you (the bots' load test held 29 tps with a tick loop of 60 to 90 ms, so a real fight is the check).
 - [ ] With the pool full (three camps near), a fourth camp stays asleep until slots free up: it is not frozen half awake, and the camps you cleared do not make it wake with missing members.
+
+## M33 Map
+
+The map (task 1, `client/map_panel.gd`; hold M on the Barrowlands, the mouse is free while it is open and the player stands still):
+
+- [ ] M held on the Barrowlands shows the terrain with you in the middle as an arrow, the camera's forward up; turning the camera turns the map, walking moves it, and releasing M gives the mouse back. Zoom with the wheel from about 150 m to the whole realm; the terrain image appears within a few seconds of the first opening (markers alone until then) with no frame hitch.
+- [ ] The terrain matches the ground: a hill or ridge you can see in the world is light and shaded on the map in the same place and direction; the arrival gate "Home" is where you arrived.
+- [ ] Camps (rings with their size) and roamers (dots) match what you meet; awake enemies show colored by kind and move; hovering a marker names it (kind, slot, action, camp, distance); a second player shows as a green dot.
+- [ ] In the keep and the old realm the map says "No map here". It does not pause the game: enemies keep moving while it is open.

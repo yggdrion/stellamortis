@@ -30,6 +30,8 @@ extends Node
 ##   --graphics=low|medium|high|ultra   graphics preset for this run (not saved)
 ##   --vsync=on|off                 vsync for this run (not saved; does not start a game)
 ##   --max-fps=N                    frame rate cap for this run (0 unlimited; not saved)
+##   --map[=METERS|full]            open the map at the start and keep it open (METERS across,
+##                                  default 600; for screenshots)
 ##   --look=YAW,PITCH               start the camera there (degrees, yaw 0 looks along -Z)
 ##   --bench=N                      time N simulated players and the enemies per tick, then quit
 ##   (none of the above)            the main menu (MainMenu); --spawn, --encounter, --look and
@@ -141,6 +143,8 @@ func _start(mode: String, code := "") -> void:
 	client.screenshot_frames = int(_args.get("frames", "1"))
 	client.graphics = _args.get("graphics", "")
 	client.relay_only = _args.has("relay-only")
+	if _args.has("map"):
+		client.map_start = _args["map"] if _args["map"] != "" else "600"
 	client.hosting = mode == "host"
 	client.mode = mode
 	if _args.has("look"):

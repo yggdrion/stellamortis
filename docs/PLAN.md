@@ -246,8 +246,9 @@ When a milestone's status changes, change it here and in the `Status:` line of i
 | M32 | Mills and station queues | Stations with fuel and queues that work unattended, water wheels and windmills driving machines through shafts, hoppers and chutes by gravity. | Planned | [details](milestones/M32-mills-and-queues.md) |
 | M33 | Map | A map panel (M) of the realm: terrain, players, awake enemies, camps, gates; a debug tool first. Before M22. | Built (2026-11-15, v0.20.0), play-test pending | [details](milestones/M33-map.md) |
 | M34 | Start at the gate | The hub keep is removed; players spawn and respawn at the Barrowlands' arrival gate, where the next realms' gates open. After M33, before M22. | Built (2026-11-15, v0.21.0), play-test pending | [details](milestones/M34-start-at-the-gate.md) |
+| M35 | Scatter collision | Trees, boulders, standing stones, mounds and the arrival's stones are solid for players, enemies and bolts; built from `Scatter.points` with the terrain chunks. Before M22. | Planned | [details](milestones/M35-scatter-collision.md) |
 
-M16 is required and independent of the rest. M19 to M34 are the survival world (§4.8), in priority order (M33 and M34, added 2026-11-15, come before M22); from M19 on every milestone ends with a hand play-test by the user instead of being built blind.
+M16 is required and independent of the rest. M19 to M34 are the survival world (§4.8), in priority order (M33, M34 and M35, added 2026-11-15, come before M22); from M19 on every milestone ends with a hand play-test by the user instead of being built blind.
 
 ## 7. Open questions
 

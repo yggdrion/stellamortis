@@ -236,3 +236,7 @@ Task 5 (world list; the main menu's Play replaces Solo and Host):
 - [ ] Delete asks first and names the world; afterwards it says whether the files went to the trash (check the Recycle Bin) or were removed. Keep it cancels.
 - [ ] Put garbage in a file under `user://worlds/` (`%APPDATA%/Godot/app_userdata/...`): it shows as "unreadable" with Delete only, and nothing renames it.
 - [ ] Say if the world list is clear enough, or if a world needs more on its row (last boss, play time).
+
+## Join stall
+
+- [ ] Start a solo game with `--seed=1234`: no "No word from the server" on the HUD in the first 15 s, and the ping in the debug overlay (F3) stays low; other players seen moving smoothly right after joining.

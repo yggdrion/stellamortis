@@ -258,6 +258,9 @@ func save_character() -> void:
 
 func _watch_connection() -> void:
 	multiplayer.connected_to_server.connect(_say_hello)
+	multiplayer.connected_to_server.connect(
+		func() -> void: Net.keep_throttle_open(multiplayer.multiplayer_peer, 1)
+	)
 	multiplayer.connection_failed.connect(func() -> void: left.emit("Could not reach the server"))
 	multiplayer.server_disconnected.connect(
 		func() -> void:

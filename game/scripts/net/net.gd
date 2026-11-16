@@ -176,3 +176,14 @@ func object_updated(id: int, data: Dictionary) -> void:
 @rpc("authority", "reliable")
 func item_toast(item_id: String, count: int) -> void:
 	item_toast_received.emit(item_id, count)
+
+
+## ENet slows a connection down (and drops its unreliable packets, which is all of netfox's state
+## and our pings) for 5 s whenever a round trip comes in slower than usual, and a frame that
+## takes 100 ms is enough: a client building its world made pings and state vanish for 5 s. The
+## game never needs that, so a peer's throttle is set not to fall (deceleration 0).
+static func keep_throttle_open(peer: MultiplayerPeer, id: int) -> void:
+	if peer is ENetMultiplayerPeer:
+		var link := (peer as ENetMultiplayerPeer).get_peer(id)
+		if link != null:
+			link.throttle_configure(5000, 2, 0)

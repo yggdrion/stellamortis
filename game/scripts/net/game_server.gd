@@ -183,6 +183,9 @@ func start(port: int) -> void:
 			return
 		multiplayer.multiplayer_peer = peer
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
+	multiplayer.peer_connected.connect(
+		func(id: int) -> void: Net.keep_throttle_open(multiplayer.multiplayer_peer, id)
+	)
 	net.hello_received.connect(_on_hello)
 	net.pinged.connect(_on_ping)
 	net.cleared_camps_requested.connect(_on_cleared_camps_requested)

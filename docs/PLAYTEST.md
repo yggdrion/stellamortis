@@ -215,7 +215,16 @@ Task 3 (inventory panel and hotbar, `Net.PROTOCOL_VERSION` 31; `--debug-bag` joi
 - [ ] Without the mouse: arrows move the cursor (bag grid, doll, across), Enter lifts a stack and puts it down, E equips, unequips or uses, V splits half, X drops, R sorts, F stars junk. Say which key is awkward.
 - [ ] Right click or shift click equips, unequips or uses; ctrl click splits half a stack.
 - [ ] Hover (or arrow to) a wearable bag item: the tooltip shows its stats, the worn item of that slot below and the differences in green (better) or red (worse). Read it for the swords, armor pieces and the two trinkets.
-- [ ] Junk: F stars an item kind, the star shows on every stack of it, Sort puts starred kinds last; the stars are still there after a restart (kept in settings.cfg for now).
+- [ ] Junk: F stars an item kind, the star shows on every stack of it, Sort puts starred kinds last; the stars are still there after a restart (kept in the character file since task 4).
 - [ ] Hotbar: bag cells 0 to 7 at the bottom; keys 3 to 8 use cells 0 to 5 (a bandage heals 35 and is used up, wearable gear is worn). Keys 3 to 8 sit far from the left hand on WASD: say if it is awkward in a fight, or if the hotbar should be its own cells.
 - [ ] Sorting, dropping and picking up in a camp: is the panel quick enough to use between fights, and is anything missing (a "drop one", a mark all junk, storing into chests)?
 - [ ] The item glyphs (drawn shapes, no art yet) are readable and tell weapons from armor from materials; say if you want real icons.
+
+Task 4 (saves and graves, `Net.PROTOCOL_VERSION` 32; `--world=NAME` keeps the world in `user://worlds/NAME.json`, without it nothing is saved; the character is always in `user://characters/<name>.json`; `%APPDATA%/Godot/app_userdata/...` on Windows):
+
+- [ ] Character: pick things up, quit, start again with the same player name: the bag and worn gear are as you left them (also after Alt+F4 within a second of the last change, and after the host's server crashed).
+- [ ] World (`--world=test --seed=1234`): kill the Warden and clear a camp, leave, start with `--world=test` again: the Warden lies dead, its gate flag is set, the camp stays empty for the rest of its 10 minutes (a few minutes later it fills again), chests you opened stay open, drops that lay on the ground are still there.
+- [ ] A world file from another seed wins over `--seed` (a note is printed); delete the file to start fresh. A broken file is renamed `.bad-<time>` and the game starts a new world.
+- [ ] Death leaves a grave where you fell with your whole bag in it (gear stays on you); E at the grave (within 3 m) gives it all back, "Bag full" keeps what does not fit. Someone else gets "Not your grave" for 10 minutes, then can take it. Die twice: two graves, nothing lost. Check that the grave is easy to see and find.
+- [ ] A grave survives a restart of the world, and is still yours after a restart of the game (the player ID is in the character file).
+

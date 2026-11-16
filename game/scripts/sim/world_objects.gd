@@ -47,6 +47,8 @@ class Entry:
 		if kind == Kind.DROP and held != null:
 			data["item"] = String(held.id)
 			data["count"] = held.count
+		elif kind == Kind.GRAVE:
+			data["owner"] = owner
 		return data
 
 	func to_dict() -> Dictionary:

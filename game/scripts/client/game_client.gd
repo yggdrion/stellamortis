@@ -77,6 +77,8 @@ var _overlay: DebugOverlay
 var _hud: Hud
 var _pause: PauseMenu
 var _map: MapPanel
+## Whether the server's snapshot arrived: before it the character file must not be written.
+var _have_inventory := false
 var _panel: InventoryPanel
 var _objects: ObjectsView
 ## The planet's wind (Sounds.ambience).
@@ -132,6 +134,7 @@ func _ready() -> void:
 	add_child(map_layer)
 	_panel = InventoryPanel.new()
 	_panel.visible = false
+	_panel.junk_changed.connect(save_character)
 	_panel.intent_sent.connect(func(op: int, a: int, b: int) -> void: send_intent(op, a, b))
 	var panel_layer := CanvasLayer.new()
 	panel_layer.layer = 6
@@ -158,12 +161,18 @@ func _ready() -> void:
 	net.inventory_snapshot_received.connect(
 		func(data: Dictionary) -> void:
 			inventory = Inventory.from_dict(data)
+			_have_inventory = true
 			_show_inventory()
 	)
 	net.inventory_changed_received.connect(
 		func(cells: Dictionary) -> void:
 			inventory.apply_cells(cells)
 			_show_inventory()
+	)
+	net.character_received.connect(
+		func(data: Dictionary) -> void:
+			var saved := Inventory.from_dict(data.get("inventory"))
+			CharacterSave.write(Settings.player_id, player_name, saved, Settings.junk)
 	)
 	net.notice_received.connect(func(text: String) -> void: _hud.notice(text))
 	net.objects_snapshot_received.connect(func(all: Dictionary) -> void: _objects.snapshot(all))
@@ -227,10 +236,28 @@ func join_room(lobby_url: String, code: String) -> void:
 	lobby.join(lobby_url, room)
 
 
+## The first message: the character file (empty for a new player) and the player ID. The ID in
+## the file wins, so a character keeps its graves when settings.cfg is new.
+func _say_hello() -> void:
+	Settings.ensure_player_id()
+	var character := CharacterSave.read(player_name)
+	if character.is_empty():
+		Settings.junk = []
+	else:
+		Settings.junk = character["junk"]
+		if character["id"] != "":
+			Settings.player_id = character["id"]
+	net.hello.rpc_id(1, Net.PROTOCOL_VERSION, player_name, character, Settings.player_id)
+
+
+## Writes the character file from the inventory the server last confirmed (and the junk list).
+func save_character() -> void:
+	if _have_inventory and Settings.player_id != "":
+		CharacterSave.write(Settings.player_id, player_name, inventory, Settings.junk)
+
+
 func _watch_connection() -> void:
-	multiplayer.connected_to_server.connect(
-		func() -> void: net.hello.rpc_id(1, Net.PROTOCOL_VERSION, player_name)
-	)
+	multiplayer.connected_to_server.connect(_say_hello)
 	multiplayer.connection_failed.connect(func() -> void: left.emit("Could not reach the server"))
 	multiplayer.server_disconnected.connect(
 		func() -> void:
@@ -277,6 +304,7 @@ func _leave_to_menu() -> void:
 ## Signals of the persistent Net node and the MultiplayerAPI still point at this client's
 ## lambdas; drop them, so a later game doesn't call into a freed one.
 func _exit_tree() -> void:
+	save_character()
 	for source: Object in [net, multiplayer]:
 		if source == null:
 			continue

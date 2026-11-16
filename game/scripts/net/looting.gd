@@ -30,6 +30,8 @@ const PERIOD := 0.2
 const KILL_LIFT := 0.9
 const CHEST_LIFT := 0.7
 const CHEST_TABLE := &"chest_elite"
+## World seconds a grave opens for its owner only.
+const GRAVE_LOCK := 600.0
 
 var world: World
 var inventories: Inventories
@@ -115,13 +117,17 @@ func pickup(peer_id: int, id: int) -> bool:
 func open(peer_id: int, id: int) -> bool:
 	var entry := objects.at(id)
 	var player := world.player(peer_id)
-	if entry == null or entry.kind != WorldObjects.Kind.CHEST or not _alive(player):
+	if entry == null or entry.kind == WorldObjects.Kind.DROP or not _alive(player):
 		return false
+	if entry.kind == WorldObjects.Kind.GRAVE:
+		return _open_grave(peer_id, id, entry, player)
 	if entry.flags.get("opened", false):
 		return false
 	if player.global_position.distance_to(entry.position) > CHEST_REACH:
 		return false
-	var unit := world.spawner.unit_of(entry.flags.get("realm", ""), entry.flags.get("camp", -1))
+	var unit := world.spawner.unit_of(
+		str(entry.flags.get("realm", "")), int(entry.flags.get("camp", -1))
+	)
 	if not world.spawner.camp_clear(unit):
 		notice.emit(peer_id, "The guards still stand")
 		return false
@@ -133,6 +139,42 @@ func open(peer_id: int, id: int) -> bool:
 	if table != null:
 		_scatter(entry.position, entry.up, table.roll(rng), int(rng.seed), CHEST_LIFT, 0.0)
 	return true
+
+
+## A dead player's bag becomes a grave where the body fell; returns its object id.
+func bury(owner: String, contents: Inventory, at: Vector3, up: Vector3) -> int:
+	var id := objects.add(WorldObjects.Kind.GRAVE, contents, ground(at), up, world_seconds, owner)
+	added.emit(id, objects.at(id).to_net())
+	return id
+
+
+## A grave gives its things back to its owner, or to anyone once GRAVE_LOCK has passed; what the
+## bag cannot hold stays in it, an empty grave goes.
+func _open_grave(peer_id: int, id: int, entry: WorldObjects.Entry, player: SimPlayer) -> bool:
+	if player.global_position.distance_to(entry.position) > CHEST_REACH:
+		return false
+	var left_locked := entry.born + GRAVE_LOCK - world_seconds
+	if entry.owner != inventories.player_id(peer_id) and left_locked > 0.0:
+		notice.emit(peer_id, "Not your grave (%d min)" % ceili(left_locked / 60.0))
+		return false
+	var full := false
+	for cell in Inventory.CELLS:
+		var stack := entry.contents.cells[cell]
+		if stack == null:
+			continue
+		var left := inventories.give(peer_id, stack.id, stack.count)
+		if left < stack.count:
+			toast.emit(peer_id, stack.id, stack.count - left)
+		if left == 0:
+			entry.contents.cells[cell] = null
+		else:
+			stack.count = left
+			full = true
+	if not full:
+		_remove(id, peer_id)
+		return true
+	notice.emit(peer_id, "Bag full")
+	return false
 
 
 ## The snapshot a joining client gets.
@@ -168,7 +210,7 @@ func _scatter(
 		var radius := SCATTER_MIN + (SCATTER_MAX - SCATTER_MIN) * rng.randf()
 		if stacks.size() == 1:
 			radius *= 0.5
-		var landing := _ground(spot + (east * cos(angle) + north * sin(angle)) * radius)
+		var landing := ground(spot + (east * cos(angle) + north * sin(angle)) * radius)
 		_announce(landing, up, stacks[i], spot + up * lift, hold)
 
 
@@ -200,7 +242,7 @@ func debug_pile(spot: Vector3, up: Vector3, forward: Vector3) -> void:
 	var side := forward.cross(up).normalized()
 	for i in ids.size():
 		var at := spot + forward * 6.0 + side * (i - ids.size() / 2.0) * 1.3
-		var landing := _ground(at)
+		var landing := ground(at)
 		var stack := Inventory.Stack.new(ids[i], 1)
 		_announce(landing, up, stack, spot + up * 1.4, DROP_HOLD)
 
@@ -215,7 +257,7 @@ func debug_open_chests() -> void:
 
 
 ## The point put on its realm's ground along its direction, a hand above it.
-func _ground(point: Vector3) -> Vector3:
+func ground(point: Vector3) -> Vector3:
 	var realm := Layout.realm_at(point)
 	if realm == null:
 		return point

@@ -82,6 +82,15 @@ func _rollback_tick(_delta: float, _tick: int, _is_fresh: bool) -> void:
 				reset()
 
 
+## A saved world whose Warden had fallen: the fight stays cleared and its corpse lies at the
+## post. Called before any player is spawned, so no replayed tick can see the old state.
+func restore_cleared() -> void:
+	_set_phase(Phase.CLEARED)
+	boss.become(Combat.enemy_kind(&"warden"), post(), Enemy.Action.DOWN)
+	boss.health = 0.0
+	SimPlayer._mutate(boss)
+
+
 ## The Warden hidden again, the ring waiting.
 func reset() -> void:
 	_set_phase(Phase.IDLE)

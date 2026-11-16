@@ -215,11 +215,16 @@ func test_the_cursor_walks_the_bag_and_the_doll() -> void:
 func test_junk_is_starred_sorts_last_and_survives_a_reload() -> void:
 	var panel := _panel()
 	panel.persist = true
+	var changed := [0]
+	panel.junk_changed.connect(func() -> void: changed[0] += 1)
 	panel.toggle_junk(2)
 	assert_array(Settings.junk).is_equal([&"hide"])
 	assert_bool(panel._slots[2].junk).is_true()
+	assert_int(changed[0]).is_equal(1)
+	# The character file keeps the list: what is written reads back.
+	var saved := CharacterSave.make("id", "x", Inventory.new(), Settings.junk)
 	Settings.junk.clear()
-	Settings.load_saved()
+	Settings.junk = CharacterSave.junk_of(saved["junk"])
 	assert_array(Settings.junk).is_equal([&"hide"])
 	panel.toggle_junk(2)
 	assert_array(Settings.junk).is_empty()

@@ -21,6 +21,10 @@ const LOBBY_RETRY := 10.0
 ## crashed one or one that lost its network would otherwise stand there until ENet or WebRTC
 ## time out (up to 30 s). Generous, so a client's long first frame (shader compiles) is no drop.
 const SILENT_DROP := 10.0
+## Seconds between world autosaves; a crash loses at most this much of the world.
+const AUTOSAVE := 300.0
+## A player's character is sent at most this often (seconds).
+const CHARACTER_EVERY := 1.0
 
 var net: Net
 var solo := false
@@ -35,7 +39,10 @@ var spawn_at: Variant = null
 var spawn_list: Array[Vector3] = []
 ## The seed the world is generated from (--seed=N, random without) and its name (--world).
 var world_seed := randi()
-var world_name := "default"
+## An empty name means no world file: nothing is loaded or saved (tests, quick games). With a
+## name, `user://worlds/<name>.json` continues the world and is written every AUTOSAVE seconds
+## and on every normal exit.
+var world_name := ""
 ## Debug: players spawn inside the ring of the first realm's boss site, so the Warden rises at
 ## once (--encounter=boss).
 var spawn_at_boss := false
@@ -56,6 +63,11 @@ var _rtc: WebRTCMultiplayerPeer
 var _world: World
 var _inventories: Inventories
 var _looting: Looting
+var _graves: Graves
+## Peer id -> true for inventories changed since their character was sent.
+var _character_dirty := {}
+## Peer id -> Time.get_ticks_msec() of the last character sent.
+var _character_sent := {}
 var _spawned := 0
 var _names := {}
 ## Peer ids whose client has built the world (Net.world_ready).
@@ -84,18 +96,32 @@ func _init() -> void:
 func start(port: int) -> void:
 	_world = World.new(false)
 	add_child(_world)
+	var saved := {}
+	if world_name != "":
+		saved = WorldSave.read(world_name)
+	if not saved.is_empty():
+		if int(saved["seed"]) != world_seed:
+			print("World %s continues with its saved seed %d" % [world_name, int(saved["seed"])])
+		world_seed = int(saved["seed"])
 	_world.build(world_seed, world_name)
 	_world.add_spawner()
+	if not saved.is_empty():
+		WorldSave.restore(saved, _world)
 	_inventories = Inventories.new()
 	_inventories.net = net
 	_inventories.world = _world
 	_inventories.changed.connect(
-		func(id: int, cells: Dictionary) -> void: net.inventory_changed.rpc_id(id, cells)
+		func(id: int, cells: Dictionary) -> void:
+			net.inventory_changed.rpc_id(id, cells)
+			_character_dirty[id] = true
 	)
 	add_child(_inventories)
 	_looting = Looting.new()
 	_looting.world = _world
 	_looting.inventories = _inventories
+	if not saved.is_empty():
+		_looting.objects = WorldObjects.from_dict(saved.get("objects"))
+		_looting.world_seconds = WorldSave.seconds_of(saved)
 	_looting.added.connect(
 		func(object_id: int, data: Dictionary) -> void:
 			for id: int in _heard:
@@ -117,6 +143,17 @@ func start(port: int) -> void:
 	)
 	_looting.notice.connect(func(id: int, text: String) -> void: net.notice.rpc_id(id, text))
 	add_child(_looting)
+	_graves = Graves.new()
+	_graves.world = _world
+	_graves.inventories = _inventories
+	_graves.looting = _looting
+	add_child(_graves)
+	if world_name != "":
+		var timer := Timer.new()
+		timer.wait_time = AUTOSAVE
+		timer.autostart = true
+		timer.timeout.connect(save_world)
+		add_child(timer)
 	net.pickup_requested.connect(
 		func(id: int, object_id: int) -> void:
 			if _heard.has(id):
@@ -142,7 +179,7 @@ func start(port: int) -> void:
 		var err := peer.create_server(port, MAX_PLAYERS + 2)
 		if err != OK:
 			push_error("Could not open port %d: %s" % [port, error_string(err)])
-			get_tree().quit(1)
+			_quit(1)
 			return
 		multiplayer.multiplayer_peer = peer
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
@@ -207,12 +244,49 @@ func _write_room_file(text: String) -> void:
 		file.store_string(text)
 
 
+## Writes the world file (nothing without a world name).
+func save_world() -> void:
+	if world_name == "" or _world == null or _looting == null:
+		return
+	var data := WorldSave.capture(_world, _looting.objects, _looting.world_seconds)
+	if not WorldSave.write(world_name, data):
+		push_error("Could not save world %s" % world_name)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE:
+		save_world()
+
+
+## Quits after saving the world.
+func _quit(code := 0) -> void:
+	save_world()
+	get_tree().quit(code)
+
+
+## Sends a player's character to its client.
+func _send_character(id: int) -> void:
+	var inv := _inventories.inventory(id)
+	if inv == null:
+		return
+	_character_dirty.erase(id)
+	_character_sent[id] = Time.get_ticks_msec()
+	var data := {
+		"id": _inventories.player_id(id), "name": _names.get(id, ""), "inventory": inv.to_dict()
+	}
+	net.character.rpc_id(id, data)
+
+
 func _process(_delta: float) -> void:
 	_drop_silent()
+	var now := Time.get_ticks_msec()
+	for id: int in _character_dirty.keys():
+		if _heard.has(id) and now - _character_sent.get(id, 0) >= CHARACTER_EVERY * 1000:
+			_send_character(id)
 	var wait := ROOM_JOIN_TIMEOUT if lobby_url != "" else SOLO_JOIN_TIMEOUT
 	if solo and not _ever_joined and Time.get_ticks_msec() - _started_ms > wait * 1000:
 		print("Nobody joined, exiting")
-		get_tree().quit()
+		_quit()
 
 
 func _track_stats() -> void:
@@ -267,7 +341,9 @@ func _track_stats() -> void:
 	_stats_at = now
 
 
-func _on_hello(id: int, version: int, player_name: String) -> void:
+func _on_hello(
+	id: int, version: int, player_name: String, character: Dictionary, player_id: String
+) -> void:
 	if version != Net.PROTOCOL_VERSION:
 		net.reject.rpc_id(id, "Game version %d, server runs %d" % [version, Net.PROTOCOL_VERSION])
 		return
@@ -303,7 +379,13 @@ func _on_hello(id: int, version: int, player_name: String) -> void:
 		at = _world.encounter.site.ring_spot(id)
 	# The ground under the spawn stands before the body does (a debug spawn may be elsewhere).
 	_world.chunks.ensure_around(at)
-	_inventories.add_peer(id, _debug_inventory() if debug_bag else Inventory.starting_kit())
+	# What cannot be read as an inventory starts as the starting kit.
+	var inventory := Inventory.starting_kit()
+	if character.get("inventory") is Dictionary:
+		inventory = Inventory.from_dict(character["inventory"])
+	if debug_bag:
+		inventory = _debug_inventory()
+	_inventories.add_peer(id, inventory, CharacterSave.clean_id(player_id))
 	_world.spawn_player(id, _names[id], at)
 	net.inventory_snapshot.rpc_id(id, _inventories.snapshot(id))
 	net.objects_snapshot.rpc_id(id, _looting.snapshot())
@@ -362,6 +444,7 @@ func _drop_silent() -> void:
 	for id: int in _heard.keys():
 		if now - _heard[id] > SILENT_DROP * 1000:
 			print("%s went silent (%d)" % [_names.get(id, "?"), id])
+			_send_character(id)
 			_heard.erase(id)
 			_tell_others(id, "%s lost the connection" % _names.get(id, "A player"))
 			_names.erase(id)
@@ -390,11 +473,13 @@ func _on_peer_disconnected(id: int) -> void:
 func _remove_player(id: int) -> void:
 	_built.erase(id)
 	_inventories.remove_peer(id)
+	_character_dirty.erase(id)
+	_character_sent.erase(id)
 	var player := _world.player(id)
 	if player:
 		player.queue_free()
 	if solo and _names.is_empty():
-		get_tree().quit()
+		_quit()
 
 
 ## Pool slots that are awake (not hidden), for the stats line.

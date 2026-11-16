@@ -5,7 +5,9 @@ extends Node
 ## input go through netfox (RollbackSynchronizer on each SimPlayer), not through here.
 
 # Server side.
-signal hello_received(peer_id: int, version: int, player_name: String)
+signal hello_received(
+	peer_id: int, version: int, player_name: String, character: Dictionary, player_id: String
+)
 signal pinged(peer_id: int, sent_ms: int)
 signal world_ready_received(peer_id: int)
 signal inventory_intent_received(peer_id: int, op: int, a: int, b: int)
@@ -13,6 +15,7 @@ signal inventory_intent_received(peer_id: int, op: int, a: int, b: int)
 signal rejected(reason: String)
 signal ponged(sent_ms: int)
 signal server_stats_received(tps: float, tick_ms: float, tick_avg_ms: float, out_kbps: float)
+signal character_received(data: Dictionary)
 signal world_received(world_seed: int, world_name: String)
 signal room_received(code: String)
 signal notice_received(text: String)
@@ -33,11 +36,16 @@ enum Op { MOVE, SPLIT, EQUIP, UNEQUIP, DROP, SORT, STORE_MATCHING, USE }
 
 ## Bump on any change to the RPCs here or to what netfox synchronizes (SimPlayer.STATE,
 ## PlayerControls) or to what both sides simulate (Layout, Gravity, Tuning).
-const PROTOCOL_VERSION := 31
+const PROTOCOL_VERSION := 32
 
+## The first thing a client says. `character` is its character file (CharacterSave.to_net, empty
+## for a new player) and `player_id` the ID graves know it by; the server trusts both but reads
+## them with clamping (Inventory.from_dict), so a broken file starts as the starting kit.
 @rpc("any_peer", "reliable")
-func hello(version: int, player_name: String) -> void:
-	hello_received.emit(multiplayer.get_remote_sender_id(), version, player_name)
+func hello(version: int, player_name: String, character: Dictionary, player_id: String) -> void:
+	hello_received.emit(
+		multiplayer.get_remote_sender_id(), version, player_name, character, player_id
+	)
 
 
 @rpc("authority", "reliable")
@@ -59,6 +67,13 @@ func pong(sent_ms: int) -> void:
 ## out_kbps: kB per second the server sends to each player (ENet only, 0 over WebRTC).
 func server_stats(tps: float, tick_ms: float, tick_avg_ms: float, out_kbps: float) -> void:
 	server_stats_received.emit(tps, tick_ms, tick_avg_ms, out_kbps)
+
+
+## The player's character as the server holds it (`id`, `name`, `inventory`), after inventory
+## changes (at most once a second); the client writes its character file from it.
+@rpc("authority", "reliable")
+func character(data: Dictionary) -> void:
+	character_received.emit(data)
 
 
 ## The world to build, sent on joining before anything else is spawned. The client builds it

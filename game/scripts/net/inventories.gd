@@ -22,6 +22,8 @@ var world: World
 var _inventories := {}
 ## Peer id -> [main_hand, off_hand, ranged, armor], from Loadout.of at the last change.
 var _gear := {}
+## Peer id -> the player ID (a string that outlives the connection: graves know their owner by it).
+var _ids := {}
 ## Peer id -> [second, intents counted in it].
 var _rate := {}
 ## Peer id -> [[tick, health], ...]: heals still to be written at their tick (see _apply_gear).
@@ -33,9 +35,10 @@ func _ready() -> void:
 	NetworkRollback.after_process_tick.connect(_apply_gear)
 
 
-## Makes the inventory of a joining player (its kit; task 4 reads the client's character).
-func add_peer(peer_id: int, inventory := Inventory.starting_kit()) -> void:
+## Makes the inventory of a joining player: the character it brought, else the starting kit.
+func add_peer(peer_id: int, inventory := Inventory.starting_kit(), player_id := "") -> void:
 	_inventories[peer_id] = inventory
+	_ids[peer_id] = player_id
 	_gear[peer_id] = _loadout_ints(inventory)
 
 
@@ -54,6 +57,7 @@ func give(peer_id: int, id: StringName, count: int) -> int:
 
 func remove_peer(peer_id: int) -> void:
 	_inventories.erase(peer_id)
+	_ids.erase(peer_id)
 	_gear.erase(peer_id)
 	_rate.erase(peer_id)
 	_heals.erase(peer_id)
@@ -61,6 +65,33 @@ func remove_peer(peer_id: int) -> void:
 
 func inventory(peer_id: int) -> Inventory:
 	return _inventories.get(peer_id)
+
+
+## The peers that have an inventory.
+func peers() -> Array:
+	return _inventories.keys()
+
+
+## The player ID a peer joined with ("" for none).
+func player_id(peer_id: int) -> String:
+	return _ids.get(peer_id, "")
+
+
+## Takes everything out of a player's bag (worn gear stays on) and returns it as a new
+## Inventory; a death puts it in a grave. The player's cells are told the bag is empty.
+func empty_bag(peer_id: int) -> Inventory:
+	var bag := Inventory.new()
+	var inv: Inventory = _inventories.get(peer_id)
+	if inv == null:
+		return bag
+	var before := inv.cell_dict()
+	for cell in Inventory.BAG_SIZE:
+		bag.cells[cell] = inv.cells[cell]
+		inv.cells[cell] = null
+	var delta := inv.changes_since(before)
+	if not delta.is_empty():
+		changed.emit(peer_id, delta)
+	return bag
 
 
 ## The whole inventory of a player, for its snapshot (Net.inventory_snapshot).

@@ -436,6 +436,34 @@ static func cleared_left(
 	return left
 
 
+## Every cleared camp for the world file: [realm id, camp id, seconds until it is open again].
+func cleared_saved(tick: int) -> Array:
+	var saved := []
+	for unit: int in _cleared_until:
+		var left := maxf(0.0, float(_cleared_until[unit] - tick) / Combat.TICKRATE)
+		saved.append([String(_ids[unit][0]), _ids[unit][1], left])
+	return saved
+
+
+## Closes the camps a world file says were cleared (cleared_saved): ticks restart with every
+## server run, so each keeps the seconds it had left. Entries that name no camp (the layout
+## changed) or are malformed are skipped.
+func restore_cleared(saved: Variant, tick: int) -> void:
+	if not saved is Array:
+		return
+	for entry: Variant in saved:
+		if not entry is Array or (entry as Array).size() != 3:
+			continue
+		var parts: Array = entry
+		if not parts[0] is String or not (parts[1] is int or parts[1] is float):
+			continue
+		if not (parts[2] is int or parts[2] is float) or not is_finite(float(parts[2])):
+			continue
+		var unit := unit_of(parts[0], int(parts[1]))
+		if unit >= 0:
+			_cleared_until[unit] = tick + Combat.ticks(clampf(float(parts[2]), 0.0, 86400.0))
+
+
 ## Slots now serving a unit (camp), member index -> slot index.
 func slots_of(unit: int) -> Dictionary:
 	return _awake.get(unit, {})

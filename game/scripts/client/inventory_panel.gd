@@ -9,6 +9,8 @@ extends Control
 
 ## An action the player asked for, before it goes to the server.
 signal intent_sent(op: int, a: int, b: int)
+## The junk list changed (the client writes the character file).
+signal junk_changed
 
 const COLUMNS := 8
 ## Gear cells on the paper doll as grid positions (column 0 left of the figure, 2 right of it).
@@ -305,7 +307,7 @@ func toggle_junk(cell: int) -> void:
 	else:
 		Settings.junk.append(stack.id)
 	if persist:
-		Settings.save()
+		junk_changed.emit()
 	show_inventory(inventory)
 
 

@@ -24,9 +24,12 @@ static var max_fps_flag := -1
 static var volume := 0.8
 ## Camera shake on hits, 0 (off) to 1.
 static var shake := 1.0
-## Items the player starred as junk (InventoryPanel): they sort last. Task 4 moves this into the
-## character file.
+## Items the player starred as junk (InventoryPanel): they sort last. Kept in the character file
+## (CharacterSave), loaded when a game starts; not in settings.cfg.
 static var junk: Array[StringName] = []
+## 16 random hex characters made on the first run ([player] id): the ID the server and graves
+## know this installation by, until a character file brings its own.
+static var player_id := ""
 
 
 static func load_saved() -> void:
@@ -47,11 +50,16 @@ static func load_saved() -> void:
 		max_fps = 0
 	volume = clampf(float(config.get_value("audio", "volume", volume)), 0.0, 1.0)
 	shake = clampf(float(config.get_value("input", "shake", shake)), 0.0, 1.0)
-	junk.clear()
-	var starred: Variant = config.get_value("inventory", "junk", [])
-	for id: Variant in starred if starred is Array else []:
-		if (id is String or id is StringName) and Items.has(StringName(id)):
-			junk.append(StringName(id))
+	player_id = CharacterSave.clean_id(str(config.get_value("player", "id", player_id)))
+
+
+## Makes the player ID on the first run (and saves it); the same one after.
+static func ensure_player_id() -> void:
+	if player_id != "":
+		return
+	var crypto := Crypto.new()
+	player_id = crypto.generate_random_bytes(8).hex_encode()
+	save()
 
 
 static func save() -> void:
@@ -64,7 +72,7 @@ static func save() -> void:
 	config.set_value("display", "max_fps", max_fps)
 	config.set_value("audio", "volume", volume)
 	config.set_value("input", "shake", shake)
-	config.set_value("inventory", "junk", junk.map(func(id: StringName) -> String: return id))
+	config.set_value("player", "id", player_id)
 	config.save(Graphics.SETTINGS)
 
 

@@ -1,6 +1,6 @@
 extends GdUnitTestSuite
 ## Gates and places on a round realm (M20 task 4): portal reach and ring points along a tilted
-## up, the place a point is in, and spawn on the realm and the gates to the old barrow and back.
+## up, the place a point is in, and spawn and dummies on the realm.
 
 const DELTA := 1.0 / 30.0
 const SEEDS := [1234, 99]
@@ -56,9 +56,9 @@ func test_ring_point_lies_in_the_tangent_plane() -> void:
 
 
 func test_place_at() -> void:
-	assert_str(Layout.place_at(Vector3.ZERO)).is_equal(Layout.ORIGIN_PLACE)
+	assert_str(Layout.place_at(Vector3.ZERO)).is_equal(Layout.NO_PLACE)
 	assert_str(Layout.place_at(_realm().center + Vector3.UP * 1005.0)).is_equal(_realm().id)
-	assert_str(Layout.place_at(_realm().center + Vector3.UP * 1400.0)).is_equal(Layout.ORIGIN_PLACE)
+	assert_str(Layout.place_at(_realm().center + Vector3.UP * 1400.0)).is_equal(Layout.NO_PLACE)
 
 
 func _build(world_seed: int) -> void:
@@ -67,15 +67,10 @@ func _build(world_seed: int) -> void:
 	_world.build(world_seed, "t")
 
 
-func test_spawn_dummies_and_the_way_to_the_old_barrow_and_back() -> void:
+func test_spawn_and_dummies_stand_on_the_ground() -> void:
 	var seen := {}
 	for world_seed: int in SEEDS:
 		_build(world_seed)
-		var barrow := Layout.portals()[2]
-		var home := Layout.portals()[0]
-		assert_str(barrow.label).is_equal("To the old barrow")
-		assert_str(home.realm).is_equal(_realm().id)
-		assert_float(_over(barrow.position, world_seed)).is_equal_approx(0.0, 0.001)
 		# The dummies stand on the ground beside the arrival, with a body to hit.
 		for i in Layout.DUMMIES.size():
 			var dummy := _world.get_node("Enemies/Dummy%d" % i) as Enemy
@@ -99,16 +94,6 @@ func test_spawn_dummies_and_the_way_to_the_old_barrow_and_back() -> void:
 			assert_float(_over(player.global_position, world_seed)).is_between(-0.3, LANDING)
 			assert_vector(spawn).is_equal(Layout.spawn_point(peer))
 			seen[[world_seed, peer]] = spawn
-			# The gate to the old barrow: the old realm's ring around its origin.
-			player.place(barrow.position)
-			player.step(Vector2.ZERO, 0.0, 0, DELTA)
-			assert_str(Layout.place_at(player.global_position)).is_equal(Layout.ORIGIN_PLACE)
-			assert_vector(player.global_position).is_equal(Layout.arrival_point(barrow, peer))
-			# Its Home gate leads back to the spawn ring.
-			player.place(home.position)
-			player.step(Vector2.ZERO, 0.0, 0, DELTA)
-			assert_str(Layout.place_at(player.global_position)).is_equal(_realm().id)
-			assert_vector(player.global_position).is_equal(spawn)
 			player.queue_free()
 		_world.queue_free()
 		await get_tree().process_frame

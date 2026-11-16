@@ -17,6 +17,8 @@ const GRAVITY_REACH := 300.0
 @export var biome := ""
 ## Where players arrive: a direction from the center.
 @export var arrival := Vector3.UP
+## The world flag (World.flags) set when the realm's boss falls.
+@export var boss_flag: StringName = &""
 ## Ground shape, meters: low rolling moor, broad hills, a few ridges where the mask is high.
 @export var moor_height := 3.0
 @export var moor_wavelength := 120.0

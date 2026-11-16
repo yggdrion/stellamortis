@@ -8,7 +8,7 @@ const SEED := 1234
 ## (new noise numbers), print Terrain.fingerprint and update it; if it changes by accident,
 ## peers would desync. CI's check job runs this on ubuntu only (release.yml); the three export
 ## runners do not run tests.
-const FINGERPRINT := -2947287787477998241
+const FINGERPRINT := 1472612768450879320
 ## SimPlayer.floor_max_angle in degrees.
 const WALKABLE_DEGREES := 50.0
 

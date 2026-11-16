@@ -169,15 +169,21 @@ func test_a_ring_stone_stops_a_walker() -> void:
 
 
 func test_the_gate_opening_stays_passable() -> void:
-	var gate := Layout.portals()[2]
+	# A gate behind the arrival (none stands there until M26), added after the world is built.
+	var spot := Layout.arrival_spot(_realm, -10.0, 0.0)
+	var gate := Portal.at(spot[0], Vector3.ZERO, Vector3.BACK, "Test gate")
+	gate.up = spot[1]
+	gate.realm = _realm.id
+	Layout.portals().append(gate)
+	_world.arena.add_arrival_solids()
 	var up := gate.up
 	var way := SimPlayer._tangent(Vector3.FORWARD, up)
 	var before := _player.respawns
 	_stand(_on_ground(gate.position - way * 5.0), way)
 	await _walk(120, func() -> bool: return _player.respawns != before)
 	assert_int(_player.respawns).is_equal(before + 1)
-	# Through the old barrow's arrival, away from the gate.
-	assert_str(Layout.place_at(_player.global_position)).is_equal(Layout.ORIGIN_PLACE)
+	# Through the gate to the arrival ring, away from it.
+	assert_str(Layout.place_at(_player.global_position)).is_equal(_realm.id)
 	# A pillar is solid: walking at one stops the walker beside the opening.
 	var side := up.cross(way).normalized()
 	_stand(_on_ground(gate.position + side * Arena.GATE_PILLAR_X - way * 5.0), way)

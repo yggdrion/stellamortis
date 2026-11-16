@@ -15,7 +15,9 @@ var world_name := ""
 var built := false
 var arena: Arena
 var players: Node3D
+## The first realm's boss fight (encounters has one per realm, in Layout.realms() order).
 var encounter: Encounter
+var encounters: Array[Encounter] = []
 var chunks: TerrainChunks
 ## Server only (add_spawner): wakes and frees pool slots.
 var spawner: Spawner
@@ -63,6 +65,7 @@ func build(new_seed: int, new_name: String) -> void:
 	for realm in Layout.realms():
 		chunks.pin_around(Terrain.surface(realm, new_seed, realm.arrival))
 	_post_dummies()
+	_post_bosses()
 	if arena != null:
 		arena.add_arrival_solids()
 	if visual:
@@ -102,9 +105,29 @@ func _post_dummies() -> void:
 		)
 
 
+## Stands each realm's Warden, hidden, at the middle of its boss site (the seed is known now).
+func _post_bosses() -> void:
+	for encounter_node in encounters:
+		encounter_node.site = BossSite.at(encounter_node.realm, world_seed)
+		encounter_node.boss.become(
+			Combat.enemy_kind(&"warden"), encounter_node.post(), Enemy.Action.HIDDEN
+		)
+
+
+## The world flags that are set (names, from the realms whose bosses have fallen), read from the
+## encounters' rolled back phase.
+func flags() -> Array[StringName]:
+	var found: Array[StringName] = []
+	for encounter_node in encounters:
+		if encounter_node.phase == Encounter.Phase.CLEARED:
+			found.append(encounter_node.realm.boss_flag)
+	return found
+
+
 ## The enemy pool (M21): POOL free slots, hidden, at fixed names and indices after the dummies;
 ## waking one is `Enemy.become`, never a spawn. Every slot has room for the biggest kind's bolts.
-## The old encounter keeps the first slots until M22: the mobs, then the Warden (hidden).
+## The first slots, one per realm, are its Warden's (Spawner.FIRST_SLOT): they stay hidden until
+## a player enters the ring of its boss site (Encounter); the spawner has the rest.
 func _add_pool() -> void:
 	var bolts := 0
 	for kind in Combat.ENEMY_KINDS.size():
@@ -121,13 +144,17 @@ func _add_pool() -> void:
 			slot.add_child(EnemyView.new(slot))
 		_enemies.add_child(slot)
 		slot.reset(Enemy.Action.HIDDEN)
-	encounter = Encounter.new()
-	for i in Layout.MOBS.size():
-		var id := &"archer" if Layout.MOBS[i][1] else &"swordsman"
-		encounter.mobs.append(_wake_post(i, id, Layout.MOBS[i][0], Enemy.Action.IDLE))
-	encounter.boss = _wake_post(Layout.MOBS.size(), &"warden", Layout.BOSS, Enemy.Action.HIDDEN)
-	encounter.networked()
-	add_child(encounter)
+	assert(Layout.realms().size() <= Spawner.FIRST_SLOT, "a boss slot per realm")
+	for i in Layout.realms().size():
+		var fight := Encounter.new()
+		fight.name = "Encounter_%s" % Layout.realms()[i].id
+		fight.realm = Layout.realms()[i]
+		fight.boss = pool_slot(i)
+		fight.boss.kind = Combat.enemy_kind(&"warden")
+		fight.networked()
+		add_child(fight)
+		encounters.append(fight)
+	encounter = encounters[0]
 
 
 ## Pool slot i (0 to POOL - 1).
@@ -139,17 +166,6 @@ func pool_slot(i: int) -> Enemy:
 func add_spawner() -> void:
 	spawner = Spawner.new(self)
 	add_child(spawner)
-
-
-## Pool slot i as a kind at a point on the ground, facing forward.
-func _wake_post(i: int, id: StringName, at: Vector3, start: Enemy.Action) -> Enemy:
-	var enemy := pool_slot(i)
-	enemy.become(
-		Combat.enemy_kind(id),
-		Transform3D(SimPlayer.frame(Gravity.up_at(at), Vector3.FORWARD), at),
-		start
-	)
-	return enemy
 
 
 ## Server only: spawns a player on every peer.

@@ -36,8 +36,9 @@ var spawn_list: Array[Vector3] = []
 ## The seed the world is generated from (--seed=N, random without) and its name (--world).
 var world_seed := randi()
 var world_name := "default"
-## Debug: start with the mobs dead, so the Warden rises at once (--encounter=boss).
-var skip_to_boss := false
+## Debug: players spawn inside the ring of the first realm's boss site, so the Warden rises at
+## once (--encounter=boss).
+var spawn_at_boss := false
 ## Opens a room in this lobby and takes players over WebRTC instead of ENet.
 var lobby_url := ""
 ## Where the room code goes once the room is open ("!reason" if it can't be), for the host's
@@ -78,9 +79,6 @@ func start(port: int) -> void:
 	add_child(_world)
 	_world.build(world_seed, world_name)
 	_world.add_spawner()
-	if skip_to_boss:
-		for mob in _world.encounter.mobs:
-			mob.take_hit(1000000.0, Vector3.ZERO)
 	if lobby_url != "":
 		_rtc = WebRTCMultiplayerPeer.new()
 		var rtc_err := _rtc.create_server()
@@ -253,6 +251,8 @@ func _on_hello(id: int, version: int, player_name: String) -> void:
 		_spawned += 1
 	if spawn_at is Vector3:
 		at = spawn_at
+	if spawn_at_boss:
+		at = _world.encounter.site.ring_spot(id)
 	# The ground under the spawn stands before the body does (a debug spawn may be elsewhere).
 	_world.chunks.ensure_around(at)
 	_world.spawn_player(id, _names[id], at)

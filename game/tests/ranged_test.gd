@@ -3,8 +3,8 @@ extends GdUnitTestSuite
 ## enemies for charge-scaled damage, and stop at walls.
 
 const DELTA := 1.0 / 30.0
-## Where the M2 dummies stood, north of the realm's arrival (they moved to the keep in M12;
-## these tests keep the realm's walls and ground around them).
+## Where the M2 dummies stood, north of the origin (they live on the Barrowlands since M34;
+## these tests stand them on a flat floor, FlatGround).
 const DUMMY_AT := [Vector3(-4.0, 0.0, -10.0), Vector3(4.0, 0.0, -10.0)]
 const B := PlayerControls.Buttons
 const CROSSBOW := SimPlayer.Weapon.CROSSBOW
@@ -12,12 +12,21 @@ const CROSSBOW := SimPlayer.Weapon.CROSSBOW
 var _world: Node3D
 var _player: SimPlayer
 var _dummy: Enemy
+var _low: GravityZone
+
+
+func after_test() -> void:
+	Layout.gravity_zones().erase(_low)
 
 
 func before_test() -> void:
 	_world = auto_free(Node3D.new()) as Node3D
 	add_child(_world)
-	_world.add_child(Arena.new(false))
+	FlatGround.add(_world)
+	# A wall behind the spawn at z = 45, and weak gravity east of x = 25.
+	FlatGround.box(_world, Vector3(0, 3, 45), Vector3(40, 6, 1))
+	_low = GravityZone.box("low gravity", Vector3(40, 9, 0), Vector3(30, 18, 40), 3.0)
+	Layout.gravity_zones().append(_low)
 	_dummy = Enemy.new()
 	_dummy.kind = Combat.enemy_kind(&"dummy")
 	_dummy.passive = true

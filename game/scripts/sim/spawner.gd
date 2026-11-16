@@ -52,8 +52,9 @@ const ARCHER_SHARE := 0.25
 const ATTEMPTS := 8
 ## Feet this far above the ground (the body settles).
 const LIFT := 0.1
-## Pool slots from here on are the spawner's (the old encounter holds the first ones, M22).
-const FIRST_SLOT := 4
+## Pool slots from here on are the spawner's; the first ones are the realms' bosses (World.
+## _add_pool, one per realm: raise this with the realm count).
+const FIRST_SLOT := 1
 ## A camp wakes when a player is this close (m), and sleeps when all are farther than SLEEP.
 const WAKE := 90.0
 const SLEEP := 140.0
@@ -216,6 +217,8 @@ static func _fits(
 	centers: Array[Vector3]
 ) -> bool:
 	if direction.dot(realm.arrival.normalized()) > cos(ARRIVAL_CLEAR / realm.radius):
+		return false
+	if field.site.covers(direction, CAMP_RADIUS):
 		return false
 	if not _walkable(field, direction) or solids.blocked(direction):
 		return false
@@ -477,7 +480,7 @@ func _living_members(unit: int) -> Array[int]:
 	return found
 
 
-## Free pool slots after the old encounter's, the lowest index last (popped first).
+## Free pool slots after the bosses', the lowest index last (popped first).
 func _free_slots() -> Array[int]:
 	var free: Array[int] = []
 	for i in range(World.POOL - 1, FIRST_SLOT - 1, -1):

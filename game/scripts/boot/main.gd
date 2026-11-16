@@ -7,7 +7,8 @@ extends Node
 ##                                  passes it on)
 ##     [--debug-map]                debug: answer every client's map request for cleared camps
 ##                                  (else only the host's; a solo client passes it on)
-##     [--encounter=boss]           debug: start with the mobs dead (a solo client passes it on)
+##     [--encounter=boss]           debug: spawn inside the boss site's ring, the Warden rises
+##                                  (a solo client passes it on)
 ##     [--seed=N] [--world=NAME]    the world's seed (random without) and name (solo and host
 ##                                  clients pass them on)
 ##     [--lobby=URL [--room-file=PATH]]   instead of the port: open a room in this lobby and
@@ -32,6 +33,8 @@ extends Node
 ##   --graphics=low|medium|high|ultra   graphics preset for this run (not saved)
 ##   --vsync=on|off                 vsync for this run (not saved; does not start a game)
 ##   --max-fps=N                    frame rate cap for this run (0 unlimited; not saved)
+##   --no-grab                      leave the mouse free until a click in the window (testing;
+##                                  every --screenshot run does this)
 ##   --map[=METERS|full]            open the map at the start and keep it open (METERS across,
 ##                                  default 600; for screenshots)
 ##   --show-collision               draw the collision shapes (debug; the ground too)
@@ -82,7 +85,7 @@ func _ready() -> void:
 		if _args.has("seed"):
 			server.world_seed = int(_args["seed"])
 		server.world_name = _args.get("world", server.world_name)
-		server.skip_to_boss = _args.get("encounter", "") == "boss"
+		server.spawn_at_boss = _args.get("encounter", "") == "boss"
 		server.lobby_url = _args.get("lobby", "")
 		server.room_file = _args.get("room-file", "")
 		add_child(server)
@@ -148,6 +151,7 @@ func _start(mode: String, code := "") -> void:
 	client.screenshot_frames = int(_args.get("frames", "1"))
 	client.graphics = _args.get("graphics", "")
 	client.relay_only = _args.has("relay-only")
+	client.no_grab = _args.has("no-grab") or client.screenshot_path != ""
 	if _args.has("map"):
 		client.map_start = _args["map"] if _args["map"] != "" else "600"
 	client.hosting = mode == "host"

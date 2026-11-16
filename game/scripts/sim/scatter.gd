@@ -67,6 +67,7 @@ static func points(realm: RealmDef, world_seed: int, chunk: Vector3i) -> Array[P
 	var count_y := maxi(1, roundi(corner.distance_to(along_y) * realm.radius / SPACING))
 	var clear_dot := cos(CLEARING / realm.radius)
 	var arrival := realm.arrival.normalized()
+	var site := field.site
 	var found: Array[Point] = []
 	for iy in count_y:
 		for ix in count_x:
@@ -87,6 +88,8 @@ static func points(realm: RealmDef, world_seed: int, chunk: Vector3i) -> Array[P
 			)
 			if direction.dot(arrival) > clear_dot:
 				continue
+			if site.covers(direction):
+				continue
 			var height := field.height(direction)
 			var flat := Terrain._normal(field, direction).dot(direction)
 			var wood := forest.get_noise_3d(
@@ -99,6 +102,26 @@ static func points(realm: RealmDef, world_seed: int, chunk: Vector3i) -> Array[P
 			point.up = direction
 			point.position = direction * (realm.radius + height)
 			found.append(point)
+	found.append_array(_ring(realm, field, chunk))
+	return found
+
+
+## The boss site's ring of standing stones that fall in this chunk, after the random points.
+## Their size and yaw come from the stone's number, not a generator, so they never move.
+static func _ring(realm: RealmDef, field: Terrain.Field, chunk: Vector3i) -> Array[Point]:
+	var found: Array[Point] = []
+	var stones := field.site.stones()
+	for n in stones.size():
+		if Terrain.chunk_at(realm, stones[n]) != chunk:
+			continue
+		var point := Point.new()
+		point.kind = Kind.STANDING_STONE
+		point.up = stones[n]
+		point.position = field.surface(stones[n])
+		point.yaw = TAU * n / stones.size() + PI / 2.0
+		point.size = 0.75
+		point.rank = 0.0
+		found.append(point)
 	return found
 
 

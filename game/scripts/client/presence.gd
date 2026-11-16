@@ -1,7 +1,7 @@
 class_name Presence
 extends Node
 ## Discord Rich Presence (PLAN §6 M13): the mode (in the menu, Solo, Hosting, In a party), where
-## the player is (the keep, the Barrows, facing the Warden), the party size out of
+## the player is (in the realm, facing the Warden), the party size out of
 ## GameServer.MAX_PLAYERS and the time since the game started. Never the room code. Talks to
 ## the Discord client through DiscordRichPresence (addons/discord_rich_presence, MIT), which does
 ## nothing when Discord isn't running, and on Linux and macOS when no netcat is installed.
@@ -73,11 +73,9 @@ static func place(client: GameClient) -> String:
 	if client.me == null:
 		return "Arriving"
 	var where := Layout.place_at(client.me.global_position)
-	if where != Layout.ORIGIN_PLACE:
-		return "In the " + String(where).capitalize()
-	if Encounter.won(client.me):
-		return "The Warden has fallen"
-	var fight := client.get_tree().get_first_node_in_group(Encounter.GROUP) as Encounter
-	if fight and fight.phase == Encounter.Phase.BOSS:
+	var fight := Encounter.of(client, String(where))
+	if fight != null and fight.phase == Encounter.Phase.BOSS:
 		return "Facing the Warden"
-	return "In the Barrows"
+	if fight != null and fight.phase == Encounter.Phase.CLEARED:
+		return "The Warden has fallen"
+	return "In the " + String(where).capitalize()

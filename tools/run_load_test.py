@@ -5,8 +5,9 @@ each must see every other bot move. The server prints one stats line per second
 tick loop time, rollback resimulation and bytes per player.
 
 Usage: python tools/run_load_test.py [--players=6] [--seconds=40] [--lag=MS] [--seed=N]
-[--spawn=X,Y,Z;X,Y,Z]  (the server's seed and spawn points, handed out to the bots in turn; put
-them in camps of the Barrowlands to fill the enemy pool, the report shows how many slots woke)
+[--spawn=X,Y,Z;X,Y,Z] [--encounter=boss]  (the server's seed and spawn points, handed out to the
+bots in turn; put them in camps of the Barrowlands to fill the enemy pool, the report shows how
+many slots woke; --encounter=boss spawns the bots in the ring of the boss site)
 Fails if a bot fails or the server falls below 29 ticks per second on average. A tick loop
 can run several ticks when the server is behind, so a loop over 33 ms alone is no failure; it
 shows the server has no headroom. All processes share this machine's CPU.
@@ -47,7 +48,7 @@ def start(*cmd, **kwargs):
 
 server = start(
     "--server", f"--port={PORT}", "--bind=127.0.0.1",
-    *[f"--{k}={options[k]}" for k in ("seed", "spawn") if k in options],
+    *[f"--{k}={options[k]}" for k in ("seed", "spawn", "encounter") if k in options],
     env={**os.environ, "STELLAMORTIS_SERVER_STATS": "1"},
     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
 )

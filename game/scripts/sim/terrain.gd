@@ -38,9 +38,13 @@ class Field:
 	var hills: FastNoiseLite
 	var ridges: FastNoiseLite
 	var mask: FastNoiseLite
+	## The flat ground around the boss site (null in the raw field BossSite itself judges).
+	var site: BossSite
 
-	func _init(for_realm: RealmDef, world_seed: int) -> void:
+	func _init(for_realm: RealmDef, world_seed: int, flatten := true) -> void:
 		realm = for_realm
+		if flatten:
+			site = BossSite.at(for_realm, world_seed)
 		var base := hash(Vector2i(world_seed, for_realm.seed_salt))
 		moor = _noise(base + 1, for_realm.moor_wavelength, 3)
 		hills = _noise(base + 2, for_realm.hill_wavelength, 3)
@@ -56,15 +60,26 @@ class Field:
 		n.fractal_octaves = octaves
 		return n
 
-	## Height above the sea-level sphere in meters, quantized.
+	## Height above the sea-level sphere in meters, quantized: the noise, flattened around the
+	## boss site.
 	func height(direction: Vector3) -> float:
+		var h := _noise_height(direction)
+		if site != null and site.near(direction, BossSite.FLAT + BossSite.BLEND):
+			h = site.shape(direction, h)
+		return roundi(h / QUANTUM) * QUANTUM
+
+	## The ground without the site, quantized.
+	func raw_height(direction: Vector3) -> float:
+		return roundi(_noise_height(direction) / QUANTUM) * QUANTUM
+
+	func _noise_height(direction: Vector3) -> float:
 		var p := direction * realm.radius
 		var h := moor.get_noise_3d(p.x, p.y, p.z) * realm.moor_height
 		h += hills.get_noise_3d(p.x, p.y, p.z) * realm.hill_height
 		var ridge := 1.0 - absf(ridges.get_noise_3d(p.x, p.y, p.z))
 		var where := smoothstep(0.05, 0.4, mask.get_noise_3d(p.x, p.y, p.z))
 		h += ridge * ridge * where * realm.ridge_height
-		return roundi(h / QUANTUM) * QUANTUM
+		return h
 
 	## Realm-relative surface point.
 	func surface(direction: Vector3) -> Vector3:

@@ -14,7 +14,7 @@ var _enemy: Enemy
 func before_test() -> void:
 	_world = auto_free(Node3D.new()) as Node3D
 	add_child(_world)
-	_world.add_child(Arena.new(false))
+	FlatGround.add(_world)
 	_player = SimPlayer.new()
 	_world.add_child(_player)
 	_player.place(Vector3(0, 0, 10))

@@ -74,7 +74,6 @@ static func _fill() -> void:
 		"leap_to": vec,
 		"grounded": NetworkSchemas.bool8(),
 		"parried": NetworkSchemas.bool8(),
-		"occupied": NetworkSchemas.bool8(),
 		"health": f32,
 		"max_health": f32,
 		"stamina": f32,

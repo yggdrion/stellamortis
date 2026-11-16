@@ -1,10 +1,10 @@
 extends GdUnitTestSuite
-## Player combat against the training dummies, with the real arena: attacks hit once per swing,
+## Player combat against the training dummies, on flat ground: attacks hit once per swing,
 ## combos chain, rolls dodge, blocks and parries work, stamina gates actions, death respawns.
 
 const DELTA := 1.0 / 30.0
-## Where the M2 dummies stood, north of the realm's arrival (they moved to the keep in M12;
-## these tests keep the realm's walls and ground around them).
+## Where the M2 dummies stood, north of the origin (they live on the Barrowlands since M34;
+## these tests stand them on a flat floor, FlatGround).
 const DUMMY_AT := [Vector3(-4.0, 0.0, -10.0), Vector3(4.0, 0.0, -10.0)]
 const B := PlayerControls.Buttons
 
@@ -17,7 +17,7 @@ var _swinger: Enemy
 func before_test() -> void:
 	_world = auto_free(Node3D.new()) as Node3D
 	add_child(_world)
-	_world.add_child(Arena.new(false))
+	FlatGround.add(_world)
 	_passive = _dummy(0, DUMMY_AT[0], true)
 	_swinger = _dummy(1, DUMMY_AT[1], false)
 	_player = SimPlayer.new()

@@ -597,10 +597,10 @@ func _fly_bolts(delta: float, t: Tuning) -> void:
 			bolt_life[i] = 0
 
 
-## Steps through a portal the player stands in (a victory portal only once the Warden fell).
+## Steps through a portal the player stands in (one with a flag only once it is set).
 func _use_portal() -> void:
 	var portal := Layout.portal_at(global_position)
-	if portal == null or (portal.needs_victory and not Encounter.won(self)):
+	if portal == null or not portal.is_open(self):
 		return
 	velocity = Vector3.ZERO
 	var arrival := Layout.arrival_point(portal, peer_id)
@@ -618,8 +618,7 @@ func _ensure_ground(point: Vector3) -> void:
 		chunks.ensure_around(point)
 
 
-## Back at the first realm's arrival gate (dying sends players there; a wipe empties the old
-## realm).
+## Back at the first realm's arrival (dying sends players there).
 func _respawn(t: Tuning) -> void:
 	health = t.max_health
 	stamina = t.max_stamina

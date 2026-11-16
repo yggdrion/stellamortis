@@ -1,8 +1,8 @@
 class_name Hud
 extends CanvasLayer
 ## Health and stamina bars with the damage taken popping next to them, the death notice, a
-## controls hint (PLAN §4.5), and on top the encounter: machines left, the Warden's bar, the
-## victory notice (PLAN §4.6). Thin bars, spaced capitals in Cinzel (OFL), parchment and old
+## controls hint (PLAN §4.5), and on top the realm's name, the Warden's bar and the notice when it
+## has fallen (PLAN §4.6). Thin bars, spaced capitals in Cinzel (OFL), parchment and old
 ## blood colors: grim and quiet, not a toy.
 
 const HINT := (
@@ -17,7 +17,6 @@ const STAMINA := Color(0.6, 0.55, 0.32)
 const BOSS := Color(0.5, 0.08, 0.07)
 
 var player: SimPlayer
-var encounter: Encounter
 ## The lobby room code friends join with, "" when not hosting through the lobby.
 var room := ""
 ## Stays on screen while set (the connection to the server is silent).
@@ -202,26 +201,25 @@ func _show_damage() -> void:
 
 func _show_encounter() -> void:
 	_boss_bar.visible = false
-	if encounter == null:
-		_goal.text = ""
+	_goal.text = ""
+	if player == null:
 		return
 	var place := Layout.place_at(player.global_position)
-	if place != Layout.ORIGIN_PLACE:
-		_goal.text = String(place).to_upper()
+	var fight := Encounter.of(self, String(place))
+	if fight == null:
 		return
-	match encounter.phase:
-		Encounter.Phase.MOBS:
-			var left := encounter.mobs_left()
-			_goal.text = "THE DEAD WALK   %d / %d" % [left, encounter.mobs.size()]
+	match fight.phase:
+		Encounter.Phase.IDLE:
+			_goal.text = String(place).to_upper()
 		Encounter.Phase.BOSS:
-			var boss := encounter.boss
-			var phase := "   ENRAGED" if boss.phase_2() else ""
-			_goal.text = "THE WARDEN" + phase
+			var boss := fight.boss
+			var enraged := "   ENRAGED" if boss.phase_2() else ""
+			_goal.text = "THE WARDEN" + enraged
 			_boss_bar.visible = true
 			_boss_bar.max_value = boss.max_health
 			_boss_bar.value = boss.health
 		Encounter.Phase.CLEARED:
-			_goal.text = "THE WARDEN HAS FALLEN   THE WAY HOME IS OPEN"
+			_goal.text = "THE WARDEN HAS FALLEN"
 
 
 ## Four short ticks around a gap, and a thin ring that fills while the shot charges.

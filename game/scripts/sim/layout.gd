@@ -1,52 +1,21 @@
 class_name Layout
 extends RefCounted
-## Where things are (PLAN §4.4, §6 M12), shared by the server and every client: the two planets,
-## gravity zones, the asteroid, jump pads and portals. Arena builds collision and visuals from it,
-## Gravity and SimPlayer read it during simulation.
-##
-## The old realm (the encounter) sits at the origin: low-g zone east of the arrival with the
-## asteroid floating above it, high-g zone to the west, the dead to the south. The generated
-## realms (the Barrowlands, where every player starts) are round worlds far from it. All share one
-## world, so the netcode needs no level loading; clients only show the place their player is in
+## Where things are (PLAN §4.4, §6 M12), shared by the server and every client: the generated
+## realms (round worlds far apart, the Barrowlands is where every player starts), their gravity
+## zones, the gates between them and the places on a realm's ground. Arena builds collision and
+## visuals from it, Gravity and SimPlayer read it during simulation. All realms share one world,
+## so the netcode needs no level loading; clients only show the place their player is in
 ## (Arena.show_place).
-
-const LOW_G_CENTER := Vector3(40.0, 9.0, 0.0)
-const LOW_G_SIZE := Vector3(30.0, 18.0, 40.0)
-const LOW_G := 3.0
-const HIGH_G_CENTER := Vector3(-40.0, 10.0, 0.0)
-const HIGH_G_SIZE := Vector3(30.0, 20.0, 40.0)
-const HIGH_G := 22.0
-const ASTEROID_CENTER := Vector3(40.0, 50.0, 0.0)
-const ASTEROID_RADIUS := 18.0
-## Gravity reaches this far from the asteroid's center.
-const ASTEROID_REACH := 34.0
-const ASTEROID_G := 7.0
-## Launch speeds, along the up of whoever stands on the pad.
-const GROUND_PAD_SPEED := 12.0
-const RETURN_PAD_SPEED := 17.0
 
 ## Training dummies beside the first realm's arrival: how far ahead of it (along the way the
 ## players face), how far to the side (right is positive), and whether it only takes hits (true)
 ## or also swings back.
 const DUMMIES := [[8.0, -4.0, true], [8.0, 4.0, false]]
-## The old realm's arrival ring (players face the encounter, +Z).
-const REALM_ARRIVAL := Vector3.ZERO
-## The encounter, south of the spawn in front of the long wall: melee mobs, the ranged mob
-## (true), and where the Warden rises. All face north, toward the spawn.
-const MOBS := [
-	[Vector3(-6.0, 0.0, 24.0), false],
-	[Vector3(6.0, 0.0, 24.0), false],
-	[Vector3(0.0, 0.0, 33.0), true]
-]
-const BOSS := Vector3(0.0, 0.0, 30.0)
 const SPAWN_RADIUS := 3.0
-## Where a realm's gate to the old barrow stands: this far behind the arrival, in the tangent
-## plane.
-const REALM_GATE_BEHIND := 10.0
 ## Arrivals on a realm's ground start this far above it (the capsule settles).
 const ARRIVAL_LIFT := 0.1
 ## The name of the place a point is in when no realm reaches it (place_at).
-const ORIGIN_PLACE := &"origin"
+const NO_PLACE := &""
 ## Places on the spawn ring (more than GameServer.MAX_PLAYERS, so ids spread out).
 const SPAWN_SLOTS := 10
 
@@ -59,28 +28,17 @@ static var _realms: Array[RealmDef] = []
 static var _world_seed := 0
 
 
+## One gravity zone per realm, a sphere pulling to its center (tests may append more).
 static func gravity_zones() -> Array[GravityZone]:
 	if _zones.is_empty():
-		_zones = [
-			GravityZone.box("low gravity", LOW_G_CENTER, LOW_G_SIZE, LOW_G),
-			GravityZone.box("high gravity", HIGH_G_CENTER, HIGH_G_SIZE, HIGH_G),
-			GravityZone.sphere("asteroid", ASTEROID_CENTER, ASTEROID_REACH, ASTEROID_G),
-		]
 		for realm in realms():
 			_zones.append(GravityZone.sphere(realm.id, realm.center, realm.reach(), realm.gravity))
 	return _zones
 
 
+## Pads that launch a jumping player along their up (none now; the Skyshards bring them back
+## in M28, tests add their own).
 static func jump_pads() -> Array[JumpPad]:
-	if _pads.is_empty():
-		_pads = [
-			# Off the pole below the asteroid, so the launch lands beside the return pad.
-			JumpPad.at(Vector3(40.0, 0.0, 6.0), Vector3.UP, GROUND_PAD_SPEED),
-			# The asteroid's bottom pole: its up points at the ground.
-			JumpPad.at(
-				ASTEROID_CENTER + Vector3.DOWN * ASTEROID_RADIUS, Vector3.DOWN, RETURN_PAD_SPEED
-			),
-		]
 	return _pads
 
 
@@ -90,38 +48,10 @@ static func set_world_seed(world_seed: int) -> void:
 	_portals.clear()
 
 
-## The old realm's way back to the first realm's arrival, the portal that opens where the Warden
-## fell (also back), then each realm's gate to the old barrow (on its ground, so it moves with the
-## world seed).
+## The gates between realms (none yet: M26 adds the one to Myrkfen at the arrival, shut until
+## the Warden's flag is set; tests add their own).
 static func portals() -> Array[Portal]:
-	if _portals.is_empty():
-		var start := start_realm()
-		_portals = [
-			Portal.at(Vector3(-10, 0, -3), Vector3.ZERO, Vector3.BACK, "Home"),
-			Portal.at(Vector3(0, 0, 22), Vector3.ZERO, Vector3.BACK, "Home", true),
-		]
-		_portals[0].realm = start.id
-		_portals[1].realm = start.id
-		for realm in realms():
-			_portals.append(arrival_gate(realm))
 	return _portals
-
-
-## The gate standing behind a realm's arrival point, leading to the old realm at the origin.
-static func arrival_gate(realm: RealmDef) -> Portal:
-	var ground := Terrain.surface(realm, _world_seed, realm.arrival)
-	var up := (ground - realm.center).normalized()
-	var behind := Vector3.FORWARD - up * Vector3.FORWARD.dot(up)
-	var direction := (ground - realm.center + behind.normalized() * REALM_GATE_BEHIND).normalized()
-	var gate := Portal.at(
-		Terrain.surface(realm, _world_seed, direction),
-		REALM_ARRIVAL,
-		Vector3.BACK,
-		"To the old barrow"
-	)
-	gate.up = direction
-	gate.seeded = true
-	return gate
 
 
 ## Training dummy i's post on the first realm's ground, beside its arrival: [feet, up].
@@ -185,12 +115,12 @@ static func realms() -> Array[RealmDef]:
 	return _realms
 
 
-## The first realm: where players start and the old realm leads back to.
+## The first realm: where players start and respawn.
 static func start_realm() -> RealmDef:
 	return realms()[0]
 
 
-## The realm whose gravity reaches this point (the nearest center), null in the old realm.
+## The realm whose gravity reaches this point (the nearest center), null in open space.
 static func realm_at(point: Vector3) -> RealmDef:
 	var best: RealmDef = null
 	var best_distance := INF
@@ -202,12 +132,12 @@ static func realm_at(point: Vector3) -> RealmDef:
 	return best
 
 
-## Which place a point is in: a generated realm (its id) or the old realm at the origin.
+## Which place a point is in: a generated realm (its id), NO_PLACE in open space.
 static func place_at(point: Vector3) -> StringName:
 	var realm := realm_at(point)
 	if realm != null:
 		return StringName(realm.id)
-	return ORIGIN_PLACE
+	return NO_PLACE
 
 
 static func pad_at(feet: Vector3) -> JumpPad:

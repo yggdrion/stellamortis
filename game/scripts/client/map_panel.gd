@@ -21,6 +21,7 @@ const KIND_COLORS := {
 	&"barrow_elite": Color(0.6, 0.15, 0.35),
 }
 const GATE := Color(0.45, 0.8, 0.95)
+const SITE := Color(0.75, 0.25, 0.85)
 const FRIEND := Color(0.6, 0.9, 0.6)
 const OWN := Color.WHITE
 const HOVER_RADIUS := 10.0
@@ -277,6 +278,7 @@ func _draw() -> void:
 	_hits.clear()
 	_draw_camps(font)
 	_draw_gates(font)
+	_draw_site(font)
 	_draw_enemies()
 	_draw_players()
 	_draw_rings()
@@ -330,6 +332,20 @@ func _draw_gates(font: Font) -> void:
 		_hits.append([p, "gate %s" % portal.label])
 
 
+## The realm's boss site: the ring of stones, greyed once the Warden has fallen.
+func _draw_site(font: Font) -> void:
+	var site := BossSite.at(_realm, world.world_seed)
+	var p := _screen(site.center())
+	if not _inside(p):
+		return
+	var fallen := Encounter.flag_set(self, _realm.boss_flag)
+	var color := SITE * Color(1, 1, 1, 0.45 if fallen else 1.0)
+	var radius := maxf(7.0, BossSite.RING_RADIUS * _zoom() / (PI * _realm.radius))
+	draw_arc(p, radius, 0.0, TAU, 24, color, 2.0)
+	draw_string(font, p + Vector2(radius + 4.0, 5), "boss site", 0, -1, 15, color)
+	_hits.append([p, "boss site, the Warden has fallen" if fallen else "boss site"])
+
+
 func _draw_enemies() -> void:
 	for node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
@@ -381,7 +397,7 @@ func _draw_rings() -> void:
 func _draw_legend(font: Font) -> void:
 	var at := _frame().position + Vector2(14, 22)
 	draw_string(font, at, "%d m across" % roundi(minf(span, _full_span())), 0, -1, 16, OWN)
-	var rows := [[OWN, "you"], [FRIEND, "player"], [GATE, "gate"]]
+	var rows := [[OWN, "you"], [FRIEND, "player"], [GATE, "gate"], [SITE, "boss site"]]
 	for id: StringName in KIND_COLORS:
 		rows.append([KIND_COLORS[id], str(id)])
 	rows.append([Menus.PARCHMENT, "camp (ring), roamer (dot)"])

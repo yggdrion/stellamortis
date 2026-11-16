@@ -36,6 +36,8 @@ var look: Variant = null
 ## Opens the map at the start and keeps it open (--map): "" no, "full" the whole realm, else the
 ## meters across.
 var map_start := ""
+## Leaves the mouse free until a click in the window (--no-grab, and every --screenshot run).
+var no_grab := false
 
 var me: SimPlayer
 var ping_ms := 0
@@ -208,10 +210,16 @@ func leave() -> void:
 	await get_tree().create_timer(0.3).timeout
 
 
+## Captures the mouse for play, unless no_grab keeps it free (a click still captures it).
+func _grab() -> void:
+	if not no_grab:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
 ## Pause menu: back into the game.
 func _resume() -> void:
 	_pause.visible = false
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	_grab()
 
 
 ## Pause menu: disconnects and hands back to the main menu (an empty reason).
@@ -244,14 +252,13 @@ func _on_player_spawned(player: SimPlayer) -> void:
 	me = player
 	_map.me = me
 	_hud.player = me
-	_hud.encounter = _world.encounter
 	me.controls.reader = _bot_controls if bot else _read_controls
 	_rig.target = me
 	if look is Vector2:
 		_rig.yaw = deg_to_rad((look as Vector2).x)
 		_rig.pitch = deg_to_rad((look as Vector2).y)
 	if not bot and not _pause.visible:
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		_grab()
 	if map_start != "":
 		_map.span = INF if map_start == "full" else float(map_start)
 		_map.visible = true
@@ -440,7 +447,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action(&"map") and not event.is_echo() and me != null and map_start == "":
 		# Held: the mouse is free for hover and zoom while it is open (the player stands still).
 		_map.visible = event.is_pressed() and not _pause.visible
-		Input.mouse_mode = (Input.MOUSE_MODE_VISIBLE if _map.visible else Input.MOUSE_MODE_CAPTURED)
+		if _map.visible:
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		else:
+			_grab()
 	elif _pause.visible:
 		return
 	elif event is InputEventMouseButton and event.is_pressed() and me != null:

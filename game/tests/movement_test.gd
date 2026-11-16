@@ -1,16 +1,15 @@
 extends GdUnitTestSuite
-## SimPlayer moves on the arena: walks where the input yaw points, lands after a jump, and
+## SimPlayer moves on flat ground: walks where the input yaw points, lands after a jump, and
 ## replaying the same inputs from the same state gives the same result (what prediction
 ## relies on).
 
 const DELTA := 1.0 / 30.0
 
-var _arena: Arena
-
 
 func before_test() -> void:
-	_arena = auto_free(Arena.new(false)) as Arena
-	add_child(_arena)
+	var ground := auto_free(Node3D.new()) as Node3D
+	add_child(ground)
+	FlatGround.add(ground, true)
 
 
 func _player() -> SimPlayer:
@@ -104,8 +103,8 @@ func test_replay_is_deterministic() -> void:
 	assert_float(player.global_position.distance_to(first.origin)).is_less(0.001)
 
 
-## The test stair in the realm (Arena: six 0.4 m risers, 0.8 m deep, top at 2.4 m) is walked up
-## without jumping.
+## The test stair (FlatGround: six 0.4 m risers, 0.8 m deep, top at 2.4 m) is walked up without
+## jumping.
 func test_walks_up_stairs() -> void:
 	var player := _player()
 	player.global_position = Vector3(8, 0.05, -23.0)

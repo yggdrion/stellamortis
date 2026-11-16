@@ -176,6 +176,16 @@ Barrow elite (tall, rust-iron armor, 340 health, two hits and a slam):
 - [ ] The elite's camp (with two bearers and archers) is a real fight, not a wall: is 340 health too much or too little?
 - [ ] Sounds: a deep telegraph (the giant one, pitched up a little) on each windup.
 
+Boss site and world flag (task 3: the old hand-built realm is gone, `Net.PROTOCOL_VERSION` 28; no gate to Myrkfen yet, the flag `warden_fallen` is only read by tests and the map). Walk 450 to 800 m from the arrival to find the site (hold M: a purple ring marked "boss site"), or start with `--encounter=boss` to spawn inside it:
+- [ ] The site reads as a place: a flat ground disc with a ring of eight tall standing stones around it, no trees or boulders on it, no camp within 60 m. The ground blends into the hills without a cliff or a step (walk around its edge, also a jump up the blend).
+- [ ] Walking into the ring raises the Warden from the middle (3 s rise, unhittable while it rises); the boss bar and "THE WARDEN" appear. Standing just outside the ring (within 80 m) does not wake it.
+- [ ] Two or three players inside the ring when it rises make it tougher (+50 percent health per extra player); a friend who arrives late does not.
+- [ ] Walk away: out of 80 m of the site with everyone, it sinks back (hidden, full health) and rises again on the next visit. Dying with the whole party does the same.
+- [ ] The fight on the round ground: the sweep, slam (the circle in front of it) and volley behave like on flat ground, the telegraph fan lies on the ground also when the Warden stands on a slope, the well (phase 2) drags you toward it along the ground, not into the air or the earth. The standing stones stop bolts and block the way: does the ring help (cover) or annoy (a stone in the way of a roll)?
+- [ ] The Warden's fall: the boss bar goes, the HUD says it has fallen and the map's site ring turns grey. The corpse stays; nothing resets it while the server runs (restart: it is back).
+- [ ] A friend who joins after the kill sees the Warden's corpse and the grey ring too.
+- [ ] Is 450 to 800 m far enough away and near enough? Is the ring easy to find on the map, and is the flat disc distinct from the ground around it?
+
 General:
 - [ ] Every kind's telegraph fan sits on the ground on slopes (no clipping into hills), and nobody leaps through a trunk.
 - [ ] Camps of each recipe turn up often enough (about 40 percent plain dead, 25 percent bearers and archers, 20 percent berserkers, 15 percent elite with guards) and roamers (a lone swordsman, archer or berserker) are not too dangerous alone.

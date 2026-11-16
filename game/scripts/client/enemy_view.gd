@@ -510,11 +510,13 @@ func _pose() -> void:
 		_edge.mesh = _arcs[def.resource_path][1]
 	# A leap's area is drawn where it will land; any other attack's on the enemy itself.
 	var landing := enemy.action == Enemy.Action.WINDUP and enemy.leap_to != Vector3.ZERO
+	var tilt := _ground_tilt()
 	for shape: MeshInstance3D in [_arc, _edge]:
+		shape.basis = tilt
 		if landing:
 			shape.global_position = enemy.leap_to + enemy.up * 0.1
 		else:
-			shape.position = Vector3(0, 0.05 if shape == _arc else 0.06, 0)
+			shape.position = Vector3(0, 0.15 if shape == _arc else 0.16, 0)
 	match enemy.action:
 		Enemy.Action.WINDUP:
 			var progress := time / windup
@@ -555,6 +557,17 @@ func _pose() -> void:
 			_model.play_timed(_clips["down"], time / rise, enemy.def.rise_time, true)
 		_:
 			_idle_or_walk()
+
+
+## The telegraph lies along the ground under the enemy, in its own frame: on a slope of a round
+## realm a flat fan would sink into the hill in front of it.
+func _ground_tilt() -> Basis:
+	if not enemy.is_on_floor():
+		return Basis.IDENTITY
+	var local := enemy.global_basis.inverse() * enemy.get_floor_normal()
+	if local.y < 0.5:
+		return Basis.IDENTITY
+	return Basis(Quaternion(Vector3.UP, local.normalized()))
 
 
 func _idle_or_walk() -> void:

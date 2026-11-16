@@ -1,13 +1,12 @@
 class_name Arena
 extends Node3D
-## The old realm at the origin (the encounter, gravity zones, the asteroid) and a node for every
-## generated realm (the Barrowlands, where players start; TerrainView fills it).
-## Collision on both sides, meshes, lights and sky only on clients. Built in code so server and
-## client always get the same collision. Surfaces are tiling PBR materials mapped world
-## triplanar (ambientCG ground and rock, the Medieval Village MegaKit's brick), dressing comes
-## from the Quaternius MegaKits (CC0). Clients show one place at a time (show_place).
+## A node for every generated realm (the Barrowlands, where players start; TerrainView fills it),
+## the arrival's stones and the gates. Collision on both sides, meshes, lights and sky only on
+## clients. Built in code so server and client always get the same collision. Surfaces are tiling
+## PBR materials mapped world triplanar (ambientCG ground and rock, the Medieval Village MegaKit's
+## brick), dressing comes from the Quaternius MegaKits (CC0). Clients show one place at a time
+## (show_place).
 
-const SIZE := 160.0
 const AMBIENTCG := "res://assets/ambientcg/"
 const VILLAGE := "res://assets/quaternius/village/"
 const PROPS := "res://assets/quaternius/props/"
@@ -15,7 +14,6 @@ const PROPS := "res://assets/quaternius/props/"
 const GROUND := "Ground020"
 const BRICK := "village:UnevenBrick"
 const ROCK := "Rock030"
-const ASTEROID := "Rock035"
 const NATURE := "res://assets/kenney/nature/"
 const STONE_COUNT := 10
 const STONE_RING := 6.0
@@ -43,10 +41,8 @@ var visual := false
 ## Clients only: what Graphics presets adjust.
 var environment: Environment
 var sun: DirectionalLight3D
-## Every node of each planet, so clients can show one (collision lives here too; hiding a node
-## doesn't change physics).
-var realm: Node3D
-## Place name (Layout.place_at) -> its node: the old realm, one per generated realm.
+## Place name (Layout.place_at) -> its node, one per generated realm, so clients can show one
+## (collision lives here too; hiding a node doesn't change physics).
 var places := {}
 ## Materials by name and tint, shared by every box that uses them.
 var _materials := {}
@@ -54,8 +50,6 @@ var _materials := {}
 var _sky: ShaderMaterial
 ## Torch lights; each flickers with its own phase.
 var _torches: Array[OmniLight3D] = []
-## The portal that opens where the Warden fell (shown once Encounter.won()).
-var _victory_portal: Node3D
 
 
 func _init(with_visuals: bool) -> void:
@@ -64,33 +58,20 @@ func _init(with_visuals: bool) -> void:
 
 
 func _ready() -> void:
-	realm = Node3D.new()
-	realm.name = "Realm"
-	add_child(realm)
-	places = {Layout.ORIGIN_PLACE: realm}
 	for def in Layout.realms():
 		var node := Node3D.new()
 		node.name = def.id.capitalize()
 		add_child(node)
 		places[StringName(def.id)] = node
-	_build_realm()
 	if visual:
 		_add_environment()
-		for portal in Layout.portals():
-			if portal.seeded:
-				continue
-			var gate := _portal(portal)
-			if portal.needs_victory:
-				_victory_portal = gate
-				gate.visible = false
 
 
-## Clients: the gates that stand on a generated realm's ground, once the world seed is known
+## Clients: the gates between realms and the arrival's look, once the world seed is known
 ## (World.build).
 func add_seeded_portals() -> void:
 	for portal in Layout.portals():
-		if portal.seeded:
-			_portal(portal)
+		_portal(portal)
 	_arrival_look(Layout.start_realm())
 
 
@@ -103,8 +84,6 @@ func add_arrival_solids() -> void:
 	for stone in _arrival_stones(start):
 		_solid(parent, stone, STONE_SOLID, Vector3(0, STONE_SOLID.y * 0.5, 0))
 	for portal in Layout.portals():
-		if not portal.seeded:
-			continue
 		var gate := Transform3D(SimPlayer.frame(portal.up, Vector3.FORWARD), portal.position)
 		var place := places[Layout.place_at(portal.position)] as Node3D
 		for x: float in [-GATE_PILLAR_X, GATE_PILLAR_X]:
@@ -154,125 +133,13 @@ func _process(_delta: float) -> void:
 		light.light_energy = (
 			2.2 + 0.25 * sin(seconds * 9.0 + i * 1.7) + 0.15 * sin(seconds * 23.0 + i)
 		)
-	if _victory_portal:
-		_victory_portal.visible = Encounter.won(self)
-
-
-# --- The realm -----------------------------------------------------------------------------
-
-
-func _build_realm() -> void:
-	_box(realm, Vector3(0, -0.5, 0), Vector3(SIZE, 1, SIZE), GROUND, Vector3.ZERO, 0.25)
-	# Broken stone blocks to walk around and jump on.
-	for i in 8:
-		var angle := TAU * i / 8.0
-		var at := Vector3(cos(angle), 0, sin(angle)) * 18.0
-		var height := 1.0 + (i % 3) * 0.8
-		_box(realm, at + Vector3(0, height / 2.0, 0), Vector3(3, height, 3), BRICK)
-	# A ramp and a stair to test slopes and steps.
-	_box(realm, Vector3(-8, 1.2, -30), Vector3(4, 0.4, 10), ROCK, Vector3(deg_to_rad(15), 0, 0))
-	for s in 6:
-		_box(realm, Vector3(8, 0.2 + s * 0.2, -26 - s * 0.8), Vector3(4, 0.4 + s * 0.4, 0.8), BRICK)
-	# The barrow wall behind the encounter.
-	_box(realm, Vector3(0, 3, 45), Vector3(40, 6, 1), BRICK)
-	# Grave slabs beside the fight, out of the mobs' way.
-	for i in 10:
-		var side := -1.0 if i % 2 == 0 else 1.0
-		var at := Vector3(side * (22.0 + (i % 3) * 2.5), 0.6, 30.0 + (i / 2) * 2.2)
-		_box(realm, at, Vector3(1.2, 1.4, 0.3), ROCK, Vector3(0.12 * side, 0.2 * i, 0))
-	_add_asteroid()
-	if visual:
-		for i in 5:
-			_torch(realm, Vector3(-16 + i * 8, 3.2, 44.5), Vector3.FORWARD, i == 2)
-		_prop(realm, VILLAGE + "Prop_Wagon.gltf", Vector3(-15, 0, -12), _yaw(0.6))
-		_prop(realm, PROPS + "Barrel.gltf", Vector3(-13, 0, -14.5))
-		_prop(realm, PROPS + "Crate_Wooden.gltf", Vector3(-12, 0, -15.5), _yaw(0.4))
-		_prop(realm, PROPS + "Banner_2.gltf", Vector3(-6, 5.2, 44.38), _yaw(PI))
-		_prop(realm, PROPS + "Banner_2.gltf", Vector3(6, 5.2, 44.38), _yaw(PI))
-		_prop(realm, PROPS + "Chain_Coil.gltf", Vector3(3, 0, 40))
-		_add_zone_visuals()
-		_add_pads()
-
-
-## The asteroid: a sphere with boulders to walk around, standing on its surface.
-func _add_asteroid() -> void:
-	var body := StaticBody3D.new()
-	body.name = "Asteroid"
-	body.collision_layer = SimPlayer.LAYER_WORLD
-	body.collision_mask = 0
-	body.position = Layout.ASTEROID_CENTER
-	var shape := CollisionShape3D.new()
-	var sphere := SphereShape3D.new()
-	sphere.radius = Layout.ASTEROID_RADIUS
-	shape.shape = sphere
-	body.add_child(shape)
-	if visual:
-		body.add_child(_sphere_mesh(Layout.ASTEROID_RADIUS, ASTEROID, 0.12))
-	realm.add_child(body)
-	# Boulders around the equator and near the top, leaving the bottom pole (return pad) free.
-	for i in 7:
-		var normal := Vector3.UP.rotated(Vector3.RIGHT, deg_to_rad(40 + i * 20)).rotated(
-			Vector3.UP, i * 2.1
-		)
-		var size := Vector3(2.5, 1.6 + (i % 3) * 0.6, 2.5)
-		var at := Layout.ASTEROID_CENTER + normal * (Layout.ASTEROID_RADIUS + size.y / 2.0 - 0.3)
-		var basis := SimPlayer.frame(normal, SimPlayer._tangent(Vector3.FORWARD, normal))
-		_box(realm, at, size, ROCK, basis.get_euler())
-
-
-## A turn around the world's up.
-static func _yaw(angle: float) -> Basis:
-	return Basis(Vector3.UP, angle)
 
 
 # --- Pieces --------------------------------------------------------------------------------
 
 
-func _box(
-	parent: Node3D,
-	at: Vector3,
-	size: Vector3,
-	surface: String,
-	rotation_euler := Vector3.ZERO,
-	tiles := 0.5
-) -> void:
-	var body := StaticBody3D.new()
-	body.collision_layer = SimPlayer.LAYER_WORLD
-	body.collision_mask = 0
-	body.position = at
-	body.rotation = rotation_euler
-	var shape := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = size
-	shape.shape = box
-	body.add_child(shape)
-	if visual:
-		var mesh := MeshInstance3D.new()
-		var cube := BoxMesh.new()
-		cube.size = size
-		cube.material = _surface(surface, tiles)
-		mesh.mesh = cube
-		body.add_child(mesh)
-	parent.add_child(body)
-
-
-func _sphere_mesh(
-	radius: float, surface: String, tiles: float, at := Vector3.ZERO
-) -> MeshInstance3D:
-	var mesh := MeshInstance3D.new()
-	var sphere := SphereMesh.new()
-	sphere.radius = radius
-	sphere.height = radius * 2.0
-	sphere.radial_segments = 96
-	sphere.rings = 48
-	sphere.material = _surface(surface, tiles)
-	mesh.mesh = sphere
-	mesh.position = at
-	return mesh
-
-
-## A model from a MegaKit, oriented by a basis (SimPlayer.frame(up, forward) on a round ground,
-## _yaw(angle) on a flat one) and scaled; visual only.
+## A model from a MegaKit, oriented by a basis (SimPlayer.frame(up, forward) on a round ground)
+## and scaled; visual only.
 func _prop(
 	parent: Node3D, path: String, at: Vector3, orientation := Basis.IDENTITY, scale_by := 1.0
 ) -> Node3D:
@@ -389,7 +256,7 @@ func _portal(portal: Portal) -> Node3D:
 	quad.size = Vector2(2.8, 3.9)
 	var material := ShaderMaterial.new()
 	material.shader = load("res://shaders/portal.gdshader")
-	var tint := Color(0.95, 0.75, 0.4) if portal.needs_victory else Color(0.45, 0.7, 1.0)
+	var tint := Color(0.95, 0.75, 0.4) if portal.needs_flag != &"" else Color(0.45, 0.7, 1.0)
 	material.set_shader_parameter("tint", tint)
 	quad.material = material
 	veil.mesh = quad
@@ -538,116 +405,3 @@ func follow_up(point: Vector3, delta: float) -> void:
 		"planet_direction",
 		sun.basis * Basis.from_euler(MOON_ROTATION * (PI / 180.0)).inverse() * PLANET_DIRECTION
 	)
-
-
-## Gravity zones are tinted mist with drifting motes and a glowing rune line on the ground: pale
-## blue and rising where the realm's pull is weak, ember red and falling where it is strong.
-func _add_zone_visuals() -> void:
-	_zone_look(Layout.LOW_G_CENTER, Layout.LOW_G_SIZE, Color(0.45, 0.7, 1.0), 2.0)
-	_zone_look(Layout.HIGH_G_CENTER, Layout.HIGH_G_SIZE, Color(1.0, 0.4, 0.2), -25.0)
-
-
-func _zone_look(center: Vector3, size: Vector3, color: Color, drift: float) -> void:
-	var fog := FogVolume.new()
-	fog.size = size
-	fog.position = center
-	var fog_material := FogMaterial.new()
-	fog_material.density = 0.015
-	fog_material.albedo = color
-	fog_material.emission = color * 0.03
-	fog_material.edge_fade = 0.3
-	fog.material = fog_material
-	realm.add_child(fog)
-
-	var glow := StandardMaterial3D.new()
-	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	glow.albedo_color = color
-	glow.emission_enabled = true
-	glow.emission = color
-	glow.emission_energy_multiplier = 2.0
-	var floor_y := center.y - size.y / 2.0 + 0.03
-	for side in 4:
-		var along_x := side < 2
-		var length := size.x if along_x else size.z
-		var offset := (size.z if along_x else size.x) / 2.0 * (1 if side % 2 == 0 else -1)
-		var strip := MeshInstance3D.new()
-		var box := BoxMesh.new()
-		box.size = Vector3(length, 0.04, 0.12) if along_x else Vector3(0.12, 0.04, length)
-		box.material = glow
-		strip.mesh = box
-		strip.position = Vector3(
-			center.x + (0.0 if along_x else offset),
-			floor_y,
-			center.z + (offset if along_x else 0.0)
-		)
-		strip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		realm.add_child(strip)
-
-	var motes := GPUParticles3D.new()
-	motes.amount = 300
-	motes.lifetime = 6.0 if drift > 0 else 1.2
-	motes.position = center
-	motes.visibility_aabb = AABB(-size / 2.0, size)
-	var process := ParticleProcessMaterial.new()
-	process.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	process.emission_box_extents = size / 2.0
-	process.gravity = Vector3(0, drift, 0)
-	process.direction = Vector3.UP if drift > 0 else Vector3.DOWN
-	process.initial_velocity_min = 0.2
-	process.initial_velocity_max = 1.0
-	process.scale_min = 0.5
-	process.scale_max = 1.0
-	motes.process_material = process
-	var quad := QuadMesh.new()
-	quad.size = Vector2(0.06, 0.06) if drift > 0 else Vector2(0.03, 0.5)
-	var mote_material := StandardMaterial3D.new()
-	mote_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mote_material.billboard_mode = (
-		BaseMaterial3D.BILLBOARD_PARTICLES if drift > 0 else BaseMaterial3D.BILLBOARD_FIXED_Y
-	)
-	mote_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mote_material.albedo_color = Color(color, 0.8)
-	mote_material.emission_enabled = true
-	mote_material.emission = color
-	mote_material.emission_energy_multiplier = 4.0
-	quad.material = mote_material
-	motes.draw_pass_1 = quad
-	realm.add_child(motes)
-
-
-## A rune stone disc with a light, lying on its surface.
-func _add_pads() -> void:
-	for pad in Layout.jump_pads():
-		var root := Node3D.new()
-		root.basis = SimPlayer.frame(pad.normal, SimPlayer._tangent(Vector3.FORWARD, pad.normal))
-		root.position = pad.position
-		var disc := MeshInstance3D.new()
-		var cylinder := CylinderMesh.new()
-		cylinder.top_radius = pad.radius
-		cylinder.bottom_radius = pad.radius
-		cylinder.height = 0.12
-		var material := StandardMaterial3D.new()
-		material.albedo_color = Color(0.25, 0.6, 0.75)
-		material.emission_enabled = true
-		material.emission = Color(0.3, 0.75, 0.95)
-		material.emission_energy_multiplier = 1.8
-		cylinder.material = material
-		disc.mesh = cylinder
-		disc.position.y = 0.04
-		root.add_child(disc)
-		var light := OmniLight3D.new()
-		light.light_color = Color(0.4, 0.8, 1.0)
-		light.light_energy = 1.6
-		light.omni_range = 6.0
-		light.position.y = 1.0
-		root.add_child(light)
-		var label := Label3D.new()
-		label.text = "Leap: Space"
-		label.font = load(Menus.TITLE_FONT)
-		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		label.position.y = 2.6
-		label.pixel_size = 0.006
-		label.font_size = 40
-		label.outline_size = 10
-		root.add_child(label)
-		realm.add_child(root)

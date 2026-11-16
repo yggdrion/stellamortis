@@ -9,7 +9,16 @@ const PLAYER_ATTACKS: Array[StringName] = [&"light_1", &"light_2", &"light_3", &
 
 ## Enemy kinds by index (a slot's rolled back `kind`); 0 is the free slot. The id is the file
 ## name in data/enemies/.
-const ENEMY_KINDS: Array[StringName] = [&"free", &"dummy", &"swordsman", &"archer", &"warden"]
+const ENEMY_KINDS: Array[StringName] = [
+	&"free",
+	&"dummy",
+	&"swordsman",
+	&"archer",
+	&"warden",
+	&"shield_bearer",
+	&"berserker",
+	&"barrow_elite",
+]
 
 ## The aiming camera's geometry, shared with CameraRig so the crosshair is where bolts go.
 const AIM_HEAD := 1.7

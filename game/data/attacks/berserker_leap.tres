@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AttackDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/attack_def.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+windup = 0.9
+active = 0.15
+recover = 1.7
+damage = 38.0
+stamina = 0.0
+reach = 2.3
+arc_degrees = 140.0
+lunge = 0.0
+parryable = false
+leap = 8.0
+knockback = 9.0
+flinch = 0.0
+animation = &"Sword_Attack"

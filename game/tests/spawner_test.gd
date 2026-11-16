@@ -74,6 +74,41 @@ func _size(camp: int) -> int:
 	return count
 
 
+func test_camps_mix_kinds_and_archers_stand_behind_bearers() -> void:
+	var camps := {}
+	for point in Spawner.points(_realm, SEED):
+		if not camps.has(point.camp):
+			camps[point.camp] = []
+		camps[point.camp].append(point)
+	var seen := {}
+	var behind := 0
+	for camp: Array in camps.values():
+		for point: Spawner.SpawnPoint in camp:
+			seen[Combat.ENEMY_KINDS[point.kind]] = true
+		var bearers := camp.filter(
+			func(p: Spawner.SpawnPoint) -> bool:
+				return p.kind == Combat.enemy_kind(&"shield_bearer")
+		)
+		var archers := camp.filter(
+			func(p: Spawner.SpawnPoint) -> bool: return p.kind == Combat.enemy_kind(&"archer")
+		)
+		if bearers.is_empty() or archers.is_empty():
+			continue
+		var front := SimPlayer._tangent(Vector3.FORWARD, camp[0].up).rotated(
+			camp[0].up, camp[0].yaw
+		)
+		var best := -INF
+		for bearer: Spawner.SpawnPoint in bearers:
+			best = maxf(best, bearer.position.dot(front))
+		for archer: Spawner.SpawnPoint in archers:
+			behind += 1 if archer.position.dot(front) < best else 0
+	for id: StringName in [
+		&"swordsman", &"archer", &"shield_bearer", &"berserker", &"barrow_elite"
+	]:
+		assert_bool(seen.has(id)).override_failure_message("no %s" % id).is_true()
+	assert_int(behind).is_greater(0)
+
+
 func test_points_are_the_same_for_a_seed_and_laid_out_as_designed() -> void:
 	var a := Spawner.points(_realm, SEED)
 	var b := Spawner.points(_realm, SEED)

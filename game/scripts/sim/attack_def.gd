@@ -46,6 +46,12 @@ func melee() -> bool:
 	return bolts == 0 and reach > 0.0
 
 
+## How far from the attacker a target may stand for it to be worth starting this attack as a
+## gap closer: a leap's distance, or a slam's centre ahead plus its reach.
+func gap_range() -> float:
+	return leap if leap > 0.0 else offset + reach
+
+
 func windup_ticks() -> int:
 	return Combat.ticks(windup)
 

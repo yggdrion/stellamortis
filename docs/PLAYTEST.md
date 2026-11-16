@@ -149,3 +149,34 @@ Task 1 (`sim/scatter_shape.gd`, `data/scatter/*.tres`, `sim/terrain_chunks.gd`, 
 - [ ] No enemy wakes inside a tree, rock or stone (walk up to several camps; camps now stand a little differently than before M35).
 - [ ] Is the forest too dense to walk and fight in? M35 task 1 found no 100 m straight line free of trees in 72 headings from one point. Note where it feels tight (pine woods?), and whether fighting a camp among trunks is fun or a chore.
 - [ ] Opening the map (M) for the first time does not freeze noticeably (`Spawner.points` now takes about 1 s in a debug build).
+
+## M22 Barrowlands bestiary and boss
+
+Task 1 and 2 so far (`EnemyDef.guard_arc`, `AttackDef.leap`/`next`, the kinds `shield_bearer`, `berserker`, `barrow_elite`, camp recipes in `Spawner.RECIPES`; protocol 27). The map (hold M) colors each kind and shows the camps; camps now mix kinds, so walk up to a few. Numbers are first guesses, judge them by feel.
+
+Shield bearer (helm, tower shield, 170 health, slow):
+- [ ] From the front your sword and bolts barely hurt it (a fifth or so of the damage, a small guard flash, no knockback); from the side or back you deal full damage.
+- [ ] Its bash telegraphs long enough to read (orange fan in front, shield arm out) and a well-timed block parries it; the parry opens it up (riposte, ember "PARRY" flash) and you can punish it.
+- [ ] Circling it works: it turns slowly (turn rate 4), you can get behind it without being hit if you keep moving. Does it feel fair or does the guard make it a chore?
+- [ ] A heavy attack (Q) staggers it out of its bash windup; a light attack does not.
+- [ ] A camp with archers stands with the bearers in front and archers behind; the archers' bolts hit you while the bearers hold you.
+
+Berserker (bare, two axes, war paint, 55 health, fast):
+- [ ] It runs at you and hacks quickly in melee (short windup); is the hack readable at all, or too quick?
+- [ ] From about 8 m and closer (but not in melee reach) it crouches and leaps: the orange fan appears where it will land, not on the berserker, and it lands as the windup ends. Rolling out of the fan avoids the hit; standing in it hurts (38).
+- [ ] After a leap it stays open for a long recovery (1.7 s): you can punish it with a combo; two or three hits kill it.
+- [ ] A pair of berserkers leaping together is hard but fair; they do not stack on one spot forever.
+- [ ] Sounds: a high shriek on its windup (a pitched `telegraph`), a swoosh on the strike.
+
+Barrow elite (tall, rust-iron armor, 340 health, two hits and a slam):
+- [ ] It is clearly bigger than the others and its armor reads in the dark (a ruddy iron, ember eyes).
+- [ ] Up close it chains a cleave into a backhand without a pause; the second hit's fan shows the moment the first ends. Can you roll the first and the second, or block through both?
+- [ ] At 3 to 5 m it winds up a ground slam (full circle in front of it, 360 degrees, cannot be parried): rolling away or backing out of the circle avoids it.
+- [ ] It is hard to flinch (poise 0.6: only a heavy interrupts a swing) and slides little when hit; it staggers on a parry of the cleave.
+- [ ] The elite's camp (with two bearers and archers) is a real fight, not a wall: is 340 health too much or too little?
+- [ ] Sounds: a deep telegraph (the giant one, pitched up a little) on each windup.
+
+General:
+- [ ] Every kind's telegraph fan sits on the ground on slopes (no clipping into hills), and nobody leaps through a trunk.
+- [ ] Camps of each recipe turn up often enough (about 40 percent plain dead, 25 percent bearers and archers, 20 percent berserkers, 15 percent elite with guards) and roamers (a lone swordsman, archer or berserker) are not too dangerous alone.
+- [ ] The frame rate and the server tick (F3) hold in a camp of six, also an elite camp.

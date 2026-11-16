@@ -16,6 +16,9 @@ const KIND_COLORS := {
 	&"swordsman": Color(0.85, 0.3, 0.2),
 	&"archer": Color(0.9, 0.7, 0.2),
 	&"warden": Color(0.75, 0.25, 0.85),
+	&"shield_bearer": Color(0.45, 0.6, 0.9),
+	&"berserker": Color(1.0, 0.5, 0.15),
+	&"barrow_elite": Color(0.6, 0.15, 0.35),
 }
 const GATE := Color(0.45, 0.8, 0.95)
 const FRIEND := Color(0.6, 0.9, 0.6)

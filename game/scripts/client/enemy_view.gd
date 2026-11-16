@@ -40,6 +40,29 @@ const WARDEN_CLIPS := {
 	"down": &"Death01",
 	"down_time": 2.0
 }
+const SHIELD_CLIPS := {
+	"idle": &"Idle_Shield",
+	"walk": &"Walk",
+	"guard": &"Sword_Block",
+	"hit": &"Hit_Chest",
+	"down": &"Death01",
+	"down_time": 1.6
+}
+const BERSERKER_CLIPS := {
+	"idle": &"Sword_Idle",
+	"walk": &"Sprint",
+	"stride": 4.5,
+	"hit": &"Hit_Chest",
+	"down": &"Death01",
+	"down_time": 1.2
+}
+const ELITE_CLIPS := {
+	"idle": &"Sword_Idle",
+	"walk": &"Walk",
+	"hit": &"Hit_Knockback",
+	"down": &"Death01",
+	"down_time": 2.0
+}
 ## The dead's rusted swords.
 const RUST := Color(0.3, 0.17, 0.1)
 const TELEGRAPH := Color(1.0, 0.45, 0.1)
@@ -163,6 +186,35 @@ func _make_model() -> CharacterModel:
 		var iron := Gear.armor(Gear.IRON.lightened(0.08), Color(0.06, 0.04, 0.03))
 		model.skin(iron[0], {1: iron[1]})
 		return model
+	match enemy.def.look:
+		&"shield_bearer":
+			_clips = SHIELD_CLIPS.duplicate()
+			var bearer := Gear.bearer({"weapon": ["RightHand", Gear.sword(RUST, 0.5)]})
+			_clips["walk"] = bearer.mix(&"shield_walk", &"Walk", &"Idle_Shield")
+			return bearer
+		&"berserker":
+			_clips = BERSERKER_CLIPS
+			return Gear.berserker(
+				{"axe_r": ["RightHand", Gear.axe()], "axe_l": ["LeftHand", Gear.axe()]}
+			)
+		&"barrow_elite":
+			_clips = ELITE_CLIPS
+			var elite := (
+				CharacterModel
+				. new(
+					human,
+					{
+						"sword": ["RightHand", Gear.sword(RUST.lightened(0.1), 1.1)],
+						"helm": ["Head", Gear.helm(Gear.IRON.lightened(0.1))],
+						"eyes": ["Head", Gear.eyes(Gear.EMBER, 12.0)],
+						"pauldrons": ["UpperChest", Gear.pauldrons(Gear.IRON.lightened(0.1))],
+					},
+					enemy.height / SimPlayer.HEIGHT
+				)
+			)
+			var plate := Gear.armor(Color(0.3, 0.25, 0.22), Color(0.1, 0.07, 0.05))
+			elite.skin(plate[0], {1: plate[1]})
+			return elite
 	if enemy.def.look != &"squire":
 		var ranged := enemy.def.behavior == EnemyDef.Behavior.RANGED
 		_clips = ARCHER_CLIPS if ranged else UNDEAD_CLIPS
@@ -396,7 +448,8 @@ func _sounds() -> void:
 	var a := Enemy.Action
 	match action:
 		a.WINDUP:
-			Sounds.play(self, &"telegraph_giant" if giant else &"telegraph", -4.0)
+			var big := giant or enemy.def.look == &"barrow_elite"
+			Sounds.play(self, &"telegraph_giant" if big else &"telegraph", -4.0, _voice())
 		a.STRIKE:
 			if enemy.attack_def().melee():
 				if giant:
@@ -412,6 +465,18 @@ func _sounds() -> void:
 		a.RISE:
 			Sounds.play(self, &"stomp", 2.0)
 	_heard_action = action
+
+
+## Pitch of a kind's telegraph: the berserker shrieks high, the shield bearer grunts low.
+func _voice() -> float:
+	match enemy.def.look:
+		&"berserker":
+			return 1.5
+		&"shield_bearer":
+			return 0.75
+		&"barrow_elite":
+			return 1.25
+	return 1.0
 
 
 func _show_well() -> void:
@@ -443,6 +508,13 @@ func _pose() -> void:
 			_arcs[def.resource_path] = _arc_meshes(def)
 		_arc.mesh = _arcs[def.resource_path][0]
 		_edge.mesh = _arcs[def.resource_path][1]
+	# A leap's area is drawn where it will land; any other attack's on the enemy itself.
+	var landing := enemy.action == Enemy.Action.WINDUP and enemy.leap_to != Vector3.ZERO
+	for shape: MeshInstance3D in [_arc, _edge]:
+		if landing:
+			shape.global_position = enemy.leap_to + enemy.up * 0.1
+		else:
+			shape.position = Vector3(0, 0.05 if shape == _arc else 0.06, 0)
 	match enemy.action:
 		Enemy.Action.WINDUP:
 			var progress := time / windup
@@ -466,6 +538,11 @@ func _pose() -> void:
 		Enemy.Action.STAGGER:
 			var ticks := Combat.ticks(enemy.def.stagger_time)
 			_model.play_timed(_clips["hit"], time / ticks, enemy.def.stagger_time)
+		Enemy.Action.GUARD:
+			var guard := Combat.ticks(enemy.def.guard_react)
+			_model.play_timed(
+				_clips.get("guard", _clips["hit"]), time / guard, enemy.def.guard_react
+			)
 		Enemy.Action.FLINCH:
 			var length := float(enemy.flinch_time) / Combat.TICKRATE
 			_model.play_timed(_clips["hit"], time / enemy.flinch_time, length)
@@ -485,7 +562,7 @@ func _idle_or_walk() -> void:
 	var moving := enemy.velocity - enemy.up * enemy.velocity.dot(enemy.up)
 	var speed := moving.length()
 	if speed > WALKING:
-		_model.loop(_clips["walk"], speed / 2.0)
+		_model.loop(_clips["walk"], speed / float(_clips.get("stride", 2.0)))
 	else:
 		_model.loop(_clips["idle"])
 

@@ -25,6 +25,28 @@ const UNIT_GAP := 80.0
 const ARRIVAL_CLEAR := 120.0
 ## Ground steeper than this (cosine of the slope) is no place to stand a camp.
 const WALKABLE := 0.85
+## Kinds of a camp by recipe, member 0 (the center) first, cut to the camp's size; a camp picks
+## one by weight (the plain dead are the old mix of swordsmen and archers). A recipe camp faces
+## one way and the kinds go front to back along it, so archers stand behind the bearers.
+const RECIPES := [
+	{"weight": 40, "kinds": []},
+	{
+		"weight": 25,
+		"kinds": [&"shield_bearer", &"shield_bearer", &"archer", &"archer", &"swordsman", &"archer"]
+	},
+	{
+		"weight": 20,
+		"kinds": [&"berserker", &"berserker", &"swordsman", &"swordsman", &"archer", &"swordsman"]
+	},
+	{
+		"weight": 15,
+		"kinds":
+		[&"shield_bearer", &"barrow_elite", &"shield_bearer", &"swordsman", &"archer", &"archer"]
+	},
+]
+## Lone roamers: kind by weight.
+const ROAMERS := {&"swordsman": 55, &"archer": 20, &"berserker": 25}
+## The old plain mix.
 const ARCHER_SHARE := 0.25
 ## Candidates tried per camp or roamer wanted before giving up.
 const ATTEMPTS := 8
@@ -168,8 +190,10 @@ static func points(realm: RealmDef, world_seed: int) -> Array[SpawnPoint]:
 			var members := _members(realm, field, solids, rng, direction, count)
 			if members.size() < (1 if lone else CAMP_MIN):
 				continue
+			var first := found.size()
 			for position in members:
 				found.append(_point(realm, field, rng, position, camp))
+			_dress(found.slice(first), lone, hash(Vector3i(world_seed, realm.seed_salt, camp)))
 			centers.append(direction)
 			camp += 1
 			made += 1
@@ -250,6 +274,41 @@ static func _point(
 	var archer := rng.randf() < ARCHER_SHARE
 	point.kind = Combat.enemy_kind(&"archer" if archer else &"swordsman")
 	return point
+
+
+## Gives a camp's members their kinds: by recipe (or the roamer's pick), from a generator of its
+## own so the layout above stays the same whatever the recipes are. A recipe camp faces one way.
+static func _dress(camp: Array[SpawnPoint], lone: bool, salt: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = salt
+	if lone:
+		camp[0].kind = Combat.enemy_kind(_weighted(rng, ROAMERS.keys(), ROAMERS.values()))
+		return
+	var weights := []
+	for recipe: Dictionary in RECIPES:
+		weights.append(recipe.weight)
+	var kinds: Array = RECIPES[_weighted(rng, range(RECIPES.size()), weights)].kinds
+	if kinds.is_empty():
+		return
+	var yaw := rng.randf() * TAU
+	var front := Vector3.ZERO
+	for point in camp:
+		point.yaw = yaw
+		front = SimPlayer._tangent(Vector3.FORWARD, point.up).rotated(point.up, yaw)
+	var ahead := func(a: SpawnPoint, b: SpawnPoint) -> bool:
+		return a.position.dot(front) > b.position.dot(front)
+	camp.sort_custom(ahead)
+	for i in camp.size():
+		camp[i].kind = Combat.enemy_kind(kinds[i])
+
+
+static func _weighted(rng: RandomNumberGenerator, items: Array, weights: Array) -> Variant:
+	var roll := rng.randi_range(0, weights.reduce(func(a: int, b: int) -> int: return a + b) - 1)
+	for i in items.size():
+		roll -= weights[i]
+		if roll < 0:
+			return items[i]
+	return items[0]
 
 
 func unit_count() -> int:

@@ -180,3 +180,70 @@ func test_leap_state_round_trips_and_stays_small() -> void:
 	other.net_combat = slot.net_combat
 	assert_vector(other.leap_to).is_equal(Vector3.ZERO)
 	assert_int(bytes.size()).is_less(508 - 32)
+
+
+## The real kinds (task 2): every one loads with attacks that exist, and plays as designed.
+func test_every_kind_loads_with_its_attacks() -> void:
+	for kind in Combat.ENEMY_KINDS.size():
+		var def := Combat.enemy_def(kind)
+		assert_object(def).is_not_null()
+		for id in def.attacks:
+			assert_object(Combat.attack(id)).is_not_null()
+	var elite := Combat.enemy_def(Combat.enemy_kind(&"barrow_elite"))
+	assert_object(Combat.attack(elite.attacks[0]).next).is_equal(elite.attacks[1])
+
+
+func _kind(id: StringName) -> void:
+	_enemy.kind = Combat.enemy_kind(id)
+	_enemy.reset(Enemy.Action.IDLE)
+
+
+func test_shield_bearer_guards_its_front_and_the_bash_is_parryable() -> void:
+	_kind(&"shield_bearer")
+	var def := _enemy.def
+	assert_float(_enemy.take_hit(40.0, Vector3(0, 0, 2))).is_equal(40.0 * def.guard_damage)
+	_enemy.reset(Enemy.Action.IDLE)
+	assert_float(_enemy.take_hit(40.0, Vector3(3, 0, -0.5))).is_equal(40.0)
+	assert_bool(Combat.attack(def.attacks[0]).parryable).is_true()
+
+
+func test_berserker_leaps_from_a_distance_and_hacks_up_close() -> void:
+	_kind(&"berserker")
+	_enemy.home = Transform3D(Basis(Vector3.UP, PI), Vector3.ZERO)
+	_player.place(Vector3(0, 0, 7))
+	_enemy.action_time = 100
+	await _run(1)
+	assert_int(_enemy.action).is_equal(Enemy.Action.WINDUP)
+	assert_int(_enemy.attack).is_equal(1)
+	assert_float(Combat.attack(&"berserker_leap").recover).is_greater(1.0)
+	_enemy.reset(Enemy.Action.IDLE)
+	_player.place(Vector3(0, 0, 1.5))
+	_enemy.action_time = 100
+	await _run(1)
+	assert_int(_enemy.attack).is_equal(0)
+
+
+func test_leap_hits_who_stood_and_misses_a_roll_away() -> void:
+	_kind(&"berserker")
+	_player.place(Vector3(0, 0, 7))
+	_enemy._start_attack(1)
+	await _run(Combat.ticks(1.2))
+	assert_float(_player.health).is_less(Tuning.data().max_health)
+
+
+func test_elite_combos_and_slams_from_range() -> void:
+	_kind(&"barrow_elite")
+	_player.place(Vector3(0, 0, 2.0))
+	_enemy.action_time = 100
+	await _run(1)
+	assert_int(_enemy.attack).is_equal(0)
+	var cleave := Combat.attack(&"elite_cleave")
+	await _run(Combat.ticks(cleave.windup + cleave.active) + 1)
+	assert_int(_enemy.attack).is_equal(1)
+	assert_int(_enemy.action).is_equal(Enemy.Action.WINDUP)
+	_enemy.reset(Enemy.Action.IDLE)
+	_player.place(Vector3(0, 0, 4.5))
+	_enemy.action_time = 100
+	await _run(1)
+	assert_int(_enemy.attack).is_equal(2)
+	assert_float(Combat.attack(&"elite_slam").offset).is_greater(0.0)

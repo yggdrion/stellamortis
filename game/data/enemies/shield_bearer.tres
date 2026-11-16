@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/enemy_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+look = &"shield_bearer"
+behavior = 2
+health = 170.0
+speed = 2.6
+turn_rate = 4.0
+radius = 0.55
+poise = 0.5
+shove = 0.5
+guard_arc = 140.0
+guard_damage = 0.15
+guard_react = 0.3
+stagger_time = 1.7
+rest = 1.2
+attacks = Array[StringName]([&"shield_bash"])

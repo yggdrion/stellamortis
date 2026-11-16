@@ -8,6 +8,7 @@ extends RefCounted
 ## fingers).
 
 const SHIELD := "res://assets/quaternius/props/Shield_Wooden.gltf"
+const AXE := "res://assets/quaternius/props/Axe_Bronze.gltf"
 ## Enemy eyes and shots.
 const EMBER := Color(1.0, 0.35, 0.1)
 const STEEL := Color(0.62, 0.63, 0.65)
@@ -15,6 +16,8 @@ const IRON := Color(0.16, 0.16, 0.17)
 const LEATHER := Color(0.2, 0.14, 0.1)
 ## The dead's skin and faded clothes.
 const DEAD := Color(0.72, 0.78, 0.68)
+## The berserker's skin under its war paint.
+const PAINT := Color(0.75, 0.5, 0.45)
 
 
 ## A knight: plate for the body, leather at the joints (the mannequin's second surface).
@@ -78,6 +81,23 @@ static func dead(archer: bool, held: Dictionary) -> CharacterModel:
 		"T_Peasant_BaseColor.png", load(CharacterModel.OUTFITS + "T_Peasant_2_BaseColor.png")
 	)
 	model.tint(DEAD)
+	return model
+
+
+## A shield bearer: one of the dead in a dark set, shield up (the helm and shield are held).
+static func bearer(held: Dictionary) -> CharacterModel:
+	held["helm"] = ["Head", helm(IRON.lightened(0.1))]
+	held["shield"] = ["LeftLowerArm", tower_shield()]
+	return dead(false, held)
+
+
+## A berserker: the bare male body (no outfit), bearded, skin gone grey and daubed with war
+## paint, a rust red tint; the axes are held.
+static func berserker(held: Dictionary) -> CharacterModel:
+	var c := CharacterModel.CHARACTERS
+	held["eyes"] = ["Head", eyes(EMBER, 9.0)]
+	var model := CharacterModel.new(CharacterModel.BODY_MALE, held)
+	model.tint(PAINT)
 	return model
 
 
@@ -240,6 +260,39 @@ static func shield() -> Node3D:
 	var node := CharacterModel.prop(SHIELD)
 	node.rotation = Vector3(0, PI / 2.0, 0)
 	node.position = Vector3(0.08, 0.0, 0.0)
+	return node
+
+
+## A tower shield: tall planks bound in iron with a boss, same grip and facing as shield().
+static func tower_shield() -> Node3D:
+	var root := Node3D.new()
+	var wood := _plain(Color(0.24, 0.16, 0.1), 0.8)
+	var iron := _metal(IRON.lightened(0.05), 0.5)
+	root.add_child(_box(Vector3(0.5, 1.0, 0.04), Vector3.ZERO, wood))
+	for y: float in [-0.47, 0.47]:
+		root.add_child(_box(Vector3(0.54, 0.05, 0.06), Vector3(0, y, 0), iron))
+	for x: float in [-0.25, 0.25]:
+		root.add_child(_box(Vector3(0.04, 1.04, 0.06), Vector3(x, 0, 0), iron))
+	var boss := MeshInstance3D.new()
+	var dome := SphereMesh.new()
+	dome.radius = 0.09
+	dome.height = 0.12
+	dome.is_hemisphere = true
+	dome.material = iron
+	boss.mesh = dome
+	boss.rotation.x = PI / 2.0
+	boss.position = Vector3(0, 0.1, 0.03)
+	root.add_child(boss)
+	var holder := Node3D.new()
+	holder.add_child(root)
+	holder.rotation = Vector3(0, PI / 2.0, 0)
+	holder.position = Vector3(0.1, 0.0, 0.0)
+	return holder
+
+
+## A bronze axe from the props kit, held by the haft.
+static func axe() -> Node3D:
+	var node := CharacterModel.prop(AXE)
 	return node
 
 

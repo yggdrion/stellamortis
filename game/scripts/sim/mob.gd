@@ -63,11 +63,30 @@ static func _engage(enemy: Enemy, target: SimPlayer, ranged: bool, delta: float)
 		if distance < def.keep_near:
 			return -to
 		return Vector3.ZERO
-	if distance < enemy.attack_def().reach + 0.2:
+	var close := Combat.attack(def.attacks[0]).reach + 0.2
+	if rested and distance >= close:
+		var closer := _gap_closer(def, distance)
+		if closer > 0:
+			enemy._start_attack(closer)
+			return Vector3.ZERO
+	if distance < close:
 		if rested:
 			enemy._start_attack(0)
 		return Vector3.ZERO
 	return to
+
+
+## The attack (after the first) that closes a gap of this distance: a leap or a slam, never one
+## that is only a combo's follow-up. 0: none, walk up.
+static func _gap_closer(def: EnemyDef, distance: float) -> int:
+	for i in range(1, def.attacks.size()):
+		var swing := Combat.attack(def.attacks[i])
+		var follow := false
+		for id in def.attacks:
+			follow = follow or Combat.attack(id).next == def.attacks[i]
+		if not follow and distance <= swing.gap_range():
+			return i
+	return 0
 
 
 static func _in_sight(enemy: Enemy, target: SimPlayer) -> bool:

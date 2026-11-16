@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/enemy_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+look = &"berserker"
+behavior = 2
+health = 55.0
+speed = 5.0
+turn_rate = 8.0
+stagger_time = 1.2
+notice = 20.0
+rest = 0.5
+attacks = Array[StringName]([&"berserker_hack", &"berserker_leap"])

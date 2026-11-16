@@ -24,6 +24,8 @@ var _inventories := {}
 var _gear := {}
 ## Peer id -> [second, intents counted in it].
 var _rate := {}
+## Peer id -> [[tick, health], ...]: heals still to be written at their tick (see _apply_gear).
+var _heals := {}
 
 
 func _ready() -> void:
@@ -54,6 +56,7 @@ func remove_peer(peer_id: int) -> void:
 	_inventories.erase(peer_id)
 	_gear.erase(peer_id)
 	_rate.erase(peer_id)
+	_heals.erase(peer_id)
 
 
 func inventory(peer_id: int) -> Inventory:
@@ -88,7 +91,9 @@ func apply(peer_id: int, op: int, a: int, b: int) -> bool:
 			if done:
 				dropped.emit(peer_id, removed)
 		Net.Op.SORT:
-			done = inv.sort()
+			done = inv.sort(a)
+		Net.Op.USE:
+			done = _use(peer_id, inv, a)
 		Net.Op.STORE_MATCHING:
 			# A chest or grave to store into comes with the world objects (M23 task 2).
 			done = false
@@ -98,6 +103,24 @@ func apply(peer_id: int, op: int, a: int, b: int) -> bool:
 		if not delta.is_empty():
 			changed.emit(peer_id, delta)
 	return done
+
+
+## A consumable heals (and is used up); anything wearable is worn (like EQUIP).
+func _use(peer_id: int, inv: Inventory, cell: int) -> bool:
+	var stack := inv.at(cell)
+	var player := world.player(peer_id)
+	if stack == null or player.action == SimPlayer.Action.DEAD:
+		return false
+	var def := Items.by_id(stack.id)
+	if def.kind != ItemDef.Kind.CONSUMABLE:
+		return inv.equip(cell)
+	if def.heal <= 0.0 or player.health >= Tuning.data().max_health:
+		return false
+	inv.drop(cell, 1)
+	var list: Array = _heals.get(peer_id, [])
+	list.append([NetworkTime.tick + 1, def.heal])
+	_heals[peer_id] = list
+	return true
 
 
 func _on_intent(peer_id: int, op: int, a: int, b: int) -> void:
@@ -118,7 +141,8 @@ func _loadout_ints(inv: Inventory) -> Array[int]:
 
 ## After every rollback step, before netfox records the tick: the players wear what their
 ## inventory says. A few integer compares per player.
-func _apply_gear(_tick: int) -> void:
+func _apply_gear(tick: int) -> void:
+	_apply_heals(tick)
 	for peer_id: int in _gear:
 		var player := world.player(peer_id)
 		if player == null:
@@ -134,3 +158,16 @@ func _apply_gear(_tick: int) -> void:
 			player.off_hand = ints[1]
 			player.ranged = ints[2]
 			player.armor = ints[3]
+
+
+## A heal belongs to the tick it was asked in: applied there every time that tick runs, so a
+## resimulation (which restores older health first) gives it again. Old ones are forgotten.
+func _apply_heals(tick: int) -> void:
+	for peer_id: int in _heals:
+		var player := world.player(peer_id)
+		var list: Array = _heals[peer_id]
+		for i in range(list.size() - 1, -1, -1):
+			if list[i][0] < tick - 60:
+				list.remove_at(i)
+			elif list[i][0] == tick and player != null:
+				player.health = minf(player.health + list[i][1], Tuning.data().max_health)

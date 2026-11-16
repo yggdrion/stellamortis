@@ -38,6 +38,10 @@ var look: Variant = null
 ## Opens the map at the start and keeps it open (--map): "" no, "full" the whole realm, else the
 ## meters across.
 var map_start := ""
+## Opens the inventory panel a second after the start (--inventory).
+var inventory_start := false
+## The cell the panel's cursor starts on when opened by --inventory.
+var inventory_cursor := 0
 ## Leaves the mouse free until a click in the window (--no-grab, and every --screenshot run).
 var no_grab := false
 
@@ -73,6 +77,7 @@ var _overlay: DebugOverlay
 var _hud: Hud
 var _pause: PauseMenu
 var _map: MapPanel
+var _panel: InventoryPanel
 var _objects: ObjectsView
 ## The planet's wind (Sounds.ambience).
 var _ambience: AudioStreamPlayer
@@ -125,6 +130,13 @@ func _ready() -> void:
 	map_layer.layer = 5
 	map_layer.add_child(_map)
 	add_child(map_layer)
+	_panel = InventoryPanel.new()
+	_panel.visible = false
+	_panel.intent_sent.connect(func(op: int, a: int, b: int) -> void: send_intent(op, a, b))
+	var panel_layer := CanvasLayer.new()
+	panel_layer.layer = 6
+	panel_layer.add_child(_panel)
+	add_child(panel_layer)
 	_pause = PauseMenu.new()
 	_pause.on_graphics = func() -> void: Graphics.apply(get_viewport(), _world.arena)
 	_pause.resumed.connect(_resume)
@@ -146,12 +158,12 @@ func _ready() -> void:
 	net.inventory_snapshot_received.connect(
 		func(data: Dictionary) -> void:
 			inventory = Inventory.from_dict(data)
-			inventory_updated.emit()
+			_show_inventory()
 	)
 	net.inventory_changed_received.connect(
 		func(cells: Dictionary) -> void:
 			inventory.apply_cells(cells)
-			inventory_updated.emit()
+			_show_inventory()
 	)
 	net.notice_received.connect(func(text: String) -> void: _hud.notice(text))
 	net.objects_snapshot_received.connect(func(all: Dictionary) -> void: _objects.snapshot(all))
@@ -294,6 +306,8 @@ func _on_player_spawned(player: SimPlayer) -> void:
 		_rig.pitch = deg_to_rad((look as Vector2).y)
 	if not bot and not _pause.visible:
 		_grab()
+	if inventory_start:
+		get_tree().create_timer(1.0).timeout.connect(_open_inventory)
 	if map_start != "":
 		_map.span = INF if map_start == "full" else float(map_start)
 		_map.visible = true
@@ -303,6 +317,28 @@ func _on_player_spawned(player: SimPlayer) -> void:
 ## Asks the server to change the own inventory; the answer comes as a delta.
 func send_intent(op: Net.Op, a := 0, b := 0) -> void:
 	net.inventory_intent.rpc_id(1, op, a, b)
+
+
+## Tells the panel and the hotbar what the server last said.
+func _show_inventory() -> void:
+	_panel.show_inventory(inventory)
+	_hud.hotbar.show_inventory(inventory)
+	inventory_updated.emit()
+
+
+## I or Tab: the panel over the game with the mouse free; the game runs on behind it.
+func _open_inventory() -> void:
+	_panel.visible = true
+	_panel.show_inventory(inventory)
+	_panel.set_cursor(maxi(_panel.cursor, 0) if inventory_cursor < 0 else inventory_cursor)
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+func _close_inventory() -> void:
+	_panel.visible = false
+	_panel.held = -1
+	_panel.set_cursor(_panel.cursor)
+	_grab()
 
 
 ## E: takes the drop or opens the chest in reach (the server decides; a toast or a delta answers).
@@ -374,7 +410,8 @@ func _bot_controls(controls: PlayerControls) -> void:
 
 func _process(delta: float) -> void:
 	_hud.room = room
-	_hud.prompt = _objects.prompt if not _pause.visible and not _map.visible else ""
+	var covered := _pause.visible or _map.visible or _panel.visible
+	_hud.prompt = _objects.prompt if not covered else ""
 	_hud.prompt_color = _objects.prompt_color
 	_watch_silence()
 	if _snap_log and me != null:
@@ -507,6 +544,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	var motion := event as InputEventMouseMotion
 	if motion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_rig.look(motion.screen_relative)
+	elif event.is_action_pressed(&"pause") and _panel.visible:
+		_close_inventory()
 	elif event.is_action_pressed(&"pause") and me != null:
 		if _pause.visible:
 			_pause.back()
@@ -521,8 +560,17 @@ func _unhandled_input(event: InputEvent) -> void:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		else:
 			_grab()
+	elif event.is_action_pressed(&"inventory") and me != null and not _pause.visible:
+		if _panel.visible:
+			_close_inventory()
+		elif not _map.visible:
+			_open_inventory()
 	elif _pause.visible:
 		return
+	elif Hotbar.cell_for(event) >= 0:
+		send_intent(Net.Op.USE, Hotbar.cell_for(event))
+	elif _panel.visible:
+		_panel.handle_event(event)
 	elif event is InputEventMouseButton and event.is_pressed() and me != null:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	elif event.is_action_pressed(&"interact"):

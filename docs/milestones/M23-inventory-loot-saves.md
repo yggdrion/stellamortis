@@ -77,6 +77,8 @@ Files: new `client/inventory_panel.gd`, `client/item_slot.gd` (one cell control)
 - Hotbar (`hotbar.gd`, bottom of the HUD): bag cells 0 to 7; keys 3 to 8 use the items in cells 0 to 5 (consumables; a new `Op.USE`, applied by the server), 1 and 2 stay the weapon select. If that is awkward in play, say so in `docs/PLAYTEST.md` and keep it.
 - The panel reads `ClientInventory` only (task 1), never writes to it.
 
+Built (2026-11-16): junk is a star on an item kind (`Settings.junk`, sent as a bit mask in `Op.SORT`'s `a`), not on a cell; `Op.USE` is on the server; no chest or grave holds items yet, so "Store matching" has no button until task 4 (graves); extra keys: arrows and Enter (lift and put down) for a mouse free path.
+
 Tests: build the panel headless with a filled `Inventory`, check the cells show the stacks, that a drag emits the right intent (a signal `intent_sent(op, a, b)` the panel emits before it calls `Net`) and that the keys map to actions. Screenshot with a mixed bag and a worn kit (`--inventory` opens the panel a second after start, like `--map`).
 
 ### 4. Saves and graves (Opus)

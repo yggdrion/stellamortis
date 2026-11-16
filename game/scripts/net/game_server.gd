@@ -42,6 +42,8 @@ var spawn_at_boss := false
 ## Debug (--debug-loot): a row of items ahead of every joining player; "open" also opens the
 ## chests after two seconds.
 var debug_loot := ""
+## Debug (--debug-bag): joining players get a mixed bag and the gear is worn in part.
+var debug_bag := false
 ## Opens a room in this lobby and takes players over WebRTC instead of ENet.
 var lobby_url := ""
 ## Where the room code goes once the room is open ("!reason" if it can't be), for the host's
@@ -301,7 +303,7 @@ func _on_hello(id: int, version: int, player_name: String) -> void:
 		at = _world.encounter.site.ring_spot(id)
 	# The ground under the spawn stands before the body does (a debug spawn may be elsewhere).
 	_world.chunks.ensure_around(at)
-	_inventories.add_peer(id)
+	_inventories.add_peer(id, _debug_inventory() if debug_bag else Inventory.starting_kit())
 	_world.spawn_player(id, _names[id], at)
 	net.inventory_snapshot.rpc_id(id, _inventories.snapshot(id))
 	net.objects_snapshot.rpc_id(id, _looting.snapshot())
@@ -313,6 +315,32 @@ func _on_hello(id: int, version: int, player_name: String) -> void:
 		if debug_loot == "open":
 			get_tree().create_timer(2.0).timeout.connect(_looting.debug_open_chests)
 	_tell_others(id, "%s joined" % _names[id])
+
+
+## A bag with a bit of everything and a few worn pieces (screenshots).
+func _debug_inventory() -> Inventory:
+	var inventory := Inventory.starting_kit()
+	for entry: Array in [
+		[&"bandage", 6],
+		[&"sword_runed", 1],
+		[&"axe_bronze", 1],
+		[&"shield_iron", 1],
+		[&"helm_leather", 1],
+		[&"chest_chain", 1],
+		[&"legs_barrow", 1],
+		[&"ring_ember", 1],
+		[&"charm_bone", 1],
+		[&"crossbow_ash", 1],
+		[&"hide", 14],
+		[&"iron_scrap", 33],
+		[&"bone", 9],
+		[&"ember", 2],
+		[&"bolt", 12],
+	]:
+		inventory.add(entry[0], entry[1])
+	inventory.equip(3)
+	inventory.equip(4)
+	return inventory
 
 
 func _on_cleared_camps_requested(id: int, realm_id: String) -> void:

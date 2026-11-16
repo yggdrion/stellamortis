@@ -9,6 +9,8 @@ extends Node
 ##                                  (else only the host's; a solo client passes it on)
 ##     [--debug-loot[=open]]        debug: a row of items ahead of each player; =open also opens
 ##                                  the elite chests (a solo client passes it on)
+##     [--debug-bag]                debug: a mixed bag and part of the gear worn at join (solo
+##                                  passes it on)
 ##     [--encounter=boss]           debug: spawn inside the boss site's ring, the Warden rises
 ##                                  (a solo client passes it on)
 ##     [--seed=N] [--world=NAME]    the world's seed (random without) and name (solo and host
@@ -39,6 +41,8 @@ extends Node
 ##                                  every --screenshot run does this)
 ##   --map[=METERS|full]            open the map at the start and keep it open (METERS across,
 ##                                  default 600; for screenshots)
+##   --inventory[=CELL]             open the inventory panel a second after the start, the
+##                                  cursor on CELL (default 0; for screenshots)
 ##   --show-collision               draw the collision shapes (debug; the ground too)
 ##   --look=YAW,PITCH               start the camera there (degrees, yaw 0 looks along -Z)
 ##   --bench=N                      time N simulated players and the enemies per tick, then quit
@@ -91,6 +95,7 @@ func _ready() -> void:
 		server.debug_loot = _args.get("debug-loot", "") if _args.has("debug-loot") else ""
 		if _args.has("debug-loot") and server.debug_loot == "":
 			server.debug_loot = "pile"
+		server.debug_bag = _args.has("debug-bag")
 		server.lobby_url = _args.get("lobby", "")
 		server.room_file = _args.get("room-file", "")
 		add_child(server)
@@ -159,6 +164,8 @@ func _start(mode: String, code := "") -> void:
 	client.no_grab = _args.has("no-grab") or client.screenshot_path != ""
 	if _args.has("map"):
 		client.map_start = _args["map"] if _args["map"] != "" else "600"
+	client.inventory_start = _args.has("inventory")
+	client.inventory_cursor = int(_args["inventory"]) if _args.get("inventory", "") != "" else 0
 	client.hosting = mode == "host"
 	client.mode = mode
 	if _args.has("look"):
@@ -224,7 +231,9 @@ func _host(client: GameClient) -> void:
 ## Debug args a client passes on to the server it spawns.
 func _debug_args() -> PackedStringArray:
 	var passed := PackedStringArray()
-	for key: String in ["spawn", "encounter", "seed", "world", "debug-map", "debug-loot"]:
+	for key: String in [
+		"spawn", "encounter", "seed", "world", "debug-map", "debug-loot", "debug-bag"
+	]:
 		if _args.has(key):
 			passed.append("--%s=%s" % [key, _args[key]])
 	return passed

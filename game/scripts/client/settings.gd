@@ -24,6 +24,9 @@ static var max_fps_flag := -1
 static var volume := 0.8
 ## Camera shake on hits, 0 (off) to 1.
 static var shake := 1.0
+## Items the player starred as junk (InventoryPanel): they sort last. Task 4 moves this into the
+## character file.
+static var junk: Array[StringName] = []
 
 
 static func load_saved() -> void:
@@ -44,6 +47,11 @@ static func load_saved() -> void:
 		max_fps = 0
 	volume = clampf(float(config.get_value("audio", "volume", volume)), 0.0, 1.0)
 	shake = clampf(float(config.get_value("input", "shake", shake)), 0.0, 1.0)
+	junk.clear()
+	var starred: Variant = config.get_value("inventory", "junk", [])
+	for id: Variant in starred if starred is Array else []:
+		if (id is String or id is StringName) and Items.has(StringName(id)):
+			junk.append(StringName(id))
 
 
 static func save() -> void:
@@ -56,7 +64,18 @@ static func save() -> void:
 	config.set_value("display", "max_fps", max_fps)
 	config.set_value("audio", "volume", volume)
 	config.set_value("input", "shake", shake)
+	config.set_value("inventory", "junk", junk.map(func(id: StringName) -> String: return id))
 	config.save(Graphics.SETTINGS)
+
+
+## The junk list as the bit mask Inventory.sort takes (bit n: Items.IDS[n]).
+static func junk_mask() -> int:
+	var mask := 0
+	for id in junk:
+		var bit := Items.index(id)
+		if bit > 0 and bit < 63:
+			mask |= 1 << bit
+	return mask
 
 
 ## A name as shown to others: trimmed, at most NAME_LENGTH characters, "player" when empty.

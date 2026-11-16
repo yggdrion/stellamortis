@@ -172,15 +172,16 @@ func count_of(id: StringName) -> int:
 	return total
 
 
-## Orders the bag by kind, rarity (high first) and id, merging stacks (full ones first).
-func sort() -> bool:
+## Orders the bag by kind, rarity (high first) and id, merging stacks (full ones first). Items
+## whose Items index has its bit set in `junk` (the player's star marks) go after all others.
+func sort(junk := 0) -> bool:
 	var before := to_dict()
 	var totals := {}
 	for cell in BAG_SIZE:
 		if cells[cell] != null:
 			totals[cells[cell].id] = totals.get(cells[cell].id, 0) + cells[cell].count
 	var ids := totals.keys()
-	ids.sort_custom(_before)
+	ids.sort_custom(func(a: StringName, b: StringName) -> bool: return _before(a, b, junk))
 	for cell in BAG_SIZE:
 		cells[cell] = null
 	var next := 0
@@ -273,8 +274,17 @@ func same_as(other: Inventory) -> bool:
 	return cell_dict() == other.cell_dict()
 
 
+## Whether an item's bit is set in a junk mask (bit n: Items.IDS[n]; items past bit 62 never).
+static func is_junk(junk: int, id: StringName) -> bool:
+	var bit := Items.index(id)
+	return bit > 0 and bit < 63 and (junk >> bit) & 1 == 1
+
+
 ## Order of two ids in sort(): kind, then higher rarity, then the id.
-static func _before(a: StringName, b: StringName) -> bool:
+static func _before(a: StringName, b: StringName, junk := 0) -> bool:
+	var ja := is_junk(junk, a)
+	if ja != is_junk(junk, b):
+		return not ja
 	var da := Items.by_id(a)
 	var db := Items.by_id(b)
 	if da.kind != db.kind:

@@ -29,11 +29,11 @@ signal object_updated_received(id: int, data: Dictionary)
 signal item_toast_received(item_id: String, count: int)
 
 ## What a client asks of its inventory (inventory_intent). Append only.
-enum Op { MOVE, SPLIT, EQUIP, UNEQUIP, DROP, SORT, STORE_MATCHING }
+enum Op { MOVE, SPLIT, EQUIP, UNEQUIP, DROP, SORT, STORE_MATCHING, USE }
 
 ## Bump on any change to the RPCs here or to what netfox synchronizes (SimPlayer.STATE,
 ## PlayerControls) or to what both sides simulate (Layout, Gravity, Tuning).
-const PROTOCOL_VERSION := 30
+const PROTOCOL_VERSION := 31
 
 @rpc("any_peer", "reliable")
 func hello(version: int, player_name: String) -> void:
@@ -98,8 +98,9 @@ func cleared_camps(cleared: Dictionary) -> void:
 
 
 ## A client wants to change its inventory: a and b are cell numbers (Inventory.Cell) or a count,
-## by op (MOVE from to, SPLIT cell count, EQUIP cell, UNEQUIP cell, DROP cell count, SORT,
-## STORE_MATCHING). The server checks everything and answers with inventory_changed.
+## by op (MOVE from to, SPLIT cell count, EQUIP cell, UNEQUIP cell, DROP cell count, SORT
+## junk-mask (bit n set: Items.IDS[n] sorts last), STORE_MATCHING, USE cell: a consumable's
+## effect, or equip). The server checks everything and answers with inventory_changed.
 @rpc("any_peer", "reliable")
 func inventory_intent(op: int, a: int, b: int) -> void:
 	inventory_intent_received.emit(multiplayer.get_remote_sender_id(), op, a, b)

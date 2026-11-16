@@ -24,6 +24,7 @@ var warning := ""
 ## What is in reach to pick up or open (ObjectsView), "" for nothing, in `prompt_color`.
 var prompt := ""
 var prompt_color := TEXT
+var hotbar: Hotbar
 var _health: ProgressBar
 var _stamina: ProgressBar
 var _dead: Label
@@ -118,6 +119,13 @@ func _ready() -> void:
 	_prompt.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(_prompt)
+	hotbar = Hotbar.new()
+	hotbar.set_anchors_and_offsets_preset(
+		Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_MINSIZE, 16
+	)
+	hotbar.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	hotbar.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	root.add_child(hotbar)
 	_warning = Label.new()
 	_warning.add_theme_font_size_override("font_size", 22)
 	_warning.add_theme_color_override("font_color", Color(0.9, 0.5, 0.38))

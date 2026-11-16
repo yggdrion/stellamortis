@@ -20,6 +20,19 @@ const KEYS := {
 	&"pause": [KEY_ESCAPE],
 	&"map": [KEY_M],
 	&"interact": [KEY_E],
+	&"inventory": [KEY_I, KEY_TAB],
+	&"use_1": [KEY_3],
+	&"use_2": [KEY_4],
+	&"use_3": [KEY_5],
+	&"use_4": [KEY_6],
+	&"use_5": [KEY_7],
+	&"use_6": [KEY_8],
+	# Only while the inventory panel is open (E uses or equips the cell under the cursor).
+	&"inv_sort": [KEY_R],
+	&"inv_drop": [KEY_X],
+	&"inv_split": [KEY_V],
+	&"inv_junk": [KEY_F],
+	&"inv_grab": [KEY_ENTER, KEY_KP_ENTER],
 }
 const MOUSE := {
 	&"attack": [MOUSE_BUTTON_LEFT],

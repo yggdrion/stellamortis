@@ -1,6 +1,6 @@
 # M22 Barrowlands bestiary and boss
 
-Status: planned.
+Status: Built (2026-11-16, v0.23.0), play-test pending (`docs/PLAYTEST.md`).
 
 ## Goal
 

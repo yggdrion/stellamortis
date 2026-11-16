@@ -184,6 +184,7 @@ Boss site and world flag (task 3: the old hand-built realm is gone, `Net.PROTOCO
 - [ ] The fight on the round ground: the sweep, slam (the circle in front of it) and volley behave like on flat ground, the telegraph fan lies on the ground also when the Warden stands on a slope, the well (phase 2) drags you toward it along the ground, not into the air or the earth. The standing stones stop bolts and block the way: does the ring help (cover) or annoy (a stone in the way of a roll)?
 - [ ] The Warden's fall: the boss bar goes, the HUD says it has fallen and the map's site ring turns grey. The corpse stays; nothing resets it while the server runs (restart: it is back).
 - [ ] A friend who joins after the kill sees the Warden's corpse and the grey ring too.
+- [ ] The site's look (task 4, client only; `--seed=1234 --encounter=boss` for a quick look): the standing stones are weathered grey rock and still show against the night on the side the moon misses; four torch posts stand between them; a mound with a brick door stands at the ring's edge (you can walk through it, it is only a picture); embers rise from the ring while the Warden is up and stop when it falls or the fight resets, with a burst as it rises. Does it read as an old barrow site, dark medieval, not a clearing with boxes? Do the site's torch lights (4 posts and the door's 2) hurt the frame rate on Medium and Low?
 - [ ] Is 450 to 800 m far enough away and near enough? Is the ring easy to find on the map, and is the flat disc distinct from the ground around it?
 
 General:

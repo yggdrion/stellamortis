@@ -26,6 +26,10 @@ const GATE_PILLAR_X := 1.7
 const GATE_PILLAR := Vector3(0.6, 4.0, 0.7)
 const GATE_LINTEL := Vector3(4.2, 0.7, 0.8)
 const GATE_LINTEL_Y := 4.3
+## The barrow ring (M22): torch posts and the barrow door, in meters from the ring's center.
+const SITE_TORCH_RADIUS := 14.5
+const SITE_DOOR_RADIUS := 21.0
+const SITE_MOUND := Vector3(7.5, 3.4, 7.5)
 const TORCH_LIGHT := Color(1.0, 0.62, 0.32)
 const MOON_LIGHT := Color(0.62, 0.7, 0.92)
 const MOON_ROTATION := Vector3(-38.0, 30.0, 0.0)
@@ -50,6 +54,11 @@ var _materials := {}
 var _sky: ShaderMaterial
 ## Torch lights; each flickers with its own phase.
 var _torches: Array[OmniLight3D] = []
+## The boss site's embers (M22), lit while the Warden fights.
+var _site_encounter: Encounter
+var _site_embers: GPUParticles3D
+var _site_realm := &""
+var _site_was := Encounter.Phase.IDLE
 
 
 func _init(with_visuals: bool) -> void:
@@ -73,6 +82,12 @@ func add_seeded_portals() -> void:
 	for portal in Layout.portals():
 		_portal(portal)
 	_arrival_look(Layout.start_realm())
+
+
+## Clients: the boss site's look (M22), from BossSite positions, the same on every client.
+func add_site_looks(world_seed: int) -> void:
+	for def in Layout.realms():
+		_site_look(def, BossSite.at(def, world_seed))
 
 
 ## Every peer (M35): the arrival's ring stones and the gates' pillars and lintels are solid, from
@@ -127,6 +142,7 @@ static func shows(point: Vector3) -> bool:
 func _process(_delta: float) -> void:
 	if not visual:
 		return
+	_site_embers_update()
 	var seconds := Time.get_ticks_msec() / 1000.0
 	for i in _torches.size():
 		var light := _torches[i]
@@ -174,6 +190,137 @@ func _arrival_look(realm: RealmDef) -> void:
 		parent.add_child(root)
 		root.add_child(_block(Vector3(0.14, 1.7, 0.14), Vector3(0, 0.85, 0), _surface(BRICK, 0.3)))
 		_torch(root, Vector3(0, 1.45, 0.07), Vector3.BACK, false)
+
+
+## The barrow ring: torch posts between the standing stones (which TerrainView draws, solid
+## from Scatter), a barrow mound with a brick door at the ring's edge and embers that rise from
+## the middle while the Warden fights.
+func _site_look(realm: RealmDef, site: BossSite) -> void:
+	var parent := places[StringName(realm.id)] as Node3D
+	var middle := site.center()
+	var stone := _surface(BRICK, 0.3)
+	for n in BossSite.STONES:
+		var spot := _site_spot(realm, site, TAU * (n + 0.5) / BossSite.STONES, SITE_TORCH_RADIUS)
+		if n % 2 == 1:
+			continue
+		var root := Node3D.new()
+		root.position = spot[0]
+		root.basis = _site_frame(spot, middle)
+		parent.add_child(root)
+		root.add_child(_block(Vector3(0.22, 2.0, 0.22), Vector3(0, 1.0, 0), stone))
+		_torch(root, Vector3(0, 1.7, -0.11), Vector3.FORWARD, false)
+	var door := _site_spot(realm, site, TAU * 3.0 / 16.0, SITE_DOOR_RADIUS)
+	var root := Node3D.new()
+	root.position = door[0]
+	root.basis = _site_frame(door, middle)
+	parent.add_child(root)
+	var mound := MeshInstance3D.new()
+	var dome := SphereMesh.new()
+	dome.radial_segments = 32
+	dome.rings = 16
+	dome.material = _surface(GROUND, 0.2)
+	mound.mesh = dome
+	mound.scale = SITE_MOUND
+	mound.position = Vector3(0, -0.4, SITE_MOUND.z * 0.8)
+	root.add_child(mound)
+	var doorway := _prop(root, VILLAGE + "DoorFrame_Round_Brick.gltf", Vector3(0, -0.05, 0))
+	doorway.basis = Basis(Vector3.UP, PI).scaled(Vector3.ONE * 1.7)
+	var dark := StandardMaterial3D.new()
+	dark.albedo_color = Color(0.01, 0.01, 0.015)
+	dark.roughness = 1.0
+	root.add_child(_block(Vector3(2.2, 3.6, 0.3), Vector3(0, 1.8, 0.35), dark))
+	for side: float in [-1.0, 1.0]:
+		var post := Node3D.new()
+		post.position = Vector3(side * 2.4, 0, -0.6)
+		root.add_child(post)
+		post.add_child(_block(Vector3(0.2, 1.8, 0.2), Vector3(0, 0.9, 0), stone))
+		_torch(post, Vector3(0, 1.5, -0.1), Vector3.FORWARD, false)
+	_site_realm = StringName(realm.id)
+	_site_embers = _make_embers(parent, middle, site.direction)
+
+
+## (position, up) of a point `meters` from the site's center at an angle, on the ground.
+func _site_spot(realm: RealmDef, site: BossSite, angle: float, meters: float) -> Array:
+	# The disc is dead flat out to BossSite.FLAT: the ground is the site's level.
+	var direction := site.spot(angle, meters)
+	return [realm.center + direction * (realm.radius + site.level), direction]
+
+
+## Standing along a spot's up with its front toward the ring's middle.
+func _site_frame(spot: Array, middle: Vector3) -> Basis:
+	var up: Vector3 = spot[1]
+	var inward := middle - (spot[0] as Vector3)
+	return SimPlayer.frame(up, SimPlayer._tangent(inward, up))
+
+
+## Embers over the ring, off until the Warden rises.
+func _make_embers(parent: Node3D, middle: Vector3, up: Vector3) -> GPUParticles3D:
+	var embers := GPUParticles3D.new()
+	embers.emitting = false
+	embers.amount = maxi(16, roundi(160 * HitEffects.COUNT_SCALE[Graphics.preset]))
+	embers.lifetime = 3.5
+	embers.local_coords = true
+	embers.visibility_aabb = AABB(Vector3(-16, -2, -16), Vector3(32, 14, 32))
+	embers.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var process := ParticleProcessMaterial.new()
+	process.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_RING
+	process.emission_ring_axis = Vector3.UP
+	process.emission_ring_radius = BossSite.RING_RADIUS
+	process.emission_ring_inner_radius = 0.0
+	process.emission_ring_height = 0.2
+	process.direction = Vector3.UP
+	process.spread = 25.0
+	process.initial_velocity_min = 0.6
+	process.initial_velocity_max = 1.8
+	process.gravity = Vector3(0, 0.3, 0)
+	process.turbulence_enabled = true
+	process.turbulence_noise_strength = 0.6
+	var fade := Curve.new()
+	fade.add_point(Vector2(0, 0.2))
+	fade.add_point(Vector2(0.2, 1))
+	fade.add_point(Vector2(1, 0))
+	var curve := CurveTexture.new()
+	curve.curve = fade
+	process.scale_curve = curve
+	embers.process_material = process
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE * 0.1
+	var paint := StandardMaterial3D.new()
+	paint.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	paint.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	var dot := GradientTexture2D.new()
+	dot.fill = GradientTexture2D.FILL_RADIAL
+	dot.fill_from = Vector2(0.5, 0.5)
+	dot.fill_to = Vector2(1.0, 0.5)
+	dot.gradient = Gradient.new()
+	dot.gradient.colors = PackedColorArray([Color.WHITE, Color(1, 1, 1, 0)])
+	paint.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	paint.albedo_texture = dot
+	paint.albedo_color = Color(1.0, 0.45, 0.1)
+	paint.emission_enabled = true
+	paint.emission = Color(1.0, 0.45, 0.1)
+	paint.emission_energy_multiplier = 6.0
+	quad.material = paint
+	embers.draw_pass_1 = quad
+	embers.position = middle
+	embers.basis = SimPlayer.frame(up, SimPlayer._tangent(Vector3.FORWARD, up))
+	parent.add_child(embers)
+	return embers
+
+
+## Embers burn while the fight runs; a burst of sparks and a stomp as the Warden rises.
+func _site_embers_update() -> void:
+	if _site_embers == null:
+		return
+	if _site_encounter == null:
+		_site_encounter = Encounter.of(self, String(_site_realm))
+		return
+	var phase := _site_encounter.phase
+	_site_embers.emitting = phase == Encounter.Phase.BOSS
+	if phase == Encounter.Phase.BOSS and _site_was != Encounter.Phase.BOSS:
+		var at := _site_embers.global_position
+		HitEffects.burst(self, at, _site_embers.global_basis.y, HitEffects.Kind.EMBERS)
+	_site_was = phase
 
 
 ## Where the ring's stones stand (gaps ahead where the dummies are and behind at the gate).

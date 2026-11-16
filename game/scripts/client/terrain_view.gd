@@ -69,7 +69,7 @@ const LOOKS := {
 		Color(0.22, 0.28, 0.18)
 	],
 	Scatter.Kind.STANDING_STONE:
-	["stone_tallA", 3.2, Color(0.42, 0.44, 0.46), 0.8, Vector3(0.8, 1.5, 0.8), Color.WHITE],
+	["stone_tallA", 3.2, Color(1.9, 1.8, 1.65), 0.8, Vector3(0.8, 1.5, 0.8), Color.WHITE],
 	Scatter.Kind.MOUND: ["", 4.5, Color.WHITE, 0.0, Vector3(1.0, 0.4, 1.0), Color.WHITE],
 }
 ## Model materials that take the accent color.
@@ -419,8 +419,25 @@ func _kind_mesh(kind: int) -> Mesh:
 		)
 		material.albedo_color = look[5] if material.resource_name in ACCENTS else look[2]
 		material.roughness = 1.0
+		if kind == Scatter.Kind.STANDING_STONE:
+			_weather(material)
 		mesh.surface_set_material(surface, material)
 	return mesh
+
+
+## Weathered rock for the barrow ring: ambientCG rock mapped world triplanar, so the stones read
+## as stone and not as dark boxes.
+func _weather(material: StandardMaterial3D) -> void:
+	var rock := Arena.AMBIENTCG + Arena.ROCK + "/"
+	material.albedo_texture = load(rock + "Color.jpg")
+	material.normal_enabled = true
+	material.normal_texture = load(rock + "NormalGL.jpg")
+	material.uv1_triplanar = true
+	material.uv1_world_triplanar = true
+	material.uv1_scale = Vector3.ONE * 0.35
+	# A faint glow of its own, so the side the moon misses still shows against the sky.
+	material.emission_enabled = true
+	material.emission = Color(0.1, 0.11, 0.13)
 
 
 func _first_mesh(node: Node) -> MeshInstance3D:

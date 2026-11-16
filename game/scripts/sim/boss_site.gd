@@ -139,18 +139,23 @@ func center() -> Vector3:
 	return realm.center + direction * (realm.radius + level)
 
 
-## The ring's stones as directions from the realm's center, evenly around the center (the first
-## one a fixed way round: every peer finds the same ones).
-func stones() -> Array[Vector3]:
+## A direction `meters` from the center along the ground, at `angle` around it (the same
+## frame the stones use).
+func spot(angle: float, meters: float) -> Vector3:
 	var east := direction.cross(Vector3.UP if absf(direction.y) < 0.9 else Vector3.RIGHT)
 	east = east.normalized()
 	var north := direction.cross(east)
-	var step := RING_RADIUS / realm.radius
+	var step := meters / realm.radius
+	var around := east * cos(angle) + north * sin(angle)
+	return (direction * cos(step) + around * sin(step)).normalized()
+
+
+## The ring's stones as directions from the realm's center, evenly around the center (the first
+## one a fixed way round: every peer finds the same ones).
+func stones() -> Array[Vector3]:
 	var found: Array[Vector3] = []
 	for n in STONES:
-		var angle := TAU * n / STONES
-		var around := east * cos(angle) + north * sin(angle)
-		found.append((direction * cos(step) + around * sin(step)).normalized())
+		found.append(spot(TAU * n / STONES, RING_RADIUS))
 	return found
 
 

@@ -71,6 +71,7 @@ func build(new_seed: int, new_name: String) -> void:
 	if visual:
 		arena.add_seeded_portals()
 		arena.add_terrain_views(new_seed)
+		arena.add_site_looks(new_seed)
 
 
 ## The same dummies, same names and order, on every peer (netfox finds them by path). They stand

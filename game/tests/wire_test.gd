@@ -46,6 +46,7 @@ func test_player_state_round_trips_and_fits_a_packet() -> void:
 	player.bolt_pos[2] = Vector3(1, 2, 3)
 	player.bolt_life[2] = 90
 	player.bolt_damage[2] = 37.25
+	player.armor = 200
 	_round_trip(player, SimPlayer.STATE)
 	var size := _encoded_size(player, SimPlayer.SYNCED)
 	# Headroom for netfox's tick, identity reference and size prefix.
@@ -109,6 +110,23 @@ func test_packed_groups_restore_the_player() -> void:
 	assert_int(other.action).is_equal(SimPlayer.Action.ROLL)
 	assert_int(other.action_time).is_equal(300)
 	assert_int(other.bolt_life[1]).is_equal(44)
+
+
+func test_the_gear_ints_are_one_byte_each_in_the_combat_group() -> void:
+	for field: String in SimPlayer.GEAR:
+		assert_bool(Wire.has(field)).override_failure_message(field).is_true()
+		assert_bool(SimPlayer.COMBAT.has(field)).override_failure_message(field).is_true()
+		assert_bool(SimPlayer.STATE.has(field)).override_failure_message(field).is_true()
+		assert_int(_encoded_size(auto_free(SimPlayer.new()), [field])).is_equal(1)
+	var player := auto_free(SimPlayer.new()) as SimPlayer
+	player.main_hand = Items.index(&"sword_runed")
+	player.off_hand = Items.index(&"shield_iron")
+	player.ranged = Items.index(&"crossbow_ash")
+	player.armor = 255
+	var other := auto_free(SimPlayer.new()) as SimPlayer
+	Wire.unpack(other, SimPlayer.COMBAT, Wire.pack(player, SimPlayer.COMBAT))
+	for field: String in SimPlayer.GEAR:
+		assert_int(other.get(field)).override_failure_message(field).is_equal(player.get(field))
 
 
 func test_swing_hits_is_a_32_bit_mask() -> void:

@@ -191,3 +191,9 @@ General:
 - [ ] Every kind's telegraph fan sits on the ground on slopes (no clipping into hills), and nobody leaps through a trunk.
 - [ ] Camps of each recipe turn up often enough (about 40 percent plain dead, 25 percent bearers and archers, 20 percent berserkers, 15 percent elite with guards) and roamers (a lone swordsman, archer or berserker) are not too dangerous alone.
 - [ ] The frame rate and the server tick (F3) hold in a camp of six, also an elite camp.
+
+## M23 Inventory, loot and saves
+
+Task 1 so far (items, inventory and worn gear on the server, `Net.PROTOCOL_VERSION` 29). There is no panel or loot yet, so nothing to see besides this; the real checks come with the loot and the panel (tasks 2 and 3).
+
+- [ ] Combat feels exactly as before M23: the starting kit (sword, wooden shield, crossbow, 20 bolts) has the old numbers (a light swing, a block, a full draw deal and stop what they did). Nothing about gear shows in the HUD yet.

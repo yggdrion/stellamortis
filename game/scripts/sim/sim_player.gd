@@ -71,6 +71,10 @@ const STATE := [
 	"bolt_vel",
 	"bolt_life",
 	"bolt_damage",
+	"main_hand",
+	"off_hand",
+	"ranged",
+	"armor",
 ]
 const MOTION := ["up", "ref_forward", "facing", "grounded", "action_dir"]
 const COMBAT := [
@@ -89,7 +93,13 @@ const COMBAT := [
 	"respawns",
 	"weapon",
 	"charge",
+	"main_hand",
+	"off_hand",
+	"ranged",
+	"armor",
 ]
+## The worn gear combat reads (Loadout): set only by the server (Inventories), as part of COMBAT.
+const GEAR := ["main_hand", "off_hand", "ranged", "armor"]
 const BOLTS := ["bolt_pos", "bolt_vel", "bolt_life", "bolt_damage"]
 const SYNCED := ["transform", "velocity", "net_motion", "net_combat", "net_bolts"]
 
@@ -137,6 +147,12 @@ var bolt_vel := PackedVector3Array()
 ## Ticks left in flight, 0 for a free slot.
 var bolt_life := PackedInt32Array()
 var bolt_damage := PackedFloat32Array()
+## Item indices (Items.IDS) of the worn main hand, off hand and crossbow, and the armor total
+## (Loadout). The starting kit until the server says otherwise.
+var main_hand := 0
+var off_hand := 0
+var ranged := 0
+var armor := 0
 
 ## The packed groups netfox synchronizes (SYNCED).
 var net_motion: PackedByteArray:
@@ -158,6 +174,9 @@ var net_bolts: PackedByteArray:
 
 func _init() -> void:
 	add_to_group(GROUP)
+	main_hand = Items.index(&"sword")
+	off_hand = Items.index(&"shield_wood")
+	ranged = Items.index(&"crossbow")
 	collision_layer = LAYER_PLAYERS
 	collision_mask = LAYER_WORLD | LAYER_ENEMIES
 	for i in MAX_BOLTS:
@@ -514,8 +533,9 @@ func _take(enemy: Enemy, def: AttackDef, t: Tuning) -> void:
 			enemy.parry()
 			_mutate(enemy)
 			return
-		var blocked := def.damage * t.block_reduction
-		health -= def.damage - blocked
+		var damage := Loadout.damage_taken(def.damage, armor)
+		var blocked := damage * Loadout.block_share(off_hand)
+		health -= damage - blocked
 		stamina -= blocked * t.block_stamina
 		stamina_wait = Combat.ticks(t.stamina_delay)
 		if stamina < 0.0:
@@ -525,7 +545,7 @@ func _take(enemy: Enemy, def: AttackDef, t: Tuning) -> void:
 			push = 1.0
 			_set_action(Action.STAGGER, Combat.ticks(t.guard_break_time))
 	else:
-		health -= def.damage
+		health -= Loadout.damage_taken(def.damage, armor)
 		_set_action(Action.STAGGER, Combat.ticks(t.hurt_time))
 	velocity += _tangent(global_position - enemy.global_position, up) * def.knockback * push
 	if health <= 0.0:
@@ -549,7 +569,12 @@ func _strike() -> void:
 			center(), facing, up, def.reach, def.arc_degrees, enemy.center(), enemy.radius
 		):
 			swing_hits |= bit
-			enemy.take_hit(def.damage, global_position, def.knockback, def.flinch)
+			enemy.take_hit(
+				def.damage * Loadout.damage_scale(main_hand),
+				global_position,
+				def.knockback,
+				def.flinch
+			)
 			_mutate(enemy)
 
 
@@ -568,7 +593,9 @@ func _shoot(yaw: float, pitch: float, t: Tuning) -> void:
 		(aim - muzzle).normalized() * lerpf(t.bolt_speed_min, t.bolt_speed_max, charge)
 	)
 	bolt_life[slot] = Combat.ticks(t.bolt_life)
-	bolt_damage[slot] = lerpf(t.bolt_damage_min, t.bolt_damage_max, charge)
+	bolt_damage[slot] = (
+		lerpf(t.bolt_damage_min, t.bolt_damage_max, charge) * Loadout.damage_scale(ranged)
+	)
 	_spend(lerpf(t.bolt_stamina_min, t.bolt_stamina_max, charge), t)
 
 

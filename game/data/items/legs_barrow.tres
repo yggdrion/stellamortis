@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/item_def.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"legs_barrow"
+title = "Barrow Greaves"
+kind = 3
+slot = 6
+stack = 1
+rarity = 2
+weight = 4.0
+defense = 3

@@ -38,6 +38,10 @@ static var _data: Tuning
 @export var block_stamina := 1.0
 ## Share of an attack's knockback a block lets through.
 @export var block_knockback := 0.25
+## Damage multiplier with no weapon in the main hand or no crossbow (Loadout.damage_scale).
+@export var unarmed_damage := 0.35
+## A block never stops more than this share of a hit, whatever a shield adds.
+@export var block_cap := 0.95
 ## A block started this soon before a parryable hit parries it.
 @export var parry_window := 0.2
 @export var guard_break_time := 1.0

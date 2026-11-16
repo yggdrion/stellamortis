@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/item_def.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"sword"
+title = "Iron Sword"
+kind = 0
+slot = 1
+stack = 1
+rarity = 0
+weight = 2.0

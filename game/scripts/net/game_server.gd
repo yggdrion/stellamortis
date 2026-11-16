@@ -49,6 +49,7 @@ var room := ""
 var _rtc: WebRTCMultiplayerPeer
 
 var _world: World
+var _inventories: Inventories
 var _spawned := 0
 var _names := {}
 ## Peer ids whose client has built the world (Net.world_ready).
@@ -79,6 +80,13 @@ func start(port: int) -> void:
 	add_child(_world)
 	_world.build(world_seed, world_name)
 	_world.add_spawner()
+	_inventories = Inventories.new()
+	_inventories.net = net
+	_inventories.world = _world
+	_inventories.changed.connect(
+		func(id: int, cells: Dictionary) -> void: net.inventory_changed.rpc_id(id, cells)
+	)
+	add_child(_inventories)
 	if lobby_url != "":
 		_rtc = WebRTCMultiplayerPeer.new()
 		var rtc_err := _rtc.create_server()
@@ -255,7 +263,9 @@ func _on_hello(id: int, version: int, player_name: String) -> void:
 		at = _world.encounter.site.ring_spot(id)
 	# The ground under the spawn stands before the body does (a debug spawn may be elsewhere).
 	_world.chunks.ensure_around(at)
+	_inventories.add_peer(id)
 	_world.spawn_player(id, _names[id], at)
+	net.inventory_snapshot.rpc_id(id, _inventories.snapshot(id))
 	_heard[id] = Time.get_ticks_msec()
 	print("%s joined (%d)" % [_names[id], id])
 	_tell_others(id, "%s joined" % _names[id])
@@ -307,6 +317,7 @@ func _on_peer_disconnected(id: int) -> void:
 
 func _remove_player(id: int) -> void:
 	_built.erase(id)
+	_inventories.remove_peer(id)
 	var player := _world.player(id)
 	if player:
 		player.queue_free()

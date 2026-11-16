@@ -7,6 +7,7 @@ extends Node
 signal hello_received(peer_id: int, version: int, player_name: String)
 signal pinged(peer_id: int, sent_ms: int)
 signal world_ready_received(peer_id: int)
+signal inventory_intent_received(peer_id: int, op: int, a: int, b: int)
 # Client side.
 signal rejected(reason: String)
 signal ponged(sent_ms: int)
@@ -16,10 +17,15 @@ signal room_received(code: String)
 signal notice_received(text: String)
 signal cleared_camps_requested(peer_id: int, realm_id: String)
 signal cleared_camps_received(cleared: Dictionary)
+signal inventory_snapshot_received(data: Dictionary)
+signal inventory_changed_received(cells: Dictionary)
+
+## What a client asks of its inventory (inventory_intent). Append only.
+enum Op { MOVE, SPLIT, EQUIP, UNEQUIP, DROP, SORT, STORE_MATCHING }
 
 ## Bump on any change to the RPCs here or to what netfox synchronizes (SimPlayer.STATE,
 ## PlayerControls) or to what both sides simulate (Layout, Gravity, Tuning).
-const PROTOCOL_VERSION := 28
+const PROTOCOL_VERSION := 29
 
 @rpc("any_peer", "reliable")
 func hello(version: int, player_name: String) -> void:
@@ -81,3 +87,24 @@ func request_cleared_camps(realm_id: String) -> void:
 @rpc("authority", "unreliable")
 func cleared_camps(cleared: Dictionary) -> void:
 	cleared_camps_received.emit(cleared)
+
+
+## A client wants to change its inventory: a and b are cell numbers (Inventory.Cell) or a count,
+## by op (MOVE from to, SPLIT cell count, EQUIP cell, UNEQUIP cell, DROP cell count, SORT,
+## STORE_MATCHING). The server checks everything and answers with inventory_changed.
+@rpc("any_peer", "reliable")
+func inventory_intent(op: int, a: int, b: int) -> void:
+	inventory_intent_received.emit(multiplayer.get_remote_sender_id(), op, a, b)
+
+
+## The own inventory, whole, once after the player spawned (Inventory.cell_dict()).
+@rpc("authority", "reliable")
+func inventory_snapshot(data: Dictionary) -> void:
+	inventory_snapshot_received.emit(data)
+
+
+## The cells of the own inventory that changed (Inventory.changes_since()): cell number to
+## {"id", "count"}, or {} for an emptied cell.
+@rpc("authority", "reliable")
+func inventory_changed(cells: Dictionary) -> void:
+	inventory_changed_received.emit(cells)

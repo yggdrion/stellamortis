@@ -9,6 +9,8 @@ extends Node3D
 signal left(reason: String)
 ## The own player is in the world (the main menu waits for it).
 signal entered
+## The own inventory changed (the snapshot or a delta from the server).
+signal inventory_updated
 
 ## Seconds without a word from the server before the HUD warns, and before giving up.
 const SILENT_WARN := 2.0
@@ -40,6 +42,8 @@ var map_start := ""
 var no_grab := false
 
 var me: SimPlayer
+## The own inventory as the server last said (read only: the panel shows it, intents change it).
+var inventory := Inventory.new()
 var ping_ms := 0
 var server_tps := 0.0
 var server_tick_ms := 0.0
@@ -85,6 +89,8 @@ var _seen_moved := {}
 ## near the spawn must not undo that).
 var _bot_start: Variant = null
 var _bot_moved := false
+## Bot: how far its inventory exercise got (take the shield off, put it on again).
+var _bot_gear_step := 0
 
 
 func _init() -> void:
@@ -132,6 +138,16 @@ func _ready() -> void:
 		func(sent: int) -> void:
 			ping_ms = Time.get_ticks_msec() - sent
 			_heard_ms = Time.get_ticks_msec()
+	)
+	net.inventory_snapshot_received.connect(
+		func(data: Dictionary) -> void:
+			inventory = Inventory.from_dict(data)
+			inventory_updated.emit()
+	)
+	net.inventory_changed_received.connect(
+		func(cells: Dictionary) -> void:
+			inventory.apply_cells(cells)
+			inventory_updated.emit()
 	)
 	net.notice_received.connect(func(text: String) -> void: _hud.notice(text))
 	net.server_stats_received.connect(
@@ -265,6 +281,11 @@ func _on_player_spawned(player: SimPlayer) -> void:
 	entered.emit()
 
 
+## Asks the server to change the own inventory; the answer comes as a delta.
+func send_intent(op: Net.Op, a := 0, b := 0) -> void:
+	net.inventory_intent.rpc_id(1, op, a, b)
+
+
 func _read_controls(controls: PlayerControls) -> void:
 	controls.yaw = _rig.yaw
 	controls.pitch = _rig.pitch
@@ -391,7 +412,21 @@ func _each_second() -> void:
 	if _map.visible and _map.realm_id() != "":
 		net.request_cleared_camps.rpc_id(1, _map.realm_id())
 	if bot:
+		_bot_gear()
 		_check_bot()
+
+
+## Exercises the inventory over the network: once its snapshot is in, takes the shield off and
+## puts it on again, a second apart (the gear ints then change in rolled back state twice).
+func _bot_gear() -> void:
+	if me == null or inventory.at(Inventory.Cell.MAIN) == null:
+		return
+	if _bot_gear_step == 0:
+		send_intent(Net.Op.UNEQUIP, Inventory.Cell.OFF)
+		_bot_gear_step = 1
+	elif _bot_gear_step == 1 and inventory.at(0) != null:
+		send_intent(Net.Op.EQUIP, 0)
+		_bot_gear_step = 2
 
 
 ## Passes once it ran bot_duration, moved itself and saw every other expected player move.
@@ -409,6 +444,9 @@ func _check_bot() -> void:
 	# Standing plans (combo, shoot) only have to last.
 	var standing := bot_plan == "combo" or bot_plan == "shoot"
 	if seconds < bot_duration or not (_bot_moved or standing):
+		return
+	# The inventory exercise went through: the shield is back on.
+	if _bot_gear_step < 2 or inventory.at(Inventory.Cell.OFF) == null:
 		return
 	if _seen_moved.size() + 1 < bot_expect:
 		return

@@ -73,6 +73,7 @@ var _overlay: DebugOverlay
 var _hud: Hud
 var _pause: PauseMenu
 var _map: MapPanel
+var _objects: ObjectsView
 ## The planet's wind (Sounds.ambience).
 var _ambience: AudioStreamPlayer
 var _started_ms := 0
@@ -109,6 +110,9 @@ func _ready() -> void:
 	add_child(_rig)
 	_hud = Hud.new()
 	add_child(_hud)
+	_objects = ObjectsView.new()
+	_objects.world = _world
+	add_child(_objects)
 	_overlay = DebugOverlay.new()
 	_overlay.client = self
 	add_child(_overlay)
@@ -150,6 +154,20 @@ func _ready() -> void:
 			inventory_updated.emit()
 	)
 	net.notice_received.connect(func(text: String) -> void: _hud.notice(text))
+	net.objects_snapshot_received.connect(func(all: Dictionary) -> void: _objects.snapshot(all))
+	net.object_added_received.connect(
+		func(id: int, data: Dictionary) -> void: _objects.add(id, data)
+	)
+	net.object_removed_received.connect(func(id: int, by: int) -> void: _objects.remove(id, by))
+	net.object_updated_received.connect(
+		func(id: int, data: Dictionary) -> void: _objects.update(id, data)
+	)
+	net.item_toast_received.connect(
+		func(item_id: String, count: int) -> void:
+			var def := Items.by_id(StringName(item_id))
+			if def != null:
+				_hud.notice("+%d %s" % [count, def.title])
+	)
 	net.server_stats_received.connect(
 		func(tps: float, tick_ms: float, tick_avg_ms: float, out_kbps: float) -> void:
 			server_tps = tps
@@ -266,6 +284,7 @@ func _on_player_spawned(player: SimPlayer) -> void:
 		_first_seen[player.peer_id] = player.global_position
 		return
 	me = player
+	_objects.me = me
 	_map.me = me
 	_hud.player = me
 	me.controls.reader = _bot_controls if bot else _read_controls
@@ -284,6 +303,16 @@ func _on_player_spawned(player: SimPlayer) -> void:
 ## Asks the server to change the own inventory; the answer comes as a delta.
 func send_intent(op: Net.Op, a := 0, b := 0) -> void:
 	net.inventory_intent.rpc_id(1, op, a, b)
+
+
+## E: takes the drop or opens the chest in reach (the server decides; a toast or a delta answers).
+func interact() -> void:
+	if _objects.focus_id < 0:
+		return
+	if _objects.focus_is_chest:
+		net.open_object.rpc_id(1, _objects.focus_id)
+	else:
+		net.pickup.rpc_id(1, _objects.focus_id)
 
 
 func _read_controls(controls: PlayerControls) -> void:
@@ -345,6 +374,8 @@ func _bot_controls(controls: PlayerControls) -> void:
 
 func _process(delta: float) -> void:
 	_hud.room = room
+	_hud.prompt = _objects.prompt if not _pause.visible and not _map.visible else ""
+	_hud.prompt_color = _objects.prompt_color
 	_watch_silence()
 	if _snap_log and me != null:
 		_log_snaps()
@@ -412,6 +443,7 @@ func _each_second() -> void:
 	if _map.visible and _map.realm_id() != "":
 		net.request_cleared_camps.rpc_id(1, _map.realm_id())
 	if bot:
+		interact()
 		_bot_gear()
 		_check_bot()
 
@@ -493,6 +525,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	elif event is InputEventMouseButton and event.is_pressed() and me != null:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	elif event.is_action_pressed(&"interact"):
+		interact()
 	elif event.is_action_pressed(&"weapon_1"):
 		_wanted_weapon = SimPlayer.Weapon.SWORD
 	elif event.is_action_pressed(&"weapon_2"):

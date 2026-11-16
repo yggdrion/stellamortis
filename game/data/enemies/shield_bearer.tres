@@ -18,3 +18,4 @@ guard_react = 0.3
 stagger_time = 1.7
 rest = 1.2
 attacks = Array[StringName]([&"shield_bash"])
+loot = &"shield_bearer"

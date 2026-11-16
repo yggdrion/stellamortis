@@ -4,7 +4,7 @@ extends RefCounted
 ## pool, and the numbers views use for hit stop and camera shake. Views call these when they see
 ## a hit in the state, never the sim. Headless processes draw nothing.
 
-enum Kind { BLOOD, SPARKS, WOOD, EMBERS }
+enum Kind { BLOOD, SPARKS, WOOD, EMBERS, GLINT }
 
 ## Damage that counts as a full-strength hit (a heavy swing).
 const HEAVY := 50.0
@@ -16,7 +16,7 @@ const STOP_MAX := 0.085
 ## Camera shake (0..1 of CameraRig's trauma) for a hit of HEAVY.
 const SHAKE_HEAVY := 0.5
 ## Particles in one burst at HIGH graphics, per kind; the preset scales them.
-const COUNT := {Kind.BLOOD: 24, Kind.SPARKS: 18, Kind.WOOD: 10, Kind.EMBERS: 10}
+const COUNT := {Kind.BLOOD: 24, Kind.SPARKS: 18, Kind.WOOD: 10, Kind.EMBERS: 10, Kind.GLINT: 8}
 const COUNT_SCALE := [0.4, 0.7, 1.0, 1.5]
 ## Per kind: lifetime (s), speed min and max (m/s), gravity (m/s^2), size (m), color.
 const LOOK := {
@@ -25,6 +25,8 @@ const LOOK := {
 	Kind.WOOD: [0.5, 1.5, 4.0, 9.0, 0.06, Color(0.45, 0.28, 0.14)],
 	# Negative gravity: embers rise.
 	Kind.EMBERS: [1.1, 0.3, 1.2, -1.5, 0.05, Color(1.0, 0.45, 0.1)],
+	# Loot landing: a few warm glints thrown up.
+	Kind.GLINT: [0.6, 1.0, 2.6, 5.0, 0.04, Color(1.0, 0.86, 0.5)],
 }
 const POOL := 8
 
@@ -103,7 +105,7 @@ static func _make(kind: Kind) -> GPUParticles3D:
 	paint.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	paint.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	paint.albedo_color = color
-	if kind == Kind.SPARKS or kind == Kind.EMBERS:
+	if kind == Kind.SPARKS or kind == Kind.EMBERS or kind == Kind.GLINT:
 		paint.emission_enabled = true
 		paint.emission = color
 		paint.emission_energy_multiplier = 6.0

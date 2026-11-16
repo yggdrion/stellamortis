@@ -7,6 +7,12 @@ extends Node
 ## a woken slot is state like any other change and clients only ever see slot state. What it
 ## remembers (which slot serves which camp member, who is dead, how long a camp stays cleared)
 ## lives on the server alone; a rollback that replays a tick decides again from the same state.
+## Loot (M23) is rolled here, the first time a member is seen down: `_looted` remembers it, so a
+## replayed tick finds the kill paid already.
+
+## A kill's (or the Warden's) pile: where it fell, the up there, the stacks rolled and the seed
+## the roll came from (Looting scatters them with it). Server only.
+signal dropped(position: Vector3, up: Vector3, stacks: Array, loot_seed: int)
 
 ## Camps of CAMP_MIN to CAMP_MAX around a center, one per CAMP_AREA m2 of ground; lone roamers
 ## one per ROAMER_AREA. A player walking 6 m/s sweeps about 180 m of wake range, so one camp
@@ -68,6 +74,13 @@ const FIGHT_QUIET := 6.0
 const RESPAWN_MINUTES := 10.0
 ## Chunks are made right under a camp before it wakes (a no-op when they stand).
 const GROUND_RADIUS := 12.0
+## The elite's chest stands this far (m) behind the center of its camp, along its facing.
+const CHEST_BEHIND := 5.0
+## Where the chest is tried, as (meters behind the center, meters to the side), first walkable
+## and clear spot wins.
+const CHEST_SPOTS := [
+	Vector2(5.0, 0.0), Vector2(5.0, 2.5), Vector2(5.0, -2.5), Vector2(7.0, 0.0), Vector2(4.0, 3.0)
+]
 ## A member keeps this far (m) from the skin of a scatter solid (its body is about 0.5).
 const SOLID_GAP := 0.7
 
@@ -89,6 +102,23 @@ class SpawnPoint:
 	func post() -> Transform3D:
 		var facing := SimPlayer._tangent(Vector3.FORWARD, up).rotated(up, yaw)
 		return Transform3D(SimPlayer.frame(up, facing), position)
+
+
+## Where an elite camp's chest stands: behind the camp, on walkable ground. `unit` is set by
+## the Spawner that guards it (-1 until then).
+class ChestSpot:
+	extends RefCounted
+	var realm: RealmDef
+	var camp := 0
+	var position := Vector3.ZERO
+	var up := Vector3.UP
+	## The camp's facing, radians around up.
+	var yaw := 0.0
+	var unit := -1
+
+	## "realm:camp", how a saved chest is told from the spots.
+	func key() -> String:
+		return "%s:%d" % [realm.id, camp]
 
 
 ## Where scatter solids stand, by chunk, for the posts `points` picks (M35: nobody wakes inside
@@ -133,6 +163,10 @@ class Solids:
 		return _by_chunk[chunk]
 
 
+## The elite camps' chests (chests), with the unit that guards each, server only.
+var chest_spots: Array[ChestSpot] = []
+## Realm id -> true once its Warden's loot was rolled (task 4 saves it).
+var boss_looted := {}
 var world: World
 var _units: Array[Array] = []
 var _centers := PackedVector3Array()
@@ -144,6 +178,9 @@ var _awake := {}
 var _dead := {}
 ## Unit -> tick its camp is open again.
 var _cleared_until := {}
+## Unit -> {member index: true} for the members whose loot was rolled. Unlike `_dead` this is
+## never cleared by a replayed alive state, only when the camp is open again.
+var _looted := {}
 
 
 func _init(for_world: World) -> void:
@@ -151,7 +188,9 @@ func _init(for_world: World) -> void:
 	world = for_world
 	for realm in Layout.realms():
 		var grouped := {}
-		for point in points(realm, for_world.world_seed):
+		var found := points(realm, for_world.world_seed)
+		var first_unit := _units.size()
+		for point in found:
 			if not grouped.has(point.camp):
 				grouped[point.camp] = []
 			grouped[point.camp].append(point)
@@ -162,6 +201,9 @@ func _init(for_world: World) -> void:
 			_units.append(camp)
 			_ids.append([realm.id, (camp[0] as SpawnPoint).camp])
 			_centers.append(center / camp.size())
+		for spot in chests(realm, for_world.world_seed, found):
+			spot.unit = _ids.find([realm.id, spot.camp], first_unit)
+			chest_spots.append(spot)
 
 
 func _ready() -> void:
@@ -199,6 +241,54 @@ static func points(realm: RealmDef, world_seed: int) -> Array[SpawnPoint]:
 			camp += 1
 			made += 1
 	return found
+
+
+## The chests of a realm: one per camp that holds a barrow elite, behind the camp's center along
+## its facing. Pure like `points` (pass its result to save the second call).
+static func chests(
+	realm: RealmDef, world_seed: int, found: Array[SpawnPoint] = []
+) -> Array[ChestSpot]:
+	if found.is_empty():
+		found = points(realm, world_seed)
+	var field := Terrain.Field.new(realm, world_seed)
+	var solids := Solids.new(realm, world_seed)
+	var elite := Combat.enemy_kind(&"barrow_elite")
+	var camps := {}
+	for point in found:
+		if not camps.has(point.camp):
+			camps[point.camp] = []
+		camps[point.camp].append(point)
+	var spots: Array[ChestSpot] = []
+	for id: int in camps:
+		var members: Array = camps[id]
+		if not members.any(func(point: SpawnPoint) -> bool: return point.kind == elite):
+			continue
+		var center := Vector3.ZERO
+		for point: SpawnPoint in members:
+			center += point.up
+		center = center.normalized()
+		var front := SimPlayer._tangent(Vector3.FORWARD, center).rotated(
+			center, (members[0] as SpawnPoint).yaw
+		)
+		var side := front.cross(center)
+		var chosen := Vector3.ZERO
+		for offset: Vector2 in CHEST_SPOTS:
+			var direction := (
+				(center * realm.radius - front * offset.x + side * offset.y).normalized()
+			)
+			if chosen == Vector3.ZERO:
+				chosen = direction
+			if _walkable(field, direction) and not solids.blocked(direction):
+				chosen = direction
+				break
+		var spot := ChestSpot.new()
+		spot.realm = realm
+		spot.camp = id
+		spot.up = chosen
+		spot.position = realm.center + field.surface(chosen)
+		spot.yaw = (members[0] as SpawnPoint).yaw
+		spots.append(spot)
+	return spots
 
 
 static func _random_direction(rng: RandomNumberGenerator) -> Vector3:
@@ -318,6 +408,16 @@ func unit_count() -> int:
 	return _units.size()
 
 
+## The unit of a realm's camp, -1 for none.
+func unit_of(realm_id: String, camp: int) -> int:
+	return _ids.find([realm_id, camp])
+
+
+## Whether every member of a camp is dead (the elite's chest opens then).
+func camp_clear(unit: int) -> bool:
+	return unit >= 0 and unit < _units.size() and _dead.get(unit, {}).size() == _units[unit].size()
+
+
 ## Debug map (M33): camp id -> seconds until the camp is open again, for the cleared camps of
 ## a realm. Read only.
 func cleared_camps(realm_id: StringName, tick: int) -> Dictionary:
@@ -353,6 +453,8 @@ func update(tick: int) -> void:
 		if tick >= _cleared_until[unit]:
 			_cleared_until.erase(unit)
 			_dead.erase(unit)
+			_looted.erase(unit)
+	_loot_bosses()
 	_wake_near(players)
 
 
@@ -409,6 +511,7 @@ func _tend(unit: int, tick: int, players: Array[SimPlayer]) -> void:
 		var enemy := world.pool_slot(slots[member])
 		if enemy.action == Enemy.Action.DOWN:
 			dead[member] = dead.get(member, tick)
+			_loot(unit, member, enemy)
 			continue
 		dead.erase(member)
 		living += 1
@@ -427,6 +530,38 @@ func _tend(unit: int, tick: int, players: Array[SimPlayer]) -> void:
 			slots.erase(member)
 	if slots.is_empty():
 		_awake.erase(unit)
+
+
+## Rolls a fallen member's table, once (a replayed tick finds it in `_looted`). Seeded from the
+## world seed, the camp and the member, so a restart gives the same pile.
+func _loot(unit: int, member: int, enemy: Enemy) -> void:
+	var paid: Dictionary = _looted.get(unit, {})
+	if paid.has(member):
+		return
+	paid[member] = true
+	_looted[unit] = paid
+	var key := "%d:%s:%d:%d" % [world.world_seed, _ids[unit][0], _ids[unit][1], member]
+	_pay(enemy, enemy.def.loot, key)
+
+
+## The Warden's loot, once per cleared realm.
+func _loot_bosses() -> void:
+	for fight in world.encounters:
+		if fight.phase == Encounter.Phase.CLEARED and not boss_looted.has(fight.realm.id):
+			boss_looted[fight.realm.id] = true
+			var key := "%d:%s:boss" % [world.world_seed, fight.realm.id]
+			_pay(fight.boss, fight.boss.def.loot, key)
+
+
+func _pay(enemy: Enemy, table_id: StringName, key: String) -> void:
+	var table := LootTable.by_id(table_id)
+	if table == null:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(key)
+	var stacks := table.roll(rng)
+	if not stacks.is_empty():
+		dropped.emit(enemy.global_position, enemy.up, stacks, int(rng.seed))
 
 
 static func _attacking(enemy: Enemy) -> bool:

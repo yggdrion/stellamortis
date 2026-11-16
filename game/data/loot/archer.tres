@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="LootTable" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/loot_table.gd" id="1_loot"]
+
+[resource]
+script = ExtResource("1_loot")
+rolls = 2
+entries = Array[Dictionary]([{"item": &"hide", "weight": 30, "min": 1, "max": 2, "chance": 0.8}, {"item": &"bone", "weight": 20, "min": 1, "max": 2, "chance": 0.7}, {"item": &"bolt", "weight": 30, "min": 3, "max": 8, "chance": 1.0}, {"item": &"bandage", "weight": 8, "min": 1, "max": 1, "chance": 1.0}, {"item": &"crossbow_ash", "weight": 2, "min": 1, "max": 1, "chance": 1.0}])

@@ -12,3 +12,4 @@ stack = 1
 rarity = 2
 weight = 2.0
 damage = 1.4
+model = "res://assets/quaternius/props/Sword_Bronze.gltf"

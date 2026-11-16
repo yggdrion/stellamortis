@@ -7,6 +7,15 @@ enum Kind { WEAPON, SHIELD, RANGED, ARMOR, TRINKET, MATERIAL, BOLT, CONSUMABLE }
 ## The gear slot an item goes to (NONE: bag only).
 enum Slot { NONE, MAIN, OFF, RANGED, HELM, CHEST, LEGS, CAPE, TRINKET, BOLTS }
 
+## Rarity colors, the one place color is spent: white, green, blue, purple, gold.
+const RARITY_COLORS: Array[Color] = [
+	Color(0.9, 0.9, 0.86),
+	Color(0.35, 0.8, 0.35),
+	Color(0.3, 0.55, 1.0),
+	Color(0.68, 0.38, 0.95),
+	Color(1.0, 0.8, 0.25),
+]
+
 @export var id: StringName = &""
 @export var title := ""
 @export var kind := Kind.MATERIAL

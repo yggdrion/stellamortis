@@ -25,3 +25,4 @@ well_attack = &"warden_well"
 well_time = 5.0
 well_reach = 14.0
 well_pull = 11.0
+loot = &"warden"

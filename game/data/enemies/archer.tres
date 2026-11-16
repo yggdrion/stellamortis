@@ -13,3 +13,4 @@ rest = 1.6
 attacks = Array[StringName]([&"mob_shot"])
 shot_attack = &"mob_shot"
 bolt_slots = 2
+loot = &"archer"

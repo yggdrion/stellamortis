@@ -11,3 +11,4 @@ slot = 2
 stack = 1
 rarity = 0
 weight = 3.0
+model = "res://assets/quaternius/props/Shield_Wooden.gltf"

@@ -16,3 +16,4 @@ shove = 0.3
 stagger_time = 1.5
 rest = 1.0
 attacks = Array[StringName]([&"elite_cleave", &"elite_backhand", &"elite_slam"])
+loot = &"barrow_elite"

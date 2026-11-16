@@ -8,7 +8,7 @@ extends CanvasLayer
 const HINT := (
 	"Sword: LMB attack   Q heavy   RMB shield (just before a hit: parry)\n"
 	+ "Crossbow: RMB aim   hold LMB to draw, release to shoot\n"
-	+ "1 / 2 / wheel weapon   Ctrl / C roll   Shift sprint   Space jump\n"
+	+ "1 / 2 / wheel weapon   Ctrl / C roll   Shift sprint   Space jump   E pick up / open\n"
 	+ "Esc menu   F3 debug   F4 graphics"
 )
 const TEXT := Menus.PARCHMENT
@@ -21,6 +21,9 @@ var player: SimPlayer
 var room := ""
 ## Stays on screen while set (the connection to the server is silent).
 var warning := ""
+## What is in reach to pick up or open (ObjectsView), "" for nothing, in `prompt_color`.
+var prompt := ""
+var prompt_color := TEXT
 var _health: ProgressBar
 var _stamina: ProgressBar
 var _dead: Label
@@ -29,6 +32,7 @@ var _crosshair: Crosshair
 var _goal: Label
 var _room: Label
 var _notice: Label
+var _prompt: Label
 var _notice_left := 0.0
 var _warning: Label
 var _boss_bar: ProgressBar
@@ -105,6 +109,15 @@ func _ready() -> void:
 	_notice.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(_notice)
+	_prompt = Label.new()
+	_prompt.add_theme_font_size_override("font_size", 20)
+	_prompt.set_anchors_and_offsets_preset(
+		Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_MINSIZE, 190
+	)
+	_prompt.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_prompt.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	root.add_child(_prompt)
 	_warning = Label.new()
 	_warning.add_theme_font_size_override("font_size", 22)
 	_warning.add_theme_color_override("font_color", Color(0.9, 0.5, 0.38))
@@ -153,6 +166,8 @@ func _process(delta: float) -> void:
 		return
 	_notice_left = maxf(0.0, _notice_left - delta)
 	_notice.visible = _notice_left > 0.0
+	_prompt.text = prompt
+	_prompt.add_theme_color_override("font_color", prompt_color)
 	_warning.text = warning
 	_warning.visible = warning != ""
 	_room.text = "Room %s  (F2 copies it)" % room if room != "" else ""

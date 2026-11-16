@@ -1,3 +1,4 @@
+# gdlint: ignore=max-public-methods
 class_name Net
 extends Node
 ## Our own RPCs, at /root/Main/Net on server and client so they line up. Movement state and
@@ -19,13 +20,20 @@ signal cleared_camps_requested(peer_id: int, realm_id: String)
 signal cleared_camps_received(cleared: Dictionary)
 signal inventory_snapshot_received(data: Dictionary)
 signal inventory_changed_received(cells: Dictionary)
+signal pickup_requested(peer_id: int, object_id: int)
+signal open_object_requested(peer_id: int, object_id: int)
+signal objects_snapshot_received(all: Dictionary)
+signal object_added_received(id: int, data: Dictionary)
+signal object_removed_received(id: int, by: int)
+signal object_updated_received(id: int, data: Dictionary)
+signal item_toast_received(item_id: String, count: int)
 
 ## What a client asks of its inventory (inventory_intent). Append only.
 enum Op { MOVE, SPLIT, EQUIP, UNEQUIP, DROP, SORT, STORE_MATCHING }
 
 ## Bump on any change to the RPCs here or to what netfox synchronizes (SimPlayer.STATE,
 ## PlayerControls) or to what both sides simulate (Layout, Gravity, Tuning).
-const PROTOCOL_VERSION := 29
+const PROTOCOL_VERSION := 30
 
 @rpc("any_peer", "reliable")
 func hello(version: int, player_name: String) -> void:
@@ -108,3 +116,47 @@ func inventory_snapshot(data: Dictionary) -> void:
 @rpc("authority", "reliable")
 func inventory_changed(cells: Dictionary) -> void:
 	inventory_changed_received.emit(cells)
+
+
+## A client picks up the drop it points at (key E); the server checks the reach, adds to the
+## inventory (inventory_changed), removes the object and says item_toast.
+@rpc("any_peer", "reliable")
+func pickup(object_id: int) -> void:
+	pickup_requested.emit(multiplayer.get_remote_sender_id(), object_id)
+
+
+## A client opens the chest it points at (key E): the server checks the reach and that the
+## camp that guards it is clear, then the chest gives its loot as drops.
+@rpc("any_peer", "reliable")
+func open_object(object_id: int) -> void:
+	open_object_requested.emit(multiplayer.get_remote_sender_id(), object_id)
+
+
+## Every world object (WorldObjects.snapshot()), once after the player spawned.
+@rpc("authority", "reliable")
+func objects_snapshot(all: Dictionary) -> void:
+	objects_snapshot_received.emit(all)
+
+
+## A new world object (WorldObjects.Entry.to_net()); "from" is where its arc starts, only here.
+@rpc("authority", "reliable")
+func object_added(id: int, data: Dictionary) -> void:
+	object_added_received.emit(id, data)
+
+
+## An object is gone: `by` is the peer that took it, 0 when it expired.
+@rpc("authority", "reliable")
+func object_removed(id: int, by: int) -> void:
+	object_removed_received.emit(id, by)
+
+
+## An object changed (a chest opened, a drop's count).
+@rpc("authority", "reliable")
+func object_updated(id: int, data: Dictionary) -> void:
+	object_updated_received.emit(id, data)
+
+
+## What the own pickup gave: shown as "+2 Iron scrap".
+@rpc("authority", "reliable")
+func item_toast(item_id: String, count: int) -> void:
+	item_toast_received.emit(item_id, count)

@@ -10,7 +10,7 @@ extends Node
 
 ## Cells of a player's inventory that changed (GameServer sends them as Net.inventory_changed).
 signal changed(peer_id: int, cells: Dictionary)
-## A stack a player dropped (the world objects of M23 task 2 take it from here).
+## A stack a player dropped (Looting puts it on the ground in front of the player).
 signal dropped(peer_id: int, stack: Inventory.Stack)
 
 ## Intents a player may send per second; more are dropped.
@@ -35,6 +35,19 @@ func _ready() -> void:
 func add_peer(peer_id: int, inventory := Inventory.starting_kit()) -> void:
 	_inventories[peer_id] = inventory
 	_gear[peer_id] = _loadout_ints(inventory)
+
+
+## Adds items to a player's bag (a pickup); returns how many did not fit.
+func give(peer_id: int, id: StringName, count: int) -> int:
+	var inv: Inventory = _inventories.get(peer_id)
+	if inv == null:
+		return count
+	var before := inv.cell_dict()
+	var left := inv.add(id, count)
+	var delta := inv.changes_since(before)
+	if not delta.is_empty():
+		changed.emit(peer_id, delta)
+	return left
 
 
 func remove_peer(peer_id: int) -> void:

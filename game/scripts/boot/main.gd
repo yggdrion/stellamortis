@@ -7,6 +7,8 @@ extends Node
 ##                                  passes it on)
 ##     [--debug-map]                debug: answer every client's map request for cleared camps
 ##                                  (else only the host's; a solo client passes it on)
+##     [--debug-loot[=open]]        debug: a row of items ahead of each player; =open also opens
+##                                  the elite chests (a solo client passes it on)
 ##     [--encounter=boss]           debug: spawn inside the boss site's ring, the Warden rises
 ##                                  (a solo client passes it on)
 ##     [--seed=N] [--world=NAME]    the world's seed (random without) and name (solo and host
@@ -86,6 +88,9 @@ func _ready() -> void:
 			server.world_seed = int(_args["seed"])
 		server.world_name = _args.get("world", server.world_name)
 		server.spawn_at_boss = _args.get("encounter", "") == "boss"
+		server.debug_loot = _args.get("debug-loot", "") if _args.has("debug-loot") else ""
+		if _args.has("debug-loot") and server.debug_loot == "":
+			server.debug_loot = "pile"
 		server.lobby_url = _args.get("lobby", "")
 		server.room_file = _args.get("room-file", "")
 		add_child(server)
@@ -219,7 +224,7 @@ func _host(client: GameClient) -> void:
 ## Debug args a client passes on to the server it spawns.
 func _debug_args() -> PackedStringArray:
 	var passed := PackedStringArray()
-	for key: String in ["spawn", "encounter", "seed", "world", "debug-map"]:
+	for key: String in ["spawn", "encounter", "seed", "world", "debug-map", "debug-loot"]:
 		if _args.has(key):
 			passed.append("--%s=%s" % [key, _args[key]])
 	return passed

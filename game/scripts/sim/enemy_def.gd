@@ -49,6 +49,8 @@ enum Behavior { NONE, DUMMY, MELEE, RANGED, BOSS_WARDEN }
 @export var shot_attack: StringName = &""
 ## Bolt slots it needs (World gives a slot node that many).
 @export var bolt_slots := 0
+## The loot table (res://data/loot/<id>.tres) it drops when it dies, empty for nothing.
+@export var loot: StringName = &""
 ## Seconds it takes to rise when woken.
 @export var rise_time := 3.0
 ## Extra health per player beyond the first, as a share of `health` (bosses).

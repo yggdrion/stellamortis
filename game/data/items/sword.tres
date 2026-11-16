@@ -11,3 +11,4 @@ slot = 1
 stack = 1
 rarity = 0
 weight = 2.0
+model = "res://assets/quaternius/props/Sword_Bronze.gltf"

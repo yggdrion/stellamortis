@@ -197,3 +197,13 @@ General:
 Task 1 so far (items, inventory and worn gear on the server, `Net.PROTOCOL_VERSION` 29). There is no panel or loot yet, so nothing to see besides this; the real checks come with the loot and the panel (tasks 2 and 3).
 
 - [ ] Combat feels exactly as before M23: the starting kit (sword, wooden shield, crossbow, 20 bolts) has the old numbers (a light swing, a block, a full draw deal and stop what they did). Nothing about gear shows in the HUD yet.
+
+Task 2 (loot feel, `Net.PROTOCOL_VERSION` 30; `--debug-loot` drops a row of items ahead of you, `--debug-loot=open` also opens the elite chests):
+
+- [ ] Loot feel (the milestone's stated goal): kills burst into drops that fly out on an arc, land with a thud and glints, bob and turn; it is worth running for and the burst is satisfying, not noisy. Verdict, and what to change (arc height, glow size, sound, how many stacks per kill).
+- [ ] Rarity reads at a glance: white, green and blue glow on the ground, blue and up stand under a light beam you see from far away. Only rarity 0 to 2 items exist so far, so purple and gold are unchecked (the chest is the only gold).
+- [ ] E picks up the drop the prompt names (nearest within 2.5 m, the line above the notice); materials (hide, scrap, bone, ember) lean toward you and walk into the bag within 1.2 m; "+2 Iron scrap" toasts show; a full bag says "Bag full" and the item stays.
+- [ ] The elite camp's chest stands behind the camp, shut and gold-lit; E says "The guards still stand" until every member is dead, then it opens (lid, creak, embers) and bursts out 3 pieces of uncommon or better. It stays open afterwards.
+- [ ] The Warden's pile is generous (5 rolls, uncommon and better) and drops once, also when the fight is lost and retried.
+- [ ] Items you drop (task 3 panel, or the bot) lie 3 s before they can be taken again, so you do not pick them straight back up.
+- [ ] Drops on the ground, 31 chests and the bursts do not cost frame time or server tick time (F3) in a camp.

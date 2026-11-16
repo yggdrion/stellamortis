@@ -10,3 +10,4 @@ health = 90.0
 speed = 3.6
 stagger_time = 1.4
 attacks = Array[StringName]([&"mob_chop"])
+loot = &"swordsman"

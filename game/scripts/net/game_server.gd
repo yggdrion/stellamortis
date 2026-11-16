@@ -39,6 +39,9 @@ var world_name := "default"
 ## Debug: players spawn inside the ring of the first realm's boss site, so the Warden rises at
 ## once (--encounter=boss).
 var spawn_at_boss := false
+## Debug (--debug-loot): a row of items ahead of every joining player; "open" also opens the
+## chests after two seconds.
+var debug_loot := ""
 ## Opens a room in this lobby and takes players over WebRTC instead of ENet.
 var lobby_url := ""
 ## Where the room code goes once the room is open ("!reason" if it can't be), for the host's
@@ -50,6 +53,7 @@ var _rtc: WebRTCMultiplayerPeer
 
 var _world: World
 var _inventories: Inventories
+var _looting: Looting
 var _spawned := 0
 var _names := {}
 ## Peer ids whose client has built the world (Net.world_ready).
@@ -87,6 +91,40 @@ func start(port: int) -> void:
 		func(id: int, cells: Dictionary) -> void: net.inventory_changed.rpc_id(id, cells)
 	)
 	add_child(_inventories)
+	_looting = Looting.new()
+	_looting.world = _world
+	_looting.inventories = _inventories
+	_looting.added.connect(
+		func(object_id: int, data: Dictionary) -> void:
+			for id: int in _heard:
+				net.object_added.rpc_id(id, object_id, data)
+	)
+	_looting.removed.connect(
+		func(object_id: int, by: int) -> void:
+			for id: int in _heard:
+				net.object_removed.rpc_id(id, object_id, by)
+	)
+	_looting.updated.connect(
+		func(object_id: int, data: Dictionary) -> void:
+			for id: int in _heard:
+				net.object_updated.rpc_id(id, object_id, data)
+	)
+	_looting.toast.connect(
+		func(id: int, item: StringName, count: int) -> void:
+			net.item_toast.rpc_id(id, String(item), count)
+	)
+	_looting.notice.connect(func(id: int, text: String) -> void: net.notice.rpc_id(id, text))
+	add_child(_looting)
+	net.pickup_requested.connect(
+		func(id: int, object_id: int) -> void:
+			if _heard.has(id):
+				_looting.pickup(id, object_id)
+	)
+	net.open_object_requested.connect(
+		func(id: int, object_id: int) -> void:
+			if _heard.has(id):
+				_looting.open(id, object_id)
+	)
 	if lobby_url != "":
 		_rtc = WebRTCMultiplayerPeer.new()
 		var rtc_err := _rtc.create_server()
@@ -266,8 +304,14 @@ func _on_hello(id: int, version: int, player_name: String) -> void:
 	_inventories.add_peer(id)
 	_world.spawn_player(id, _names[id], at)
 	net.inventory_snapshot.rpc_id(id, _inventories.snapshot(id))
+	net.objects_snapshot.rpc_id(id, _looting.snapshot())
 	_heard[id] = Time.get_ticks_msec()
 	print("%s joined (%d)" % [_names[id], id])
+	if debug_loot != "":
+		var body := _world.player(id)
+		_looting.debug_pile(body.global_position, body.up, SimPlayer._tangent(body.facing, body.up))
+		if debug_loot == "open":
+			get_tree().create_timer(2.0).timeout.connect(_looting.debug_open_chests)
 	_tell_others(id, "%s joined" % _names[id])
 
 

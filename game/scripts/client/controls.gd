@@ -19,6 +19,7 @@ const KEYS := {
 	&"toggle_fullscreen": [KEY_F11],
 	&"pause": [KEY_ESCAPE],
 	&"map": [KEY_M],
+	&"interact": [KEY_E],
 }
 const MOUSE := {
 	&"attack": [MOUSE_BUTTON_LEFT],

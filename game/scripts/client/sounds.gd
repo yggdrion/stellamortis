@@ -46,6 +46,9 @@ static var library := {
 	&"portal": [SYNTH + "portal_hum.wav"],
 	&"well": [SYNTH + "well.wav"],
 	&"torch": [SYNTH + "torch.wav"],
+	&"loot_drop": _numbered(KENNEY + "impactWood_light_%03d.ogg", 3),
+	&"loot_pickup": [KENNEY + "confirmation_001.ogg"],
+	&"chest_open": [KENNEY + "creak1.ogg"],
 	&"wind_barrows": [SYNTH + "wind_barrows.wav"],
 }
 static var _streams := {}

@@ -5,14 +5,16 @@ extends CanvasLayer
 ## starts it stays on top and shows the step (joining()), so a failed join (a wrong room code)
 ## comes back here with the reason and never shows the world.
 
-## mode: "solo", "host" or "join" (code set for join).
-signal chosen(mode: String, code: String)
+## mode: "solo", "host" or "join" (code set for join); for solo and host the world's name and
+## the seed of a new one ("" otherwise).
+signal chosen(mode: String, code: String, world_name: String, seed_text: String)
 ## Cancel (or Esc) while joining.
 signal cancelled
 
 var message := ""
 var _main: VBoxContainer
 var _settings: SettingsPanel
+var _worlds: WorldList
 var _name: LineEdit
 var _code: LineEdit
 var _joining: VBoxContainer
@@ -41,8 +43,7 @@ func _ready() -> void:
 	_name.text_changed.connect(_on_name)
 	_main.add_child(Menus.row("Name", _name))
 
-	_main.add_child(Menus.button("Solo", func() -> void: chosen.emit("solo", "")))
-	_main.add_child(Menus.button("Host", func() -> void: chosen.emit("host", "")))
+	_main.add_child(Menus.button("Play", _show_worlds.bind(true)))
 	_code = LineEdit.new()
 	_code.placeholder_text = "Room code"
 	_code.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -58,6 +59,15 @@ func _ready() -> void:
 	_settings.visible = false
 	_settings.closed.connect(_show_settings.bind(false))
 	column.add_child(_settings)
+
+	_worlds = WorldList.new()
+	_worlds.visible = false
+	_worlds.closed.connect(_show_worlds.bind(false))
+	_worlds.chosen.connect(
+		func(mode: String, world_name: String, seed_text: String) -> void:
+			chosen.emit(mode, "", world_name, seed_text)
+	)
+	column.add_child(_worlds)
 
 	_joining = VBoxContainer.new()
 	_joining.add_theme_constant_override("separation", 10)
@@ -75,6 +85,7 @@ func joining(text: String) -> void:
 	_status.text = text
 	_main.visible = false
 	_settings.visible = false
+	_worlds.visible = false
 	_joining.visible = true
 
 
@@ -87,7 +98,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _join() -> void:
 	var code := _code.text.strip_edges().to_upper()
 	if code != "":
-		chosen.emit("join", code)
+		chosen.emit("join", code, "", "")
 
 
 func _on_name(text: String) -> void:
@@ -98,3 +109,15 @@ func _on_name(text: String) -> void:
 func _show_settings(shown: bool) -> void:
 	_settings.visible = shown
 	_main.visible = not shown
+
+
+## Opens the world list (screenshots).
+func show_worlds() -> void:
+	_show_worlds(true)
+
+
+func _show_worlds(shown: bool) -> void:
+	_worlds.visible = shown
+	_main.visible = not shown
+	if shown:
+		_worlds.refresh()

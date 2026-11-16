@@ -2,7 +2,7 @@
 
 The user plays several built milestones at once and gives all feedback in one round (decided 2026-11-14). Every task adds here what only a person playing can judge: feel, look, sound, numbers, anything not caught by tests or screenshots. Tick items off or write the verdict next to them during the play-test; settled items move out (fixes go into the next milestone, decisions into `docs/PLAN.md` §8).
 
-How to start: the latest release from GitHub, or `python tools/dev.py` from a checkout. Solo is the main menu's Solo; since M34 you start on the Barrowlands, the old realm's mobs are through the "To the old barrow" gate behind the spawn. Two players: host from the menu and join with the room code.
+How to start: the latest release from GitHub, or `python tools/dev.py` from a checkout. Solo is the main menu's Play (Solo); since M34 you start on the Barrowlands, the old realm's mobs are through the "To the old barrow" gate behind the spawn. Two players: host from the menu and join with the room code.
 
 ## M16 Frame pacing
 
@@ -228,3 +228,11 @@ Task 4 (saves and graves, `Net.PROTOCOL_VERSION` 32; `--world=NAME` keeps the wo
 - [ ] Death leaves a grave where you fell with your whole bag in it (gear stays on you); E at the grave (within 3 m) gives it all back, "Bag full" keeps what does not fit. Someone else gets "Not your grave" for 10 minutes, then can take it. Die twice: two graves, nothing lost. Check that the grave is easy to see and find.
 - [ ] A grave survives a restart of the world, and is still yours after a restart of the game (the player ID is in the character file).
 
+Task 5 (world list; the main menu's Play replaces Solo and Host):
+
+- [ ] Play opens the world list. With no worlds it says so; New world with a name and an empty seed starts a solo game, and the next start lists that world with its seed, size and "just now".
+- [ ] A name with spaces or symbols becomes a clean file name (`My World!` is `my_world_`); a seed field with letters is refused with a note; a seed you type gives that world (compare with `--seed`).
+- [ ] Continue starts the most recently saved world; Play on a row starts that one. "Play as" Host opens a room for it, a friend joins by code and is never asked for a world.
+- [ ] Delete asks first and names the world; afterwards it says whether the files went to the trash (check the Recycle Bin) or were removed. Keep it cancels.
+- [ ] Put garbage in a file under `user://worlds/` (`%APPDATA%/Godot/app_userdata/...`): it shows as "unreadable" with Delete only, and nothing renames it.
+- [ ] Say if the world list is clear enough, or if a world needs more on its row (last boss, play time).

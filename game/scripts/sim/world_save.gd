@@ -76,3 +76,62 @@ static func seconds_of(data: Dictionary) -> float:
 	if (seconds is int or seconds is float) and is_finite(float(seconds)):
 		return maxf(float(seconds), 0.0)
 	return 0.0
+
+
+## The world files in `folder`, newest save first: {name, seed, size, mtime, flags, readable}.
+## Reads only: a broken file is listed as unreadable, not set aside.
+static func list(folder := FOLDER) -> Array[Dictionary]:
+	var found: Array[Dictionary] = []
+	for file in DirAccess.get_files_at(folder):
+		if file.get_extension() != "json":
+			continue
+		var file_path := folder + file
+		var entry := {
+			"name": file.get_basename(),
+			"seed": 0,
+			"size": _size(file_path),
+			"mtime": FileAccess.get_modified_time(file_path),
+			"flags": [],
+			"readable": false,
+		}
+		var json := JSON.new()
+		if json.parse(FileAccess.get_file_as_string(file_path)) == OK and json.data is Dictionary:
+			var data: Dictionary = json.data
+			var version: Variant = data.get("version")
+			var seed_value: Variant = data.get("seed")
+			if (
+				(version is int or version is float)
+				and int(version) >= 1
+				and int(version) <= VERSION
+				and (seed_value is int or seed_value is float)
+			):
+				entry["readable"] = true
+				entry["seed"] = int(seed_value)
+				var flags: Variant = data.get("flags")
+				if flags is Array:
+					entry["flags"] = (flags as Array).filter(
+						func(f: Variant) -> bool: return f is String
+					)
+		found.append(entry)
+	found.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["mtime"] > b["mtime"])
+	return found
+
+
+## Deletes a world's files: to the OS trash when that works ("trash"), else for good ("removed").
+## "" when there was nothing to delete.
+static func remove(world_name: String, folder := FOLDER, to_trash := true) -> String:
+	var file_path := folder + SaveFile.clean(world_name, "world") + ".json"
+	if not FileAccess.file_exists(file_path):
+		return ""
+	var how := "removed"
+	if to_trash and OS.move_to_trash(ProjectSettings.globalize_path(file_path)) == OK:
+		how = "trash"
+	DirAccess.remove_absolute(file_path)
+	for extra in [".bak", ".tmp"]:
+		DirAccess.remove_absolute(file_path + extra)
+	return how
+
+
+static func _size(file_path: String) -> int:
+	var file := FileAccess.open(file_path, FileAccess.READ)
+	return file.get_length() if file != null else 0

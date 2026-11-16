@@ -1,6 +1,6 @@
 # M23 Inventory, loot and saves
 
-Status: planned.
+Status: built (2026-11-16, v0.24.0), play-test pending (`docs/PLAYTEST.md`).
 
 ## Goal
 

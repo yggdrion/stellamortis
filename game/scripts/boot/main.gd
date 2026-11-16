@@ -43,6 +43,8 @@ extends Node
 ##                                  default 600; for screenshots)
 ##   --inventory[=CELL]             open the inventory panel a second after the start, the
 ##                                  cursor on CELL (default 0; for screenshots)
+##   --menu-shot=PATH [--worlds]    save a PNG of the main menu (with --worlds: of the world list)
+##                                  after a second, then quit (for screenshots)
 ##   --show-collision               draw the collision shapes (debug; the ground too)
 ##   --look=YAW,PITCH               start the camera there (degrees, yaw 0 looks along -Z)
 ##   --bench=N                      time N simulated players and the enemies per tick, then quit
@@ -62,6 +64,8 @@ var _args := {}
 var _server_pid := 0
 var _client: GameClient
 var _menu: MainMenu
+## `--world`/`--seed` of the world picked in the menu, for the spawned server.
+var _menu_world := PackedStringArray()
 ## Discord Rich Presence, for players only (not bots, servers or screenshots).
 var _presence: Presence
 
@@ -122,6 +126,12 @@ func _ready() -> void:
 			_start(_direct_mode())
 			return
 	_show_menu("")
+	if _args.has("menu-shot"):
+		if _args.has("worlds"):
+			_menu.show_worlds()
+		await get_tree().create_timer(1.0).timeout
+		get_viewport().get_texture().get_image().save_png(_args["menu-shot"])
+		get_tree().quit()
 
 
 ## The mode the command line asks for.
@@ -147,8 +157,14 @@ func _close_menu() -> void:
 		_menu = null
 
 
-## Starts a game: "solo", "host", "join" (code from the menu or --join) or "connect".
-func _start(mode: String, code := "") -> void:
+## Starts a game: "solo", "host", "join" (code from the menu or --join) or "connect". From the
+## menu, solo and host come with the world picked (and the seed of a new one).
+func _start(mode: String, code := "", world_name := "", seed_text := "") -> void:
+	_menu_world = PackedStringArray()
+	if world_name != "":
+		_menu_world.append("--world=" + world_name)
+		if seed_text != "":
+			_menu_world.append("--seed=" + seed_text)
 	var client := GameClient.new()
 	client.net = _net
 	client.bot = _args.has("bot")
@@ -236,6 +252,13 @@ func _debug_args() -> PackedStringArray:
 	]:
 		if _args.has(key):
 			passed.append("--%s=%s" % [key, _args[key]])
+	if not _menu_world.is_empty():
+		var kept := PackedStringArray()
+		for arg in passed:
+			if not (arg.begins_with("--world=") or arg.begins_with("--seed=")):
+				kept.append(arg)
+		kept.append_array(_menu_world)
+		passed = kept
 	return passed
 
 

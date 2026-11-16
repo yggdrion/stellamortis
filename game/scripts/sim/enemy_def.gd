@@ -22,6 +22,12 @@ enum Behavior { NONE, DUMMY, MELEE, RANGED, BOSS_WARDEN }
 @export var flinches := true
 ## Share of an attack's knockback it takes (heavy bodies slide less).
 @export var shove := 1.0
+## Frontal guard: hits from inside this arc (degrees, 0 = none; centered on its facing) deal
+## `guard_damage` of their damage, with no knockback or flinch, unless it is striking,
+## recovering, staggered or flinching. An idle guard plays GUARD for `guard_react` seconds.
+@export var guard_arc := 0.0
+@export var guard_damage := 0.2
+@export var guard_react := 0.25
 ## Damage multiplier for hits while staggered by a parry.
 @export var riposte := 2.5
 @export var stagger_time := 1.5

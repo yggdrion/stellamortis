@@ -8,7 +8,7 @@ extends CharacterBody3D
 ## so a slot can change kind at runtime. Every enemy exists on every peer from the start (netfox
 ## finds them by path); the encounter hides, wakes and resets them.
 
-enum Action { IDLE, WINDUP, STRIKE, RECOVER, STAGGER, DOWN, HIDDEN, RISE, FLINCH }
+enum Action { IDLE, WINDUP, STRIKE, RECOVER, STAGGER, DOWN, HIDDEN, RISE, FLINCH, GUARD }
 
 const HEIGHT := 1.8
 const RADIUS := 0.5
@@ -33,6 +33,7 @@ const STATE := [
 	"combo",
 	"velocity",
 	"attack",
+	"leap_to",
 	"bolt_pos",
 	"bolt_vel",
 	"bolt_life",
@@ -85,6 +86,8 @@ var well_time := 0
 var combo := 0
 ## Which of the kind's attacks (def.attacks) runs.
 var attack := 0
+## Where the running leap lands (ZERO: none; chosen when the attack begins).
+var leap_to := Vector3.ZERO
 var bolt_pos := PackedVector3Array()
 var bolt_vel := PackedVector3Array()
 ## Ticks left in flight, 0 for a free slot.
@@ -157,11 +160,14 @@ func bolt_slots() -> int:
 ## The fields of STATE besides the bolts, written by hand because netfox reads and sets every
 ## awake slot on every resimulated tick: action, kind, attack and parried as bytes, seven vectors
 ## (the basis' three axes, the origin, up, facing, velocity) as 32 bit floats, health and
-## max_health, then action_time, quiet_time, flinch_time, well_time and combo as varuints.
+## max_health, then action_time, quiet_time, flinch_time, well_time and combo as varuints, then
+## leap_to (12 bytes) only while a leap runs (bit 1 of the parried byte).
 ## A field added to STATE must be added here (tests/wire_test.gd fails otherwise).
 func _pack_state() -> PackedByteArray:
 	var at := transform
-	var bytes := PackedByteArray([action, kind, attack, 1 if parried else 0])
+	var leaping := leap_to != Vector3.ZERO
+	var flags := (1 if parried else 0) | (2 if leaping else 0)
+	var bytes := PackedByteArray([action, kind, attack, flags])
 	var vectors := PackedVector3Array(
 		[at.basis.x, at.basis.y, at.basis.z, at.origin, up, facing, velocity]
 	)
@@ -173,6 +179,8 @@ func _pack_state() -> PackedByteArray:
 			bytes.append((rest & 127) | 128)
 			rest >>= 7
 		bytes.append(rest)
+	if leaping:
+		bytes.append_array(PackedVector3Array([leap_to]).to_byte_array())
 	return bytes
 
 
@@ -182,7 +190,7 @@ func _unpack_state(bytes: PackedByteArray) -> int:
 		kind = bytes[1]
 	action = bytes[0] as Action
 	attack = bytes[2]
-	parried = bytes[3] != 0
+	parried = bytes[3] & 1 != 0
 	var vectors := bytes.slice(4, 88).to_vector3_array()
 	transform = Transform3D(Basis(vectors[0], vectors[1], vectors[2]), vectors[3])
 	up = vectors[4]
@@ -206,6 +214,10 @@ func _unpack_state(bytes: PackedByteArray) -> int:
 	flinch_time = counters[2]
 	well_time = counters[3]
 	combo = counters[4]
+	leap_to = Vector3.ZERO
+	if bytes[3] & 2:
+		leap_to = bytes.slice(at, at + 12).to_vector3_array()[0]
+		at += 12
 	return at
 
 
@@ -317,11 +329,18 @@ func take_hit(amount: float, from: Vector3, knockback := 0.0, flinch := 0.0) -> 
 		return 0.0
 	if action == Action.STAGGER and parried:
 		amount *= def.riposte
+	var guarded := _guards(from)
+	if guarded:
+		amount *= def.guard_damage
 	health -= amount
 	quiet_time = 0
 	if health <= 0.0:
 		health = 0.0
 		_set_action(Action.DOWN)
+		return amount
+	if guarded:
+		if action == Action.IDLE:
+			_set_action(Action.GUARD)
 		return amount
 	velocity += SimPlayer._tangent(global_position - from, up) * knockback * def.shove
 	var busy := action == Action.WINDUP or action == Action.STRIKE or action == Action.RECOVER
@@ -334,6 +353,23 @@ func take_hit(amount: float, from: Vector3, knockback := 0.0, flinch := 0.0) -> 
 		_set_action(Action.FLINCH)
 		flinch_time = Combat.ticks(flinch)
 	return amount
+
+
+## Whether a hit from this point lands on its raised guard: inside guard_arc ahead of it, while
+## idle or winding up (striking, recovering, staggered, flinching and rising are open).
+func _guards(from: Vector3) -> bool:
+	if def.guard_arc <= 0.0:
+		return false
+	if action != Action.IDLE and action != Action.GUARD and action != Action.WINDUP:
+		return false
+	var to := SimPlayer._tangent(from - global_position, up)
+	return to != Vector3.ZERO and facing.angle_to(to) <= deg_to_rad(def.guard_arc) / 2.0
+
+
+## GUARD counts down, then it is idle again.
+func _end_guard() -> void:
+	if action_time >= Combat.ticks(def.guard_react):
+		_set_action(Action.IDLE)
 
 
 ## FLINCH counts down, then it is idle again.
@@ -370,6 +406,7 @@ func reset(start: Action) -> void:
 	max_health = def.health
 	health = max_health
 	attack = 0
+	leap_to = Vector3.ZERO
 	quiet_time = 0
 	well_time = 0
 	combo = 0
@@ -446,7 +483,11 @@ func _advance_attack() -> bool:
 				_on_strike(swing)
 		Action.STRIKE:
 			if action_time >= Combat.ticks(swing.active):
-				_set_action(Action.RECOVER)
+				var follow := def.attacks.find(swing.next) if swing.next != &"" else -1
+				if follow >= 0 and alive():
+					_start_attack(follow)
+				else:
+					_set_action(Action.RECOVER)
 		Action.RECOVER:
 			if action_time >= Combat.ticks(swing.recover):
 				_set_action(Action.IDLE)
@@ -456,9 +497,35 @@ func _advance_attack() -> bool:
 	return true
 
 
+## Begins an attack; a leap commits to where the nearest player stands now, at most
+## AttackDef.leap metres away along the ground.
 func _start_attack(which: int) -> void:
 	attack = which
 	_set_action(Action.WINDUP)
+	leap_to = Vector3.ZERO
+	var reach := attack_def().leap
+	var target := nearest_player(60.0) if reach > 0.0 else null
+	if target:
+		var to := _along_ground(target.global_position - global_position)
+		if to.length() > 0.01:
+			facing = to.normalized()
+			leap_to = global_position + to.limit_length(reach)
+
+
+## A leap is running (its windup).
+func _leaping() -> bool:
+	return action == Action.WINDUP and leap_to != Vector3.ZERO
+
+
+## The ground speed that lands at leap_to on the windup's last tick, from where it is now.
+func _leap_velocity(delta: float) -> Vector3:
+	var left := maxi(1, windup_ticks() - action_time + 1)
+	return _along_ground(leap_to - global_position) / (left * delta)
+
+
+## A vector without its part along up (SimPlayer._tangent also normalizes).
+func _along_ground(v: Vector3) -> Vector3:
+	return v - up * v.dot(up)
 
 
 ## The strike begins: the well opens, ranged attacks fire (melee ones are checked by the
@@ -563,7 +630,13 @@ func _walk(wish: Vector3, speed: float, delta: float) -> void:
 	_follow_gravity(gravity, delta)
 	var vertical := up * velocity.dot(up)
 	var horizontal := velocity - vertical
-	horizontal = horizontal.move_toward(wish * speed, 30.0 * delta)
+	if _leaping():
+		horizontal = _leap_velocity(delta)
+		if action_time == 1:
+			# A hop that comes down as the windup ends: half the windup rising, half falling.
+			vertical = up * (gravity.length() * attack_def().windup / 2.0)
+	else:
+		horizontal = horizontal.move_toward(wish * speed, 30.0 * delta)
 	vertical += gravity * delta
 	velocity = horizontal + vertical
 	up_direction = up

@@ -26,6 +26,8 @@ static func tick(enemy: Enemy, delta: float) -> void:
 			enemy._set_action(Enemy.Action.IDLE)
 	elif enemy.action == Enemy.Action.FLINCH:
 		enemy._end_flinch()
+	elif enemy.action == Enemy.Action.GUARD:
+		enemy._end_guard()
 	elif target:
 		wish = _engage(enemy, target, ranged, delta)
 	elif enemy.global_position.distance_to(enemy.home.origin) > 1.0:

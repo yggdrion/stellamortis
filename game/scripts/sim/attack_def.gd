@@ -16,7 +16,12 @@ extends Resource
 @export var lunge := 2.0
 ## Whether a well-timed block (parry) can stagger the attacker.
 @export var parryable := true
-## Next attack in the combo when attack is pressed again during recover; empty ends it.
+## Enemies: it leaps up to this many metres (along the ground) toward where its target stood when
+## the attack began, landing the hit area as the windup ends; 0 = no leap.
+@export var leap := 0.0
+## Players: next attack in the combo when attack is pressed again during recover. Enemies: the
+## attack (an id in the kind's attacks) that follows the strike at once, without recovery. Empty
+## ends it.
 @export var next: StringName = &""
 ## Enemies: where the hit area is centered, metres ahead of the attacker's center (a slam lands
 ## in front of the boss), and how many bolts the strike fires instead of hitting (0: melee).

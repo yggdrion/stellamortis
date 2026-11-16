@@ -71,6 +71,7 @@ static func _fill() -> void:
 		"ref_forward": vec,
 		"facing": vec,
 		"action_dir": vec,
+		"leap_to": vec,
 		"grounded": NetworkSchemas.bool8(),
 		"parried": NetworkSchemas.bool8(),
 		"occupied": NetworkSchemas.bool8(),

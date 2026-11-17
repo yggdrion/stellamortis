@@ -51,6 +51,10 @@ extends Node
 ##   --gallery[=ID]                 no game: every generated model kind (or the one named) on flat
 ##                                  ground, variants left to right, levels of detail front to
 ##                                  back (with --screenshot, --look, --graphics, --delay)
+##   --gallery-stress=N [--seconds=S] the gallery's cost mode: N instances per kind through
+##                                  MultiMesh at each level, build and commit times, frame
+##                                  times per test (S seconds each); quits when --seconds or
+##                                  --screenshot is given
 ##   --show-collision               draw the collision shapes (debug; the ground too)
 ##   --look=YAW,PITCH               start the camera there (degrees, yaw 0 looks along -Z)
 ##   --bench=N                      time N simulated players and the enemies per tick, then quit
@@ -113,7 +117,8 @@ func _ready() -> void:
 		return
 	Controls.setup()
 	get_tree().debug_collisions_hint = _args.has("show-collision")
-	if not _args.has("bot") and not _args.has("screenshot") and not _args.has("gallery"):
+	var gallery := _args.has("gallery") or _args.has("gallery-stress")
+	if not _args.has("bot") and not _args.has("screenshot") and not gallery:
 		_presence = Presence.new()
 		add_child(_presence)
 	Settings.load_saved()
@@ -127,7 +132,7 @@ func _ready() -> void:
 		Settings.apply_pacing()
 	if not _args.has("windowed") and not _args.has("bot") and not OS.is_debug_build():
 		Settings.apply_window(get_window())
-	if _args.has("gallery"):
+	if gallery:
 		_show_gallery()
 		return
 	for flag: String in DIRECT:
@@ -145,7 +150,10 @@ func _ready() -> void:
 
 func _show_gallery() -> void:
 	var gallery := Gallery.new()
-	gallery.only = _args["gallery"]
+	gallery.only = _args.get("gallery", "")
+	gallery.stress = int(_args.get("gallery-stress", "0"))
+	gallery.seconds = float(_args.get("seconds", "2"))
+	gallery.quit_when_done = _args.has("seconds") or _args.has("screenshot")
 	gallery.graphics = _args.get("graphics", "")
 	gallery.screenshot_path = _args.get("screenshot", "")
 	gallery.screenshot_delay = float(_args.get("delay", "2"))

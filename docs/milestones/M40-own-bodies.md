@@ -45,7 +45,7 @@ New animations (UAL stays). Faces that move. Beasts and animals (M67 and the rea
 
 - The clips are retargeted by bone name and rest pose. A body whose rest pose differs from the UAL mannequin's bends wrong in every clip: import the armature, never rebuild it.
 - `_pin_root` strips root motion; a new body with a different root or hip bone brings the snap-back bug back.
-- Hit stop, burn-away (`CharacterModel.dissolve`, `shaders/burn_away.gdshader`) and freezing act on the model's materials: the flat shader must carry the burn-away uniforms (M36 leaves the hook).
+- Hit stop, burn-away (`CharacterModel.dissolve`, `shaders/burn_away.gdshader`) and freezing act on the model's materials: a dying model uses `MeshKit.burn_material()` (`shaders/flat_burn.gdshader`, one per model; M36 task 3 split it from the plain flat shader because the discard costs GPU time).
 - New `MeshInstance3D`s under a skeleton need `skeleton = ".."`.
 - Blender versions change the exporter: pin the version in the script and in `docs/RESOURCES.md`.
 - This milestone is the block's risk. The spike exists so the risk is paid first and cheaply.

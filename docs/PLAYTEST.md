@@ -252,6 +252,11 @@ Task 2 (gallery: `python tools/godot.py -- --gallery`, or `--gallery=rock` / `--
 - [ ] Next to the 1.8 m figure a rock is knee to hip high and a young pine about 3 to 5 m: right for the Barrowlands?
 - [ ] The dusk light: shadow sides still readable, faces not black; is the facet size right (visible, not noisy)?
 
+Task 3 (cost: `python tools/godot.py -- --gallery-stress=5000 --seconds=3 --graphics=low`, then `medium`, `high`; prints `STRESS` lines; without `--seconds` it keeps running and shows the last test):
+
+- [ ] On your machine (and on the GTX 1050 Ti if you can): the `STRESS` lines for Low, Medium and High. Send the pine full line (`frame_avg`, `gpu`) and the grass full line (20000 tufts); in the numbers I measured on an RTX 4080 they were 0.8 to 1.0 ms and 0.7 to 0.9 ms. On the 1050 Ti above about 12 ms for 5000 pines at full detail means the budgets need cutting before M37.
+- [ ] Look at the stress scene (`--gallery-stress=5000`, no `--seconds`): 5000 pines in a field, flat-shaded and colored, no flicker, no shimmering shadows; the grass and rock tests after it look like their gallery selves (the scene steps through all tests, about 40 s at 3 s each).
+
 ## M24 Bot play-tests
 
 Task 1 (bot brain and skills):

@@ -83,6 +83,10 @@ named, stands on flat ground under dusk light, variants left to right, levels of
 half, far) front to back, a 1.8 m figure for scale. It takes `--screenshot=PATH`, `--delay=S`,
 `--look=YAW,PITCH` and `--graphics=PRESET`; Esc quits. Example:
 `python tools/godot.py -- --gallery --screenshot=build/gallery.png`.
+`--gallery-stress=N [--seconds=S]` is its cost mode: build and commit times per kind, then N
+instances per kind (4 N grass tufts) at each level through `MultiMesh`, printing average and worst
+frame ms and the renderer's CPU and GPU ms per test (`STRESS` lines), uncapped; it quits when
+`--seconds` or `--screenshot` is given.
 
 ## Release
 

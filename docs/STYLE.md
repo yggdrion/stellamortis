@@ -2,7 +2,7 @@
 
 The one rule set for every model in the game (decided 2026-11-17, `docs/PLAN.md` §3.2). Read it before any visual task. A model that breaks a rule here is not done, however good it looks alone: the point is that everything looks made by one hand.
 
-The numbers below are starting values. M36 puts them into `game/data/style/budgets.tres` and the palette resources and tunes them on the GTX 1050 Ti presets; when a number changes there, change it here in the same commit. Tests (`tests/meshgen_test.gd`) fail when a generator breaks a budget, uses a color outside its palette or is not deterministic.
+The numbers below are starting values. M36 puts them into `game/data/style/budgets.tres` and the palette resources and tuned them with the stress scene (measured on an RTX 4080; the GTX 1050 Ti is for the user to run, `docs/PLAYTEST.md`); when a number changes there, change it here in the same commit. Tests (`tests/meshgen_test.gd`) fail when a generator breaks a budget, uses a color outside its palette or is not deterministic.
 
 ## 1. The look in one paragraph
 
@@ -10,7 +10,7 @@ Flat-shaded, faceted, mid poly. Every face has one color and one normal. No text
 
 ## 2. Shading
 
-- One material for everything: `shaders/flat.gdshader`. No `StandardMaterial3D` on generated models, no per-model shader.
+- One material for everything: `shaders/flat.gdshader` (`MeshKit.material()`). A model that burns away on death uses its copy `shaders/flat_burn.gdshader` (`MeshKit.burn_material()`, one per model): the discard costs 5 to 9 % GPU time, so no other model carries it. No `StandardMaterial3D` on generated models, no other shader.
 - Flat normals through unshared vertices (`MeshKit` does this; never call a smooth normal generator).
 - Color is vertex color only. Roughness is one value per palette role, carried in the vertex color's alpha; no metal look except role `iron` and `steel`.
 - Glow (emission) only for meaning: embers, torch flame, portals, telegraphs (§3.2). Never as decoration.
@@ -66,6 +66,8 @@ Per model, three levels of detail. Full within 40 m, half to 120 m, far beyond (
 | A whole dressed character | 6000 | 2500 | 800 |
 
 The far level keeps the silhouette and the main color masses and nothing else.
+
+Measured cost (M36 task 3, `--gallery-stress`, `docs/PLAN.md` §8): drawing costs a fixed 0.25 ms plus about 0.35 ms GPU per million triangles in view on an RTX 4080, per frame, shadows on; the table above held, nothing was changed. Rule for scatter: triangles in view per frame stay under 1.5 million on Low and 2.5 million on Ultra (counted by the M37 view, `docs/milestones/M37-generated-terrain-scatter.md`); the instance counts per level there keep it.
 
 ## 6. Shape rules
 

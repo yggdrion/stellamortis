@@ -58,6 +58,13 @@ static func material() -> ShaderMaterial:
 	return _material
 
 
+## The material of a model that burns away on death (one per model: `burn_amount`). Main thread.
+static func burn_material() -> ShaderMaterial:
+	var material := ShaderMaterial.new()
+	material.shader = load("res://shaders/flat_burn.gdshader")
+	return material
+
+
 ## Joins parts (arrays from the helpers) into one mesh arrays. Worker safe.
 static func merge(parts: Array) -> Array:
 	var verts := PackedVector3Array()

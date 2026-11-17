@@ -266,6 +266,13 @@ Task 2 (tree generators: `python tools/godot.py -- --gallery=pine`, also `spruce
 - [ ] The three levels keep silhouette and size; the far level is cruder, not another tree. No floating limbs, no dark flipped faces.
 - [ ] Dusk light: leaf and needle colors read as green and muted, not brown or black (the gallery light is warm).
 
+Task 3 (rock, stone and cover generators: `python tools/godot.py -- --gallery=rock`, also `boulder`, `outcrop`, `standing_stone`, `mound`, `grass`, `fern`, `heather`, `bush`, `log`, `stump`, `pebble`):
+
+- [ ] Rocks, boulders and outcrops read as chipped, flattened, sunk stone of the right size beside the 1.8 m figure (rock about 1.2 m, boulder 3 m, outcrop 8 m); the outcrop is a ridge of lumps, not a ball.
+- [ ] Standing stones are 4 m slabs that narrow upward and lean a little; mounds are low turf domes with kerb stones.
+- [ ] Cover reads as grass, fern, heather, bush, log and stump at 2 to 5 m (tiny in the gallery shot: judge in the world once task 4 lands); blades and fronds are one sided, so check none vanish from behind.
+- [ ] Moor, fringe and wood get different cover (heather on the moor, ferns in the wood); none stands on the spawn ring or the 30 m arrival clearing, nor inside a trunk or rock.
+
 ## M24 Bot play-tests
 
 Task 1 (bot brain and skills):

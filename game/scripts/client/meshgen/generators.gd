@@ -99,7 +99,18 @@ static func _ensure() -> void:
 
 
 static func _builtins() -> void:
-	register("rock", "rock", RockKind.build)
+	for id in ["rock", "boulder", "outcrop"]:
+		register(id, id, RockKind.build.bind(id))
+	register("standing_stone", "standing_stone", StandingStoneKind.build)
+	register("mound", "standing_stone", MoundKind.build)
+	for id in ["grass_tuft", "grass_tall"]:
+		register(id, "grass_tuft", GrassKind.build.bind(id))
+	register("fern", "fern_heather_bush", FernKind.build)
+	register("heather", "fern_heather_bush", HeatherKind.build)
+	register("bush", "fern_heather_bush", BushKind.build)
+	for id in ["log", "stump"]:
+		register(id, "log_stump", LogKind.build.bind(id))
+	register("pebble", "pebble", PebbleKind.build)
 	TreeKit.register_all("pine", PineKind.build)
 	TreeKit.register_all("spruce", SpruceKind.build)
 	TreeKit.register_all("birch", BirchKind.build)

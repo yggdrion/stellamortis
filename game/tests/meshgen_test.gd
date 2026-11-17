@@ -184,6 +184,28 @@ func test_every_generator_keeps_the_budgets() -> void:
 					assert_int(tris).is_between(1, limit)
 
 
+## The solid stone kinds stay inside their `ScatterShape` (a tenth of slack).
+func test_stone_kinds_fit_their_scatter_shape() -> void:
+	var palette := Palette.of("barrowlands")
+	var kinds := {
+		"rock": Scatter.Kind.ROCK,
+		"boulder": Scatter.Kind.BOULDER,
+		"outcrop": Scatter.Kind.OUTCROP,
+		"standing_stone": Scatter.Kind.STANDING_STONE,
+	}
+	for id: String in kinds:
+		var shape := ScatterShape.of_kind(kinds[id])
+		for variant in 4:
+			var box := Generators.bounds(Generators.arrays(id, variant, palette)[0])
+			assert_float(box.size.x).is_less(shape.size.x * 1.15)
+			assert_float(box.size.z).is_less(shape.size.z * 1.15 + 0.3)
+			assert_float(box.end.y).is_between(shape.size.y * 0.8, shape.size.y * 1.15)
+			assert_float(box.position.y).is_less(0.0)
+	var mound := Generators.bounds(Generators.arrays("mound", 1, palette)[0])
+	assert_float(mound.end.y).is_between(1.6, 2.3)
+	assert_float(mound.size.x).is_less(10.5)
+
+
 func test_every_generator_is_deterministic() -> void:
 	var palette := Palette.of("barrowlands")
 	for id in Generators.ids():

@@ -296,3 +296,13 @@ Task 1 (bot brain and skills):
 ## Join stall
 
 - [ ] Start a solo game with `--seed=1234`: no "No word from the server" on the HUD in the first 15 s, and the ping in the debug overlay (F3) stays low; other players seen moving smoothly right after joining.
+
+## M38 Generated props and sites
+
+- [ ] The arrival: the ring stones (10, a gap ahead and behind) read as worked standing stones, not blobs; you cannot walk through them and the walls match what you see.
+- [ ] The torches at the arrival and around the boss ring: flame glows, light flickers, the iron looks like iron; nothing floats or sinks.
+- [ ] The boss site: barrow mound, door jambs and lintel, torch posts; the dark doorway sits in the mound's face.
+- [ ] A gate (the test gate in a debug build, or after M57): the arch looks right around the veil; you can walk through the opening and not through the pillars.
+- [ ] An elite's chest: it opens with the lid swinging up on its back edge (about 0.4 s), the glow and beam go out; it looks right from the front and the side.
+- [ ] Colors: stone, wood and iron are readable at night and not pinkish.
+- [ ] `python tools/godot.py -- --gallery` shows every prop at three levels; say which read badly at the far level.

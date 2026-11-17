@@ -6,6 +6,10 @@ Status: Planned.
 
 Every weapon, shield, helm and armor piece is built from the item's data in the game's own look, so each tier and set reads at a glance and new gear costs a data entry, not a model search. Item icons are rendered from the same meshes.
 
+## Left by M38
+
+`assets/quaternius/props/` holds only `Shield_Wooden`, `Axe_Bronze`, `Sword_Bronze` and the `T_Trim_*` textures. `Gear.SHIELD`, `Gear.AXE` and the `model =` of `sword`, `sword_runed`, `shield_wood`, `shield_iron` and `axe_bronze` (`data/items/`) read them. The last gear task deletes the folder and its `docs/RESOURCES.md` row.
+
 ## Depends on
 
 M36 (kit, registry), M23 (items, worn gear, `InventoryPanel`). `docs/STYLE.md` §8. Independent of M38.

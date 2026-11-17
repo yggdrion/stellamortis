@@ -1,6 +1,6 @@
 # M38 Generated props and sites
 
-Status: Planned.
+Status: Built (2026-11-17, v0.28.0), play-test pending.
 
 ## Goal
 

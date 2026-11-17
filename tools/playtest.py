@@ -94,7 +94,13 @@ def execute(scenario, out, godot_bin):
                 server_args.append(f"--{key}={scenario[key]}")
         server = start(server_args, "server.log")
         procs.append(server)
-        time.sleep(1.0)
+        # The server builds the world (seconds) before it listens; a bot behind a lag proxy that
+        # connects earlier never hears back and gives up.
+        end = time.time() + JOIN_TIMEOUT
+        while "Server listening" not in (out / "server.log").read_text(encoding="utf-8", errors="replace"):
+            if server.poll() is not None or time.time() > end:
+                fail(f"The server did not start listening (logs in {out})")
+            time.sleep(0.5)
         bots = []
         for i, b in enumerate(party):
             target = port

@@ -1,7 +1,7 @@
 {
   "about": "four bots of mixed skill (one ranged) against the camp for 120 s",
   "seed": 1234,
-  "spawn": "2448.021,993.742,1966.962",
+  "spawn": "2623.608,1002.496,1814.398",
   "duration": 120,
   "fps": 60,
   "party": [
@@ -29,8 +29,11 @@
   ],
   "expect": {
     "desyncs_max": 0,
-    "tps_min": 28,
     "script_errors_max": 0,
-    "hits_min": 1
+    "tps_min": 29,
+    "tick_avg_ms_max": 20,
+    "snap_max_m": 2.0,
+    "kills_min": 3,
+    "hits_min": 10
   }
 }

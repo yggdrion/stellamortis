@@ -32,6 +32,7 @@ Assets: third-party content is only the UAL rig and clips, sounds and fonts, CC0
 Done means:
 
 - The task's tests exist and pass, and `python tools/check.py` is green.
+- After a change to combat, enemies, the bots or netcode: `python tools/playtest.py --suite` (about two hours with the soak; `--repeat=5` for rates, `--short` caps each scenario at 30 s) and compare with the baselines in `docs/PLAN.md` §8 (M24 task 4); the scenarios' expectations fail the run.
 - After a change to rolled back state, the enemy pool or the tick: `python tools/run_load_test.py` still holds 29 tps with 6 bots; put the numbers in the commit message.
 - Visual work comes with screenshots (`--screenshot=PATH`, `--spawn`, `--look`; see `CLAUDE.md` "Boot").
 - Commits are semantic commits (`type(scope): summary`).
@@ -64,9 +65,9 @@ M19 to M22 are written to file and function level; so are M24, M36 and M37. The 
 
 M15 is done. M16 (frame pacing) is required and independent: do it any time. M17 and M18 are optional and wait for the user to ask.
 
-Numbers follow the build order, except that built milestones keep their numbers. Built: M0 to M16, M19 to M23, M33 to M37. M25 to M32 are unused (the survival milestones first had them and were renumbered on 2026-11-17; `docs/PLAN.md` §6 has the mapping).
+Numbers follow the build order, except that built milestones keep their numbers. Built: M0 to M16, M19 to M24, M33 to M37. M25 to M32 are unused (the survival milestones first had them and were renumbered on 2026-11-17; `docs/PLAN.md` §6 has the mapping).
 
-Next, in order: M24 bot play-tests; M38 to M42 the generated look and polish (`docs/STYLE.md`); M43 to M53 combat depth, loot and party tools; M54 to M69 the survival world with its additions.
+Next, in order: M38 to M42 the generated look and polish (`docs/STYLE.md`); M43 to M53 combat depth, loot and party tools; M54 to M69 the survival world with its additions.
 
 M24 comes first and needs nothing. M36 and M37 are built. M38 and M39 need M36 and are independent of each other. M40's spike (task 1) can start after M36, the rest of M40 after M39. M41 needs M37; M42 needs M37 and M41.
 

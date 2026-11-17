@@ -1,6 +1,6 @@
 # M24 Bot play-tests
 
-Status: Planned. Built next, before M36 (the user's call, 2026-11-17).
+Status: Built (2026-11-17, v0.27.0), play-test pending (`docs/PLAYTEST.md`).
 
 ## Goal
 

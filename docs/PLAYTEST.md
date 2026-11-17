@@ -97,7 +97,7 @@ The spawner (task 4, `sim/spawner.gd`; camps and roamers on the Barrowlands):
 
 The pool size (task 5, `World.POOL` 20 after the load test with bots):
 
-- [ ] Fight a camp of 5 or 6 with a second player, then walk to a camp nearby: both stay awake and the frame time and ping (F3) stay steady; no rubberbanding in rolls and blocks while three or more camps are awake around you (the bots' load test held 29 tps with a tick loop of 60 to 90 ms, so a real fight is the check).
+- [ ] Fight a camp of 5 or 6 with a second player, then walk to a camp nearby: both stay awake and the frame time and ping (F3) stay steady; no rubberbanding in rolls and blocks while three or more camps are awake around you (the bots' load test held 29 tps with a tick loop of 60 to 90 ms, so a real fight is the check). (covered by bots, server side: tps, tick loop and corrections in `soak_30min`, `camp_party_mixed`, `boss_party_mixed_lag`; the frame time and the feel stay yours)
 - [ ] With the pool full (three camps near), a fourth camp stays asleep until slots free up: it is not frozen half awake, and the camps you cleared do not make it wake with missing members.
 
 ## M33 Map
@@ -144,7 +144,7 @@ Task 1 (`sim/scatter_shape.gd`, `data/scatter/*.tres`, `sim/terrain_chunks.gd`, 
 - [ ] The arch "To the old barrow": its two pillars are solid, the opening between them is not; walking through the middle still takes you to the old realm. The lintel is over your head (jump under it).
 - [ ] Nobody spawns, respawns or arrives through a gate stuck inside a tree, rock or stone, and the dummies stand free.
 - [ ] Two players in a forest (or a friend on a worse connection) walk around trees without rubberbanding at them; tree collision shows the same on every peer, also with graphics on Low (fewer trees drawn, same trees solid).
-- [ ] Frame rate and the server tick (F3: tick loop, tps) look the same in the forest as on the open moor.
+- [ ] Frame rate and the server tick (F3: tick loop, tps) look the same in the forest as on the open moor. (covered by bots, server side: tps, tick loop and corrections in `soak_30min`, `camp_party_mixed`, `boss_party_mixed_lag`; the frame time and the feel stay yours)
 - [ ] Enemies chasing you slide around trunks and boulders instead of sticking: run around a tree with a skeleton behind you, then lead a camp through a forest. Note any that stay stuck, jitter at a trunk, or circle forever.
 - [ ] No enemy wakes inside a tree, rock or stone (walk up to several camps; camps now stand a little differently than before M35).
 - [ ] Is the forest too dense to walk and fight in? M35 task 1 found no 100 m straight line free of trees in 72 headings from one point. Note where it feels tight (pine woods?), and whether fighting a camp among trunks is fun or a chore.
@@ -190,7 +190,7 @@ Boss site and world flag (task 3: the old hand-built realm is gone, `Net.PROTOCO
 General:
 - [ ] Every kind's telegraph fan sits on the ground on slopes (no clipping into hills), and nobody leaps through a trunk.
 - [ ] Camps of each recipe turn up often enough (about 40 percent plain dead, 25 percent bearers and archers, 20 percent berserkers, 15 percent elite with guards) and roamers (a lone swordsman, archer or berserker) are not too dangerous alone.
-- [ ] The frame rate and the server tick (F3) hold in a camp of six, also an elite camp.
+- [ ] The frame rate and the server tick (F3) hold in a camp of six, also an elite camp. (covered by bots, server side: tps, tick loop and corrections in `soak_30min`, `camp_party_mixed`, `boss_party_mixed_lag`; the frame time and the feel stay yours)
 
 ## M23 Inventory, loot and saves
 
@@ -290,6 +290,7 @@ Task 4 (terrain and the view: `client/terrain_view.gd`, `shaders/terrain.gdshade
 Task 1 (bot brain and skills):
 
 - [ ] Skill calibration: play one camp and the Warden yourself, then watch `--bot --bot-skill=novice|average|good|expert --bot-goal=camp` (and `--encounter=boss --bot-goal=boss`) on the same spot. Say which skill plays like you: the numbers in `game/data/bots/*.tres` (reaction, dodge and parry chances and timing errors, stamina reserve, mistake rate, press cap) are guesses until you do.
+- [ ] Baselines (task 4, numbers in `docs/PLAN.md` §8): the bots say the Warden is easy for experts (a solo expert wins 10 of 10 in 45 s, four experts in 12 s) and never lost to by novice or average, and a camp of four swordsmen is no threat to anyone. Does that match you? Say which of the two feels off: the Warden's health and damage, or the camp.
 - [ ] A skill bot looks like a player and not a machine: it does not stare at the target with perfect aim, it rolls and parries visibly, it backs off to get its stamina back, and a novice swings itself empty and gets hit. Say what looks wrong.
 
 ## Join stall

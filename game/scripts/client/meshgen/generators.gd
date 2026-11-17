@@ -33,7 +33,8 @@ static func budget_kind(id: String) -> String:
 ## The three levels (full, half, far) as mesh arrays; an empty one where the budget table says the
 ## level is not drawn. Same id, seed and palette give the same arrays. The lower levels are fitted
 ## to the full level's bounding box, so a tree does not shrink when it switches level.
-static func arrays(id: String, variant_seed: int, palette: Palette) -> Array:
+## `params` (gear, M39) is the item's `look_params`; only gear kinds take it.
+static func arrays(id: String, variant_seed: int, palette: Palette, params := {}) -> Array:
 	_ensure()
 	var kind: Dictionary = _kinds[id]
 	var out: Array = []
@@ -43,15 +44,22 @@ static func arrays(id: String, variant_seed: int, palette: Palette) -> Array:
 			continue
 		var rng := RandomNumberGenerator.new()
 		rng.seed = variant_seed
-		var built: Array = (kind["generator"] as Callable).call(rng, palette, lod)
+		var generator: Callable = kind["generator"]
+		var built: Array = (
+			generator.call(rng, palette, lod, params)
+			if not params.is_empty()
+			else generator.call(rng, palette, lod)
+		)
 		out.append(built if lod == Budgets.FULL else _fit(built, out[Budgets.FULL]))
 	return out
 
 
 ## Main thread: `arrays` committed to meshes.
-static func build(id: String, variant_seed: int, palette: Palette) -> Array[ArrayMesh]:
+static func build(
+	id: String, variant_seed: int, palette: Palette, params := {}
+) -> Array[ArrayMesh]:
 	var meshes: Array[ArrayMesh] = []
-	for part: Array in arrays(id, variant_seed, palette):
+	for part: Array in arrays(id, variant_seed, palette, params):
 		meshes.append(MeshKit.commit([part]))
 	return meshes
 
@@ -126,6 +134,13 @@ static func _builtins() -> void:
 	register("banner", "prop_small", BannerKind.build)
 	for id in ["grave_slab", "grave_marker"]:
 		register(id, "prop_small", GraveKind.build.bind(id))
+	register("sword", "weapon_tool", SwordKind.build)
+	register("greatsword", "weapon_tool", GreatswordKind.build)
+	register("axe", "weapon_tool", AxeKind.build)
+	register("crossbow", "weapon_tool", CrossbowKind.build)
+	register("round_shield", "shield_helm_armor", RoundShieldKind.build)
+	register("kite_shield", "shield_helm_armor", KiteShieldKind.build)
+	register("tower_shield", "shield_helm_armor", TowerShieldKind.build)
 	TreeKit.register_all("pine", PineKind.build)
 	TreeKit.register_all("spruce", SpruceKind.build)
 	TreeKit.register_all("birch", BirchKind.build)

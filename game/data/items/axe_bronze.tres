@@ -13,3 +13,4 @@ rarity = 1
 weight = 2.5
 damage = 1.2
 model = "res://assets/quaternius/props/Axe_Bronze.gltf"
+look = &"axe"

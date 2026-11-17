@@ -33,6 +33,10 @@ const RARITY_COLORS: Array[Color] = [
 ## Consumables: health restored.
 @export var heal := 0.0
 @export var icon: Texture2D
+## The generator id of its look (`Generators`: sword, axe, round_shield, helm, ...), empty for
+## items with no model, and the generator's params (sizes, material roles, wear).
+@export var look: StringName = &""
+@export var look_params: Dictionary = {}
 ## A prop glTF (res://assets/...) for its look in the hand or on the ground.
 @export var model := ""
 ## The CharacterModel.show_prop name of a hand item.

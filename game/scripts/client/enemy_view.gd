@@ -63,8 +63,8 @@ const ELITE_CLIPS := {
 	"down": &"Death01",
 	"down_time": 2.0
 }
-## The dead's rusted swords.
-const RUST := Color(0.3, 0.17, 0.1)
+## The berserker's axes.
+const RUSTED_AXE := {"role": "rot", "wear": 0.8}
 const TELEGRAPH := Color(1.0, 0.45, 0.1)
 ## Death: the body lies this long (s) after the fall starts, then burns away over BURN_TIME,
 ## shedding an ember burst every EMBER_EVERY seconds.
@@ -160,6 +160,11 @@ static func _glare() -> OmniLight3D:
 	return light
 
 
+## Params of one of the dead's swords: rotten metal, worn.
+static func _rusty(length: float, wear := 0.8) -> Dictionary:
+	return {"role": "rot", "length": length, "wear": wear}
+
+
 ## Which figure in which gear, at which size, with its clips.
 func _make_model() -> CharacterModel:
 	var human := CharacterModel.HUMAN
@@ -171,7 +176,8 @@ func _make_model() -> CharacterModel:
 			. new(
 				human,
 				{
-					"sword": ["RightHand", Gear.sword(Gear.IRON.lightened(0.15), 1.3)],
+					"sword":
+					["RightHand", Gear.sword({"role": "iron", "length": 1.3, "guard": 0.3})],
 					"helm": ["Head", Gear.helm(Gear.IRON)],
 					"horns": ["Head", Gear.horns(1.6)],
 					"crown": ["Head", Gear.crown()],
@@ -189,13 +195,16 @@ func _make_model() -> CharacterModel:
 	match enemy.def.look:
 		&"shield_bearer":
 			_clips = SHIELD_CLIPS.duplicate()
-			var bearer := Gear.bearer({"weapon": ["RightHand", Gear.sword(RUST, 0.5)]})
+			var bearer := Gear.bearer({"weapon": ["RightHand", Gear.sword(_rusty(0.5))]})
 			_clips["walk"] = bearer.mix(&"shield_walk", &"Walk", &"Idle_Shield")
 			return bearer
 		&"berserker":
 			_clips = BERSERKER_CLIPS
 			return Gear.berserker(
-				{"axe_r": ["RightHand", Gear.axe()], "axe_l": ["LeftHand", Gear.axe()]}
+				{
+					"axe_r": ["RightHand", Gear.axe(RUSTED_AXE)],
+					"axe_l": ["LeftHand", Gear.axe(RUSTED_AXE)]
+				}
 			)
 		&"barrow_elite":
 			_clips = ELITE_CLIPS
@@ -204,7 +213,7 @@ func _make_model() -> CharacterModel:
 				. new(
 					human,
 					{
-						"sword": ["RightHand", Gear.sword(RUST.lightened(0.1), 1.1)],
+						"sword": ["RightHand", Gear.sword(_rusty(1.1, 0.5))],
 						"helm": ["Head", Gear.helm(Gear.IRON.lightened(0.1))],
 						"eyes": ["Head", Gear.eyes(Gear.EMBER, 12.0)],
 						"pauldrons": ["UpperChest", Gear.pauldrons(Gear.IRON.lightened(0.1))],
@@ -218,7 +227,7 @@ func _make_model() -> CharacterModel:
 	if enemy.def.look != &"squire":
 		var ranged := enemy.def.behavior == EnemyDef.Behavior.RANGED
 		_clips = ARCHER_CLIPS if ranged else UNDEAD_CLIPS
-		var weapon := Gear.crossbow() if ranged else Gear.sword(RUST, 0.7)
+		var weapon := Gear.crossbow() if ranged else Gear.sword(_rusty(0.7))
 		return Gear.dead(ranged, {"weapon": ["RightHand", weapon]})
 	_clips = HUMAN_CLIPS
 	return Gear.squire(enemy.index, {"sword": ["RightHand", Gear.sword()]})

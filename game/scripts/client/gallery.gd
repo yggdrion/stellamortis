@@ -37,6 +37,10 @@ var _sun: DirectionalLight3D
 
 func _ready() -> void:
 	var palette := Palette.of(REALM)
+	if only == "items":
+		_add_light()
+		_show_items(palette)
+		return
 	var ids := Generators.ids()
 	if only != "":
 		# An id, or a prefix: `--gallery=pine` shows pine_young, pine_grown and pine_old.
@@ -83,6 +87,39 @@ func _ready() -> void:
 	_camera.position = Vector3(0.0, 5.0 * scale, back + 6.0 * scale)
 	var angles := look as Vector2 if look is Vector2 else Vector2(0.0, -12.0)
 	_camera.rotation = Vector3(deg_to_rad(angles.y), deg_to_rad(angles.x), 0.0)
+	add_child(_camera)
+	_camera.make_current()
+	_set_graphics()
+	if screenshot_path != "":
+		await _take_screenshot()
+		get_tree().quit()
+
+
+## `--gallery=items` (M39): every item that has a look, built from its own params, in a row
+## (shields and armor at their wearing scale), the figure beside them.
+func _show_items(palette: Palette) -> void:
+	var defs: Array[ItemDef] = []
+	for id in Items.IDS:
+		var def := Items.by_id(id)
+		if def != null and def.look != &"":
+			defs.append(def)
+	var gap := 1.4
+	var width := (defs.size() - 1) * gap
+	_add_ground(width + 10.0, 10.0, palette)
+	for i in defs.size():
+		var def := defs[i]
+		var instance := MeshInstance3D.new()
+		instance.mesh = Generators.build(String(def.look), 1, palette, def.look_params)[0]
+		var x := (i - (defs.size() - 1) * 0.5) * gap
+		instance.position = Vector3(x, 1.0, 0.0)
+		instance.rotation.y = 0.5
+		add_child(instance)
+		_add_label(String(def.id), Vector3(x, 0.1, 0.5), 0.003)
+	_add_figure(Vector3(-width * 0.5 - 1.5, 0.0, 0.5), palette)
+	_camera = Camera3D.new()
+	_camera.fov = 40.0
+	_camera.position = Vector3(0.0, 1.0, 1.6 + width * 0.8)
+	_camera.rotation = Vector3(deg_to_rad(-2.0), 0.0, 0.0)
 	add_child(_camera)
 	_camera.make_current()
 	_set_graphics()
@@ -172,11 +209,11 @@ func _add_figure(at: Vector3, palette: Palette) -> void:
 	add_child(figure)
 
 
-func _add_label(text: String, at: Vector3) -> void:
+func _add_label(text: String, at: Vector3, size := 0.01) -> void:
 	var label := Label3D.new()
 	label.text = text
 	label.font_size = 48
-	label.pixel_size = 0.01
+	label.pixel_size = size
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.position = at
 	label.modulate = Color(0.85, 0.8, 0.72)

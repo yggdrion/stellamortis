@@ -11,3 +11,4 @@ slot = 3
 stack = 1
 rarity = 0
 weight = 3.0
+look = &"crossbow"

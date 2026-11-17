@@ -13,3 +13,5 @@ rarity = 1
 weight = 5.0
 defense = 0.08
 model = "res://assets/quaternius/props/Shield_Wooden.gltf"
+look = &"kite_shield"
+look_params = { "role": "iron", "rim": "steel" }

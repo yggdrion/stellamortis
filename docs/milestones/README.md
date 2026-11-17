@@ -58,14 +58,14 @@ Out of scope    what not to build here
 Pitfalls        what has gone wrong before, or will
 ```
 
-M19 to M22 are written to file and function level; so are M36 and M37. The other planned briefs (M38 to M51) fix goal, tasks, interfaces and done-when; their file level detail is added when the milestone before them lands, because it depends on that code. Whoever finishes a milestone details the next brief as its last task.
+M19 to M22 are written to file and function level; so are M24, M36 and M37. The other planned briefs (M38 to M51) fix goal, tasks, interfaces and done-when; their file level detail is added when the milestone before them lands, because it depends on that code. Whoever finishes a milestone details the next brief as its last task.
 
 ## Order
 
 M15 is done. M16 (frame pacing) is required and independent: do it any time. M17 and M18 are optional and wait for the user to ask.
 
-Numbers follow the build order. Built: M0 to M16, M19 to M23, M33 to M35. Next: the generated look and polish, M36 to M42 (`docs/PLAN.md` §3.2, `docs/STYLE.md`), then the rest of the survival world, M43 to M51 (until 2026-11-17 these were M24 to M32: old number plus 19).
+Numbers follow the build order. Built: M0 to M16, M19 to M23, M33 to M35. Next: M24 bot play-tests (headless bots of several skill levels, scenarios and a report; it took the number left free), then the generated look and polish, M36 to M42 (`docs/PLAN.md` §3.2, `docs/STYLE.md`), then the rest of the survival world, M43 to M51 (until 2026-11-17 these were M24 to M32: old number plus 19).
 
-M36 comes first. M37 needs M36. M38 and M39 need M36 and are independent of each other. M40's spike (task 1) can start after M36, the rest of M40 after M39. M41 needs M37; M42 needs M37 and M41.
+M24 comes first and needs nothing. M36 follows. M37 needs M36. M38 and M39 need M36 and are independent of each other. M40's spike (task 1) can start after M36, the rest of M40 after M39. M41 needs M37; M42 needs M37 and M41.
 
 M19 (hit feel) is independent and can run beside M20. M20, M21, M22 are a chain. M23 needs M22's world flags and M21's kinds. M43 needs M23's items. M44 needs M23 and M43. M45 to M47 each need M44 and the realm before them. M48 needs M44. M49 needs M48 and M43; M50 needs M49; M51 needs M49 (M50 only for troughs). M44 to M50 build their models with the kit of M36 and by the style sheet; M45 needs M42's water.

@@ -599,6 +599,7 @@ func _check_bot() -> void:
 func _take_screenshot() -> void:
 	_overlay.visible = true
 	await get_tree().create_timer(screenshot_delay).timeout
+	await _frame_stats()
 	for i in screenshot_frames:
 		await RenderingServer.frame_post_draw
 		var path := screenshot_path
@@ -608,6 +609,59 @@ func _take_screenshot() -> void:
 		print("Saved ", path)
 		await get_tree().create_timer(0.05).timeout
 	get_tree().quit()
+
+
+## STELLAMORTIS_FRAME_STATS=SECONDS: before the screenshot, measure that long with vsync and the
+## frame cap off and print the average and worst frame time, the renderer's CPU and GPU time,
+## draw calls, the visible scatter triangles (debug builds) and the primitives rendered.
+func _frame_stats() -> void:
+	var seconds := float(OS.get_environment("STELLAMORTIS_FRAME_STATS"))
+	if seconds <= 0.0:
+		return
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	Engine.max_fps = 0
+	var vp := get_viewport().get_viewport_rid()
+	await get_tree().create_timer(1.0).timeout
+	var frames := 0
+	var worst := 0.0
+	var cpu := 0.0
+	var gpu := 0.0
+	var calls := 0.0
+	var prims := 0.0
+	var tris := 0.0
+	var start := Time.get_ticks_usec()
+	var last := start
+	while last - start < int(seconds * 1.0e6):
+		await get_tree().process_frame
+		var now := Time.get_ticks_usec()
+		worst = maxf(worst, (now - last) / 1000.0)
+		last = now
+		frames += 1
+		cpu += RenderingServer.viewport_get_measured_render_time_cpu(vp)
+		gpu += RenderingServer.viewport_get_measured_render_time_gpu(vp)
+		calls += Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+		prims += Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
+		tris += TerrainView.visible_triangles
+	var n := float(maxi(frames, 1))
+	print(
+		(
+			(
+				"FRAMES preset=%s frame_avg=%.2f worst=%.2f fps=%.0f render_cpu=%.2f gpu=%.2f"
+				+ " draw_calls=%.0f primitives=%.2fM scatter_tris=%.2fM"
+			)
+			% [
+				Graphics.NAMES[Graphics.preset],
+				(last - start) / 1000.0 / n,
+				worst,
+				n / ((last - start) / 1.0e6),
+				cpu / n,
+				gpu / n,
+				calls / n,
+				prims / n / 1.0e6,
+				tris / n / 1.0e6,
+			]
+		)
+	)
 
 
 func _unhandled_input(event: InputEvent) -> void:

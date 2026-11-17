@@ -3,7 +3,7 @@ extends Node3D
 ## A node for every generated realm (the Barrowlands, where players start; TerrainView fills it),
 ## the arrival's stones and the gates. Collision on both sides, meshes, lights and sky only on
 ## clients. Built in code so server and client always get the same collision. Surfaces are tiling
-## PBR materials mapped world triplanar (ambientCG ground and rock, the Medieval Village MegaKit's
+## PBR materials mapped world triplanar (ambientCG ground, the Medieval Village MegaKit's
 ## brick), dressing comes from the Quaternius MegaKits (CC0). Clients show one place at a time
 ## (show_place).
 
@@ -13,7 +13,6 @@ const PROPS := "res://assets/quaternius/props/"
 ## Surfaces: an ambientCG set name, or "village:<name>" for a MegaKit texture set.
 const GROUND := "Ground020"
 const BRICK := "village:UnevenBrick"
-const ROCK := "Rock030"
 const NATURE := "res://assets/kenney/nature/"
 const STONE_COUNT := 10
 const STONE_RING := 6.0

@@ -199,19 +199,28 @@ static func _solids(
 static func _scatter_around(
 	realm: RealmDef, world_seed: int, chunk: Vector3i
 ) -> Array[Scatter.Point]:
+	var found: Array[Scatter.Point] = Scatter.points(realm, world_seed, chunk)
+	for other in neighbours(realm, chunk):
+		found.append_array(Scatter.points(realm, world_seed, other))
+	return found
+
+
+## The chunks around `chunk` (not itself) whose scatter can reach into it: the walk of
+## `Scatter.points`. The view uses it to pass the points it already has.
+static func neighbours(realm: RealmDef, chunk: Vector3i) -> Array[Vector3i]:
 	var frame := Scatter._frame(realm, chunk)
 	var along_x: Vector3 = frame[1]
 	var along_y: Vector3 = frame[2]
 	var middle: Vector3 = (frame[0] as Vector3) + (along_x + along_y) * 0.5
-	var found: Array[Scatter.Point] = []
-	var seen := {}
+	var found: Array[Vector3i] = []
+	var seen := {chunk: true}
 	for dx in [-1, 0, 1]:
 		for dy in [-1, 0, 1]:
 			var spot: Vector3 = (middle + (along_x * dx + along_y * dy) * 0.95).normalized()
 			var other := Terrain.chunk_at(realm, spot)
 			if not seen.has(other):
 				seen[other] = true
-				found.append_array(Scatter.points(realm, world_seed, other))
+				found.append(other)
 	return found
 
 

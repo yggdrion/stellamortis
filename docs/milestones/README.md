@@ -64,11 +64,11 @@ M19 to M22 are written to file and function level; so are M24, M36 and M37. The 
 
 M15 is done. M16 (frame pacing) is required and independent: do it any time. M17 and M18 are optional and wait for the user to ask.
 
-Numbers follow the build order, except that built milestones keep their numbers. Built: M0 to M16, M19 to M23, M33 to M35. M25 to M32 are unused (the survival milestones first had them and were renumbered on 2026-11-17; `docs/PLAN.md` §6 has the mapping).
+Numbers follow the build order, except that built milestones keep their numbers. Built: M0 to M16, M19 to M23, M33 to M37. M25 to M32 are unused (the survival milestones first had them and were renumbered on 2026-11-17; `docs/PLAN.md` §6 has the mapping).
 
-Next, in order: M24 bot play-tests; M36 to M42 the generated look and polish (`docs/STYLE.md`); M43 to M53 combat depth, loot and party tools; M54 to M69 the survival world with its additions.
+Next, in order: M24 bot play-tests; M38 to M42 the generated look and polish (`docs/STYLE.md`); M43 to M53 combat depth, loot and party tools; M54 to M69 the survival world with its additions.
 
-M24 comes first and needs nothing. M36 follows. M37 needs M36. M38 and M39 need M36 and are independent of each other. M40's spike (task 1) can start after M36, the rest of M40 after M39. M41 needs M37; M42 needs M37 and M41.
+M24 comes first and needs nothing. M36 and M37 are built. M38 and M39 need M36 and are independent of each other. M40's spike (task 1) can start after M36, the rest of M40 after M39. M41 needs M37; M42 needs M37 and M41.
 
 M43 (damage types) opens the combat block and needs M23. M44 needs M43 and M39. M45 needs M44. M46 needs M44. M47 needs M43. M48 needs M23 and M43. M49 needs M38. M50 needs M43, M47, M48 and M49. M51 and M52 are independent of combat and can be built any time after M24; M52 needs M51. M53 needs M49. After a change to combat, enemies or netcode the M24 suite is run and its expectations are updated.
 

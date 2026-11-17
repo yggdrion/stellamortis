@@ -273,6 +273,18 @@ Task 3 (rock, stone and cover generators: `python tools/godot.py -- --gallery=ro
 - [ ] Cover reads as grass, fern, heather, bush, log and stump at 2 to 5 m (tiny in the gallery shot: judge in the world once task 4 lands); blades and fronds are one sided, so check none vanish from behind.
 - [ ] Moor, fringe and wood get different cover (heather on the moor, ferns in the wood); none stands on the spawn ring or the 30 m arrival clearing, nor inside a trunk or rock.
 
+Task 4 (terrain and the view: `client/terrain_view.gd`, `shaders/terrain.gdshader`, `client/graphics.gd`; the realm now has no textures and no Kenney models):
+
+- [ ] The ground reads as flat-shaded faces in muted palette colors: grass, a heather purple on the moor, earth under the dark woods and on the way to steep ground, grey stone on slopes and on the high ridges. Say which is off (too purple at the arrival? too uniform? faces too visible or too flat?). Numbers: the palette roles `grass`, `heather`, `earth`, `stone` and the uniforms in `shaders/terrain.gdshader`.
+- [ ] Forest: five species, young to old (spruce in the dark high wood, pines in the middle, a birch fringe, oaks on low ground, the odd dead tree on the moor); old trees are landmarks in "old wood" patches. Is it a forest (dense enough, no bald patches, no walls of identical trees)? The four variants per kind should not repeat obviously.
+- [ ] Levels of detail: walking through a wood, no tree pops visibly at 40 m or 120 m (a chunk swaps whole; the 8 to 72 m ring draws both levels on purpose), and nothing flickers or shimmers where both are drawn.
+- [ ] Ground cover (grass, tall grass, ferns, heather, bushes, pebbles, logs, stumps): the moor is not bare, the wood floor has ferns, nothing grows inside trunks or rocks or on the arrival ring; cover thins out toward its radius without a visible line, and blades are visible from all sides.
+- [ ] Rocks, boulders, outcrops, standing stones and mounds sit in the ground (no floating, no gap on slopes) and your feet and the Warden's camps meet the same shapes: run into a trunk, a boulder, an outcrop and stand on a mound (`--show-collision` draws the shapes).
+- [ ] F3 shows `scatter triangles` (debug builds): under 1.5 M on Low, 2 M on Medium and High, 2.5 M on Ultra in the thickest wood you can find. Send the number if it is over.
+- [ ] Frame time on your machine (and the GTX 1050 Ti if you can) per preset in old wood and on open moor: F3 render CPU and GPU time. On the RTX 4080 the numbers are in `docs/PLAN.md` section 3.1; above about 12 ms of GPU on the 1050 Ti the cover radius (`Graphics.COVER_RADIUS`) or the scatter density is the knob.
+- [ ] Switching the preset with F4 rebuilds the trees and cover around you within a second or two, with no stall and no leftovers of the old preset.
+- [ ] No hitch while running across the realm (chunks stream in with up to 100 model nodes each).
+
 ## M24 Bot play-tests
 
 Task 1 (bot brain and skills):

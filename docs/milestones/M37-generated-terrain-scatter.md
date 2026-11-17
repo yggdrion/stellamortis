@@ -1,6 +1,6 @@
 # M37 Generated terrain and scatter
 
-Status: Planned.
+Status: built (2026-11-17, v0.26.0), play-test pending (`docs/PLAYTEST.md`).
 
 ## Goal
 

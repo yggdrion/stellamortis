@@ -73,6 +73,22 @@ func _process(_delta: float) -> void:
 		)
 	)
 	lines.append("players %d" % client.player_count())
+	if OS.is_debug_build():
+		# Scatter and ground cover in view (debug builds count them: TerrainView).
+		(
+			lines
+			. append(
+				(
+					"scatter triangles %.2f M of %.1f M (%s budget), %d nodes"
+					% [
+						TerrainView.visible_triangles / 1.0e6,
+						Graphics.triangle_budget() / 1.0e6,
+						Graphics.NAMES[Graphics.preset],
+						TerrainView.visible_nodes,
+					]
+				)
+			)
+		)
 	if client.lobby:
 		# What the server offered, not the pair that won: Godot exposes no WebRTC stats.
 		var note := LobbyClient.turn_note(

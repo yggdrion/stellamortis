@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="Budgets" format=3]
+
+[ext_resource type="Script" path="res://scripts/client/meshgen/budgets.gd" id="1_budgets"]
+
+[resource]
+script = ExtResource("1_budgets")
+kinds = {
+"grass_tuft": Vector3i(12, 6, -1),
+"fern_heather_bush": Vector3i(60, 24, -1),
+"pebble": Vector3i(40, 20, -1),
+"rock": Vector3i(160, 80, 24),
+"boulder": Vector3i(320, 140, 40),
+"outcrop": Vector3i(700, 300, 80),
+"standing_stone": Vector3i(300, 120, 40),
+"log_stump": Vector3i(200, 80, -1),
+"tree_young": Vector3i(500, 200, 40),
+"tree_grown": Vector3i(1100, 400, 60),
+"tree_old": Vector3i(1800, 650, 90),
+"prop_small": Vector3i(300, 120, -1),
+"prop_large": Vector3i(800, 300, 80),
+"building_piece": Vector3i(400, 160, 50),
+"weapon_tool": Vector3i(250, 100, -1),
+"shield_helm_armor": Vector3i(400, 160, -1),
+"body": Vector3i(3000, 1200, 400),
+"head": Vector3i(900, 350, 100),
+"character": Vector3i(6000, 2500, 800)
+}
+full_distance = 40.0
+half_distance = 120.0
+instance_value = 0.06
+instance_hue = 3.0
+face_value = 0.04
+down_darken = 0.25

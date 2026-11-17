@@ -237,6 +237,13 @@ Task 5 (world list; the main menu's Play replaces Solo and Host):
 - [ ] Put garbage in a file under `user://worlds/` (`%APPDATA%/Godot/app_userdata/...`): it shows as "unreadable" with Delete only, and nothing renames it.
 - [ ] Say if the world list is clear enough, or if a world needs more on its row (last boss, play time).
 
+## M36 Mesh kit and palette
+
+Task 1 (kit, palette, shader; nothing visible in the game yet, the gallery comes with task 2):
+
+- [ ] Look at the Barrowlands palette (`game/data/palettes/barrowlands.tres`) once the gallery exists: muted, dark, one family with the old Kenney trees and rocks? Say which roles feel off (bark, leaf, stone are the ones other kinds copy).
+- [ ] The flat shader's sRGB conversion of vertex colors: does a `stone` face look like the old boulders' gray, not washed out or too dark?
+
 ## Join stall
 
 - [ ] Start a solo game with `--seed=1234`: no "No word from the server" on the HUD in the first 15 s, and the ping in the debug overlay (F3) stays low; other players seen moving smoothly right after joining.

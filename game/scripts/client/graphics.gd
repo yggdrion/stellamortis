@@ -8,11 +8,11 @@ enum Preset { LOW, MEDIUM, HIGH, ULTRA }
 const NAMES := ["Low", "Medium", "High", "Ultra"]
 const SETTINGS := "user://settings.cfg"
 
-## Realm view (TerrainView) per preset: how far chunk meshes reach, how far scatter is drawn
-## and which share of it (Scatter.Point.rank under the density).
+## Realm view (TerrainView) per preset: how far chunk meshes reach and how far scatter is drawn.
+## Every preset draws all of the scatter: trees, rocks and stones are solid (collision on every
+## peer), so a preset that hid some would leave walls nobody sees.
 const VIEW_RADIUS := [250.0, 350.0, 450.0, 600.0]
 const SCATTER_RADIUS := [120.0, 180.0, 260.0, 340.0]
-const SCATTER_DENSITY := [0.35, 0.6, 1.0, 1.0]
 ## Ground cover (GroundCover: grass, ferns, heather, bushes) per preset: how far it is drawn
 ## (full to Budgets.full_distance, half beyond) and which share of its candidates bear anything.
 const COVER_RADIUS := [70.0, 100.0, 130.0, 160.0]
@@ -36,10 +36,6 @@ static func view_radius() -> float:
 
 static func scatter_radius() -> float:
 	return SCATTER_RADIUS[preset]
-
-
-static func scatter_density() -> float:
-	return SCATTER_DENSITY[preset]
 
 
 static func cover_radius() -> float:

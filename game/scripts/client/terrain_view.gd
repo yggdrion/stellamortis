@@ -66,7 +66,7 @@ var _keep := {}
 var _scatter_wanted := {}
 var _cover_wanted := {}
 var _last_at := Vector3.INF
-## view radius, scatter radius, scatter density, cover radius, cover density
+## view radius, scatter radius, scatter density (always 1: Graphics), cover radius, cover density
 var _settings := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0])
 var _shadows := false
 var _frame := 0
@@ -182,7 +182,7 @@ func _process(_delta: float) -> void:
 		[
 			Graphics.view_radius(),
 			Graphics.scatter_radius(),
-			Graphics.scatter_density(),
+			1.0,
 			Graphics.cover_radius(),
 			Graphics.cover_density()
 		]

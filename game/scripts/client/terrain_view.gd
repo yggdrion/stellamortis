@@ -23,7 +23,7 @@ const NATURE := "res://assets/kenney/nature/"
 ## models' own colors are teal and orange; these are dark and muted: color is reserved for
 ## meaning.
 const LOOKS := {
-	Scatter.Kind.PINE_TALL:
+	Scatter.Kind.PINE_GROWN:
 	[
 		"tree_pineTallA",
 		3.0,
@@ -32,7 +32,7 @@ const LOOKS := {
 		Vector3(0.75, 1.9, 0.75),
 		Color(0.3, 0.22, 0.17)
 	],
-	Scatter.Kind.PINE_FULL:
+	Scatter.Kind.SPRUCE_GROWN:
 	[
 		"tree_pineDefaultA",
 		2.8,
@@ -41,7 +41,7 @@ const LOOKS := {
 		Vector3(0.75, 1.8, 0.75),
 		Color(0.3, 0.22, 0.17)
 	],
-	Scatter.Kind.BIRCH:
+	Scatter.Kind.BIRCH_GROWN:
 	[
 		"tree_thin_dark",
 		2.6,
@@ -50,7 +50,7 @@ const LOOKS := {
 		Vector3(0.7, 1.6, 0.7),
 		Color(0.72, 0.72, 0.68)
 	],
-	Scatter.Kind.BOULDER_A:
+	Scatter.Kind.ROCK:
 	[
 		"rock_largeA",
 		3.4,
@@ -59,7 +59,7 @@ const LOOKS := {
 		Vector3(1.0, 2.0, 1.0),
 		Color(0.22, 0.28, 0.18)
 	],
-	Scatter.Kind.BOULDER_B:
+	Scatter.Kind.BOULDER:
 	[
 		"rock_largeC",
 		3.2,
@@ -71,6 +71,22 @@ const LOOKS := {
 	Scatter.Kind.STANDING_STONE:
 	["stone_tallA", 3.2, Color(1.9, 1.8, 1.65), 0.8, Vector3(0.8, 1.5, 0.8), Color.WHITE],
 	Scatter.Kind.MOUND: ["", 4.5, Color.WHITE, 0.0, Vector3(1.0, 0.4, 1.0), Color.WHITE],
+}
+## Until M37 task 4 draws the new kinds: the look each one borrows (a key of LOOKS).
+const BORROWED := {
+	Scatter.Kind.PINE_YOUNG: Scatter.Kind.PINE_GROWN,
+	Scatter.Kind.PINE_OLD: Scatter.Kind.PINE_GROWN,
+	Scatter.Kind.SPRUCE_YOUNG: Scatter.Kind.SPRUCE_GROWN,
+	Scatter.Kind.SPRUCE_OLD: Scatter.Kind.SPRUCE_GROWN,
+	Scatter.Kind.BIRCH_YOUNG: Scatter.Kind.BIRCH_GROWN,
+	Scatter.Kind.BIRCH_OLD: Scatter.Kind.BIRCH_GROWN,
+	Scatter.Kind.OAK_YOUNG: Scatter.Kind.BIRCH_GROWN,
+	Scatter.Kind.OAK_GROWN: Scatter.Kind.BIRCH_GROWN,
+	Scatter.Kind.OAK_OLD: Scatter.Kind.BIRCH_GROWN,
+	Scatter.Kind.DEAD_TREE_YOUNG: Scatter.Kind.BIRCH_GROWN,
+	Scatter.Kind.DEAD_TREE_GROWN: Scatter.Kind.BIRCH_GROWN,
+	Scatter.Kind.DEAD_TREE_OLD: Scatter.Kind.BIRCH_GROWN,
+	Scatter.Kind.OUTCROP: Scatter.Kind.BOULDER,
 }
 ## Model materials that take the accent color.
 const ACCENTS := ["woodBarkDark", "grass"]
@@ -369,7 +385,7 @@ func _build_scatter(entry: Entry) -> void:
 		var list: Array = by_kind[kind]
 		var multi := MultiMesh.new()
 		multi.transform_format = MultiMesh.TRANSFORM_3D
-		multi.mesh = _meshes[kind]
+		multi.mesh = _meshes[BORROWED.get(kind, kind)]
 		multi.instance_count = list.size()
 		for i in list.size():
 			multi.set_instance_transform(i, list[i])
@@ -387,7 +403,7 @@ func _build_scatter(entry: Entry) -> void:
 
 ## Standing on the ground along its local up, turned by its yaw, sunk a little.
 func _transform(point: Scatter.Point) -> Transform3D:
-	var look: Array = LOOKS[point.kind]
+	var look: Array = LOOKS[BORROWED.get(point.kind, point.kind)]
 	var forward := SimPlayer._tangent(Vector3.FORWARD, point.up)
 	var basis := SimPlayer.frame(point.up, forward).rotated(point.up, point.yaw)
 	var scale_by: float = look[1] * (0.8 + 0.5 * point.size)

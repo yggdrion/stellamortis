@@ -56,8 +56,13 @@ stats = []
 warnings = []
 
 
+listening = threading.Event()
+
+
 def read_server():
     for line in server.stdout:
+        if "Server listening" in line:
+            listening.set()
         if line.startswith("stats "):
             stats.append(dict(kv.split("=") for kv in line.split()[1:]))
         elif "exceeds packet limit" in line:
@@ -65,7 +70,9 @@ def read_server():
 
 
 threading.Thread(target=read_server, daemon=True).start()
-time.sleep(1.0)
+# The server builds the world (spawn points: seconds in a debug build) before it listens.
+if not listening.wait(60):
+    fail("The server did not start listening")
 logs = Path(tempfile.mkdtemp(prefix="stellamortis-load-"))
 bots = []
 for i in range(players):

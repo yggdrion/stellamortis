@@ -36,7 +36,7 @@ enum Op { MOVE, SPLIT, EQUIP, UNEQUIP, DROP, SORT, STORE_MATCHING, USE }
 
 ## Bump on any change to the RPCs here or to what netfox synchronizes (SimPlayer.STATE,
 ## PlayerControls) or to what both sides simulate (Layout, Gravity, Tuning).
-const PROTOCOL_VERSION := 32
+const PROTOCOL_VERSION := 33
 
 ## The first thing a client says. `character` is its character file (CharacterSave.to_net, empty
 ## for a new player) and `player_id` the ID graves know it by; the server trusts both but reads

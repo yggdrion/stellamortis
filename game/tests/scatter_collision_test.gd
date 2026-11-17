@@ -121,7 +121,7 @@ func test_same_chunk_same_shapes() -> void:
 
 
 func test_a_trunk_stops_a_walker() -> void:
-	var trunk := _free_trunk(Scatter.Kind.PINE_TALL)
+	var trunk := _free_trunk(Scatter.Kind.PINE_GROWN)
 	assert_int(trunk.size()).is_equal(3)
 	var target: Vector3 = trunk[0]
 	var way: Vector3 = trunk[2]
@@ -136,7 +136,7 @@ func test_a_trunk_stops_a_walker() -> void:
 
 
 func test_a_bolt_ends_at_a_trunk() -> void:
-	var trunk := _free_trunk(Scatter.Kind.PINE_TALL)
+	var trunk := _free_trunk(Scatter.Kind.PINE_GROWN)
 	assert_int(trunk.size()).is_equal(3)
 	var target: Vector3 = trunk[0]
 	var way: Vector3 = trunk[2]
@@ -213,7 +213,7 @@ func test_nothing_stands_on_the_spawn_ring_or_the_dummy_posts() -> void:
 
 
 func test_a_mob_chasing_a_player_goes_around_a_trunk() -> void:
-	var trunk := _free_trunk(Scatter.Kind.PINE_TALL)
+	var trunk := _free_trunk(Scatter.Kind.PINE_GROWN)
 	assert_int(trunk.size()).is_equal(3)
 	var target: Vector3 = trunk[0]
 	var way: Vector3 = trunk[2]

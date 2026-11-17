@@ -16,12 +16,20 @@ static var _shapes: Array[ScatterShape] = []
 @export var size := Vector3.ONE
 ## Meters the box or cylinder reaches under the ground (so slopes leave no gap).
 @export var sink := 0.3
+## False: nothing to bump into (a sapling); the kind still keeps its place in the spacing.
+@export var solid := true
+## Meters of ground this kind keeps clear of smaller things, at size factor 1.0 (Scatter spacing
+## uses the bigger of this and the footprint): the crown room of old trees.
+@export var room := 0.0
 
 
 static func of_kind(kind: int) -> ScatterShape:
 	if _shapes.is_empty():
+		# Built whole, then swapped in: workers call this too and must never see half a list.
+		var built: Array[ScatterShape] = []
 		for name_of: String in Scatter.Kind.keys():
-			_shapes.append(load("res://data/scatter/%s.tres" % name_of.to_lower()) as ScatterShape)
+			built.append(load("res://data/scatter/%s.tres" % name_of.to_lower()) as ScatterShape)
+		_shapes = built
 	return _shapes[kind]
 
 
@@ -30,6 +38,8 @@ static func of_kind(kind: int) -> ScatterShape:
 static func solids(points: Array[Scatter.Point]) -> Array[Solid]:
 	var found: Array[Solid] = []
 	for point in points:
+		if not of_kind(point.kind).solid:
+			continue
 		var solid := Solid.new()
 		solid.shape = of_kind(point.kind)
 		solid.scale_by = 0.8 + 0.5 * point.size
@@ -51,6 +61,8 @@ static func solids(points: Array[Scatter.Point]) -> Array[Solid]:
 func footprint(extents: Vector3) -> float:
 	if form == Form.BOX:
 		return 0.5 * Vector2(extents.x, extents.z).length()
+	if form == Form.SPHERE and extents.y < 0.0:
+		return sqrt(maxf(0.0, extents.x * extents.x - extents.y * extents.y))
 	return extents.x
 
 

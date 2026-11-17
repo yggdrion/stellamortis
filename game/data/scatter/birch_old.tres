@@ -4,5 +4,6 @@
 
 [resource]
 script = ExtResource("1_shape")
-form = 0
-size = Vector3(2.8, 1.5, 2.7)
+form = 1
+size = Vector3(0.54, 7.0, 0)
+room = 2.5

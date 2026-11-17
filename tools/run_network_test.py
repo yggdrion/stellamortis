@@ -36,8 +36,12 @@ def start(*cmd, **kwargs):
     return subprocess.Popen([godot_bin, "--headless", "--path", ".", "--", *cmd], cwd=GAME, **kwargs)
 
 
-server = start("--server", f"--port={PORT}", "--bind=127.0.0.1")
-time.sleep(1.0)
+server = start("--server", f"--port={PORT}", "--bind=127.0.0.1", stdout=subprocess.PIPE, text=True)
+# The server builds the world (spawn points: seconds in a debug build) before it listens.
+for line in server.stdout:
+    if "Server listening" in line:
+        break
+threading.Thread(target=server.stdout.read, daemon=True).start()
 bots = [
     # Staggered, so the two never quit in the same instant: the server would then tell the
     # second about the first leaving after its connection closed ("Unable to send packet").

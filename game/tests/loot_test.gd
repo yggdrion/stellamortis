@@ -166,7 +166,9 @@ func test_a_kill_drops_once_even_when_the_spawner_decides_again() -> void:
 	# Every drop lies on the ground near the camp.
 	for data: Dictionary in _added:
 		var spot: Vector3 = data.pos
-		assert_float(spot.distance_to(_world.pool_slot(members[0]).global_position)).is_less(6.0)
+		assert_float(spot.distance_to(_world.pool_slot(members[0]).global_position)).is_less(
+			Spawner.CAMP_RADIUS + 3.0
+		)
 		assert_bool(data.has("from")).is_true()
 
 

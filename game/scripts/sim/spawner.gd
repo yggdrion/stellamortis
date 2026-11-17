@@ -83,6 +83,8 @@ const CHEST_SPOTS := [
 ]
 ## A member keeps this far (m) from the skin of a scatter solid (its body is about 0.5).
 const SOLID_GAP := 0.7
+## `Solids.blocked` also reads the chunks this far (m) to each side: an outcrop reaches 8 m.
+const LOOK := 10.0
 
 
 class SpawnPoint:
@@ -143,8 +145,12 @@ class Solids:
 		east = east.normalized()
 		var north := direction.cross(east)
 		var seen := {}
-		for offset: Vector3 in [Vector3.ZERO, east, -east, north, -north]:
-			var near := (direction * realm.radius + offset * 4.0).normalized()
+		var diagonal := (east + north).normalized()
+		var across := (east - north).normalized()
+		for offset: Vector3 in [
+			Vector3.ZERO, east, -east, north, -north, diagonal, -diagonal, across, -across
+		]:
+			var near := (direction * realm.radius + offset * LOOK).normalized()
 			var chunk := Terrain.chunk_at(realm, near)
 			if seen.has(chunk):
 				continue

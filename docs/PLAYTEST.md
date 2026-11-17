@@ -257,6 +257,15 @@ Task 3 (cost: `python tools/godot.py -- --gallery-stress=5000 --seconds=3 --grap
 - [ ] On your machine (and on the GTX 1050 Ti if you can): the `STRESS` lines for Low, Medium and High. Send the pine full line (`frame_avg`, `gpu`) and the grass full line (20000 tufts); in the numbers I measured on an RTX 4080 they were 0.8 to 1.0 ms and 0.7 to 0.9 ms. On the 1050 Ti above about 12 ms for 5000 pines at full detail means the budgets need cutting before M37.
 - [ ] Look at the stress scene (`--gallery-stress=5000`, no `--seconds`): 5000 pines in a field, flat-shaded and colored, no flicker, no shimmering shadows; the grass and rock tests after it look like their gallery selves (the scene steps through all tests, about 40 s at 3 s each).
 
+## M37 Generated terrain and scatter
+
+Task 2 (tree generators: `python tools/godot.py -- --gallery=pine`, also `spruce`, `birch`, `oak`, `dead_tree`, or one id such as `--gallery=oak_old`; rows front to back are full, half, far):
+
+- [ ] Each species reads as itself as a black shape: pine bare below, flat needle pads high up; spruce a narrow full cone to the ground; birch pale and slender with a few small clumps; oak short, thick, wide with heavy limbs; dead tree bare limbs only.
+- [ ] Old trees (15 to 25 m) are landmarks next to the 1.8 m figure, trunks 0.8 to 1.6 m across with root ridges; grown ones are plainly smaller, young ones sapling size.
+- [ ] The three levels keep silhouette and size; the far level is cruder, not another tree. No floating limbs, no dark flipped faces.
+- [ ] Dusk light: leaf and needle colors read as green and muted, not brown or black (the gallery light is warm).
+
 ## M24 Bot play-tests
 
 Task 1 (bot brain and skills):

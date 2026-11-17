@@ -39,20 +39,33 @@ func _ready() -> void:
 	var palette := Palette.of(REALM)
 	var ids := Generators.ids()
 	if only != "":
-		assert(only in ids, "no generator named " + only)
-		ids = [only] as Array[String]
+		# An id, or a prefix: `--gallery=pine` shows pine_young, pine_grown and pine_old.
+		var shown: Array[String] = []
+		for id in ids:
+			if id == only or id.begins_with(only + "_"):
+				shown.append(id)
+		assert(not shown.is_empty(), "no generator named " + only)
+		ids = shown
 	_add_light()
 	if stress > 0:
 		_run_stress(ids, palette)
 		return
-	var depth := ids.size() * (3 * ROW + KIND_GAP)
-	var width := (VARIANTS - 1) * SPACING
-	_add_ground(width, depth, palette)
+	# Big models (old trees) get a roomier layout: every distance grows with the widest model.
+	var scale := 1.0
+	for id in ids:
+		scale = maxf(scale, Generators.bounds(Generators.arrays(id, 1, palette)[0]).size.x / 3.0)
+	var spacing := SPACING * scale
+	var row := ROW * scale
+	var kind_gap := KIND_GAP * scale
+	var depth := ids.size() * (3 * row + kind_gap)
+	var width := (VARIANTS - 1) * spacing
+	_add_ground(width + 40.0 * (scale - 1.0), depth + 40.0 * (scale - 1.0), palette)
 	for k in ids.size():
-		var z := -k * (3 * ROW + KIND_GAP)
+		var z := -k * (3 * row + kind_gap)
 		for lod in 3:
 			_add_label(
-				"%s  %s" % [ids[k], LOD_NAMES[lod]], Vector3(-width * 0.5 - 3.5, 0.2, z - lod * ROW)
+				"%s  %s" % [ids[k], LOD_NAMES[lod]],
+				Vector3(-width * 0.5 - 3.5 * scale, 0.2, z - lod * row)
 			)
 		for variant in VARIANTS:
 			var meshes := Generators.build(ids[k], variant + 1, palette)
@@ -60,14 +73,14 @@ func _ready() -> void:
 				var instance := MeshInstance3D.new()
 				instance.mesh = meshes[lod]
 				instance.position = Vector3(
-					(variant - (VARIANTS - 1) * 0.5) * SPACING, 0.0, z - lod * ROW
+					(variant - (VARIANTS - 1) * 0.5) * spacing, 0.0, z - lod * row
 				)
 				add_child(instance)
-	_add_figure(Vector3(-width * 0.5 - 1.5, 0.0, 2.5), palette)
+	_add_figure(Vector3(-width * 0.5 - 1.5 * scale, 0.0, 2.5 * scale), palette)
 	var back := width * 0.5 + 1.0
 	_camera = Camera3D.new()
 	_camera.fov = 60.0
-	_camera.position = Vector3(0.0, 5.0, back + 6.0)
+	_camera.position = Vector3(0.0, 5.0 * scale, back + 6.0 * scale)
 	var angles := look as Vector2 if look is Vector2 else Vector2(0.0, -12.0)
 	_camera.rotation = Vector3(deg_to_rad(angles.y), deg_to_rad(angles.x), 0.0)
 	add_child(_camera)

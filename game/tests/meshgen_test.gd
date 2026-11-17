@@ -171,7 +171,7 @@ func test_budgets_table() -> void:
 func test_every_generator_keeps_the_budgets() -> void:
 	var palette := Palette.of("barrowlands")
 	var budgets := Budgets.data()
-	assert_array(Generators.ids()).contains(["rock", "pine_young"])
+	assert_array(Generators.ids()).contains(["rock", "pine_young", "oak_old", "dead_tree_grown"])
 	for id in Generators.ids():
 		for variant in 4:
 			var levels := Generators.arrays(id, variant, palette)

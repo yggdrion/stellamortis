@@ -100,4 +100,8 @@ static func _ensure() -> void:
 
 static func _builtins() -> void:
 	register("rock", "rock", RockKind.build)
-	register("pine_young", "tree_young", PineYoungKind.build)
+	TreeKit.register_all("pine", PineKind.build)
+	TreeKit.register_all("spruce", SpruceKind.build)
+	TreeKit.register_all("birch", BirchKind.build)
+	TreeKit.register_all("oak", OakKind.build)
+	TreeKit.register_all("dead_tree", DeadTreeKind.build)

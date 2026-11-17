@@ -244,6 +244,14 @@ Task 1 (kit, palette, shader; nothing visible in the game yet, the gallery comes
 - [ ] Look at the Barrowlands palette (`game/data/palettes/barrowlands.tres`) once the gallery exists: muted, dark, one family with the old Kenney trees and rocks? Say which roles feel off (bark, leaf, stone are the ones other kinds copy).
 - [ ] The flat shader's sRGB conversion of vertex colors: does a `stone` face look like the old boulders' gray, not washed out or too dark?
 
+Task 2 (gallery: `python tools/godot.py -- --gallery`, or `--gallery=rock` / `--gallery=pine_young`):
+
+- [ ] Rocks and young pines read as one family: flat facets, muted colors, no shiny or washed-out faces. Say which look wrong (the palette roles `stone`, `stone_dark`, `bark`, `needle` are used).
+- [ ] The three levels of each kind (front to back: full, half, far) keep the same silhouette and size; the far level is plainly cruder but not a different object.
+- [ ] The five variants of a kind differ enough (size, lean of the cuts, layer count) without looking like another species.
+- [ ] Next to the 1.8 m figure a rock is knee to hip high and a young pine about 3 to 5 m: right for the Barrowlands?
+- [ ] The dusk light: shadow sides still readable, faces not black; is the facet size right (visible, not noisy)?
+
 ## Join stall
 
 - [ ] Start a solo game with `--seed=1234`: no "No word from the server" on the HUD in the first 15 s, and the ping in the debug overlay (F3) stays low; other players seen moving smoothly right after joining.

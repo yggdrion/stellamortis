@@ -164,3 +164,78 @@ func test_budgets_table() -> void:
 		var steps: Vector3i = budgets.kinds[kind]
 		assert_bool(steps.x > steps.y and (steps.z < steps.y)).is_true()
 	assert_float(budgets.full_distance).is_less(budgets.half_distance)
+
+
+## Every registered generator is held to the style sheet (docs/STYLE.md), so a new kind needs no
+## new test.
+func test_every_generator_keeps_the_budgets() -> void:
+	var palette := Palette.of("barrowlands")
+	var budgets := Budgets.data()
+	assert_array(Generators.ids()).contains(["rock", "pine_young"])
+	for id in Generators.ids():
+		for variant in 4:
+			var levels := Generators.arrays(id, variant, palette)
+			for lod in 3:
+				var limit := budgets.limit(Generators.budget_kind(id), lod)
+				var tris := _count(levels[lod])
+				if limit < 0:
+					assert_int(tris).is_equal(0)
+				else:
+					assert_int(tris).is_between(1, limit)
+
+
+func test_every_generator_is_deterministic() -> void:
+	var palette := Palette.of("barrowlands")
+	for id in Generators.ids():
+		var a := Generators.arrays(id, 11, palette)
+		var b := Generators.arrays(id, 11, palette)
+		var other := Generators.arrays(id, 12, palette)
+		for lod in 3:
+			for slot in [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_COLOR]:
+				assert_bool(a[lod][slot] == b[lod][slot]).is_true()
+		assert_bool(a[0][Mesh.ARRAY_VERTEX] == other[0][Mesh.ARRAY_VERTEX]).is_false()
+
+
+## Every vertex color is one role's color within the variation of `MeshKit.paint`.
+func test_every_generator_uses_only_palette_colors() -> void:
+	var palette := Palette.of("barrowlands")
+	var budgets := Budgets.data()
+	var most := (1.0 + budgets.instance_value) * (1.0 + budgets.face_value)
+	var least := (1.0 - budgets.instance_value) * (1.0 - budgets.face_value)
+	least *= 1.0 - budgets.down_darken
+	for id in Generators.ids():
+		for lod_arrays: Array in Generators.arrays(id, 5, palette):
+			for c in lod_arrays[Mesh.ARRAY_COLOR] as PackedColorArray:
+				var found := false
+				for role in Palette.ROLES:
+					found = found or _within_role(c, palette.color(StringName(role)), least, most)
+				assert_bool(found).is_true()
+
+
+func _within_role(c: Color, base: Color, least: float, most: float) -> bool:
+	var hue := absf(c.h - base.h)
+	hue = minf(hue, 1.0 - hue) * 360.0
+	var ratio := c.v / base.v
+	return (
+		absf(c.s - base.s) < 0.001
+		and absf(c.a - base.a) < 0.001
+		and hue < Budgets.data().instance_hue + 0.01
+		and ratio > least - 0.001
+		and ratio < most + 0.001
+	)
+
+
+func test_every_generator_far_level_keeps_the_size() -> void:
+	var palette := Palette.of("barrowlands")
+	for id in Generators.ids():
+		for variant in 4:
+			var levels := Generators.arrays(id, variant, palette)
+			var full := Generators.bounds(levels[0])
+			for lod in [1, 2]:
+				if _count(levels[lod]) == 0:
+					continue
+				var box := Generators.bounds(levels[lod])
+				for axis in 3:
+					var slack: float = full.size[axis] * 0.1
+					assert_float(box.size[axis]).is_equal_approx(full.size[axis], slack)
+					assert_float(box.position[axis]).is_equal_approx(full.position[axis], slack)

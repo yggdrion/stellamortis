@@ -45,6 +45,9 @@ extends Node
 ##                                  cursor on CELL (default 0; for screenshots)
 ##   --menu-shot=PATH [--worlds]    save a PNG of the main menu (with --worlds: of the world list)
 ##                                  after a second, then quit (for screenshots)
+##   --gallery[=ID]                 no game: every generated model kind (or the one named) on flat
+##                                  ground, variants left to right, levels of detail front to
+##                                  back (with --screenshot, --look, --graphics, --delay)
 ##   --show-collision               draw the collision shapes (debug; the ground too)
 ##   --look=YAW,PITCH               start the camera there (degrees, yaw 0 looks along -Z)
 ##   --bench=N                      time N simulated players and the enemies per tick, then quit
@@ -57,7 +60,7 @@ const ROOM_TIMEOUT := 20.0
 
 ## Flags that start a game right away instead of the menu.
 const DIRECT := [
-	"connect", "join", "host", "bot", "solo", "screenshot", "spawn", "encounter", "look"
+	"connect", "join", "host", "bot", "solo", "screenshot", "spawn", "encounter", "look", "gallery"
 ]
 
 var _args := {}
@@ -107,7 +110,7 @@ func _ready() -> void:
 		return
 	Controls.setup()
 	get_tree().debug_collisions_hint = _args.has("show-collision")
-	if not _args.has("bot") and not _args.has("screenshot"):
+	if not _args.has("bot") and not _args.has("screenshot") and not _args.has("gallery"):
 		_presence = Presence.new()
 		add_child(_presence)
 	Settings.load_saved()
@@ -121,6 +124,9 @@ func _ready() -> void:
 		Settings.apply_pacing()
 	if not _args.has("windowed") and not _args.has("bot") and not OS.is_debug_build():
 		Settings.apply_window(get_window())
+	if _args.has("gallery"):
+		_show_gallery()
+		return
 	for flag: String in DIRECT:
 		if _args.has(flag):
 			_start(_direct_mode())
@@ -132,6 +138,18 @@ func _ready() -> void:
 		await get_tree().create_timer(1.0).timeout
 		get_viewport().get_texture().get_image().save_png(_args["menu-shot"])
 		get_tree().quit()
+
+
+func _show_gallery() -> void:
+	var gallery := Gallery.new()
+	gallery.only = _args["gallery"]
+	gallery.graphics = _args.get("graphics", "")
+	gallery.screenshot_path = _args.get("screenshot", "")
+	gallery.screenshot_delay = float(_args.get("delay", "2"))
+	if _args.has("look"):
+		var parts := (_args["look"] as String).split(",")
+		gallery.look = Vector2(float(parts[0]), float(parts[1]) if parts.size() > 1 else -12.0)
+	add_child(gallery)
 
 
 ## The mode the command line asks for.

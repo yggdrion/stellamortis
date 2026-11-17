@@ -78,6 +78,12 @@ The red zone to the west has high gravity.
 `--screenshot=PATH` saves a PNG after a few seconds and quits, for checking visuals without
 playing.
 
+`--gallery[=ID]` opens no game: every generated model kind (`Generators.ids()`), or the one
+named, stands on flat ground under dusk light, variants left to right, levels of detail (full,
+half, far) front to back, a 1.8 m figure for scale. It takes `--screenshot=PATH`, `--delay=S`,
+`--look=YAW,PITCH` and `--graphics=PRESET`; Esc quits. Example:
+`python tools/godot.py -- --gallery --screenshot=build/gallery.png`.
+
 ## Release
 
 Every push to `main` runs `.github/workflows/release.yml`: `tools/check.py` on Linux, then

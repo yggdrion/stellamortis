@@ -2,22 +2,13 @@ class_name Arena
 extends Node3D
 ## A node for every generated realm (the Barrowlands, where players start; TerrainView fills it),
 ## the arrival's stones and the gates. Collision on both sides, meshes, lights and sky only on
-## clients. Built in code so server and client always get the same collision. Surfaces are tiling
-## PBR materials mapped world triplanar (ambientCG ground, the Medieval Village MegaKit's
-## brick), dressing comes from the Quaternius MegaKits (CC0). Clients show one place at a time
+## clients. Built in code so server and client always get the same collision. Every prop and
+## worked stone is generated (M38, `Generators`, docs/STYLE.md). Clients show one place at a time
 ## (show_place).
 
-const AMBIENTCG := "res://assets/ambientcg/"
-const VILLAGE := "res://assets/quaternius/village/"
-const PROPS := "res://assets/quaternius/props/"
-## Surfaces: an ambientCG set name, or "village:<name>" for a MegaKit texture set.
-const GROUND := "Ground020"
-const BRICK := "village:UnevenBrick"
-const NATURE := "res://assets/kenney/nature/"
 const STONE_COUNT := 10
 const STONE_RING := 6.0
-const STONE_SCALE := 2.4
-## A ring stone's solid: the model (0.98 x 1.0 x 0.68 units) at STONE_SCALE, a little narrower.
+## A ring stone's solid: the `ring_stone` kind (2.0 x 2.4 x 1.4), a little narrower.
 const STONE_SOLID := Vector3(1.9, 2.3, 1.3)
 ## A gate's arch: pillar centers either side of the opening, pillar and lintel boxes, the lintel's
 ## height. Visual (_portal) and solid (_add_gate_solids) read the same numbers.
@@ -47,8 +38,9 @@ var sun: DirectionalLight3D
 ## Place name (Layout.place_at) -> its node, one per generated realm, so clients can show one
 ## (collision lives here too; hiding a node doesn't change physics).
 var places := {}
-## Materials by name and tint, shared by every box that uses them.
-var _materials := {}
+## Generated meshes by kind and seed, shared by every instance; clients only.
+var _meshes := {}
+var _fire: ShaderMaterial
 ## The sky shader: the moon-planet and horizon follow the walker (follow_up).
 var _sky: ShaderMaterial
 ## Torch lights; each flickers with its own phase.
@@ -153,14 +145,33 @@ func _process(_delta: float) -> void:
 # --- Pieces --------------------------------------------------------------------------------
 
 
-## A model from a MegaKit, oriented by a basis (SimPlayer.frame(up, forward) on a round ground)
-## and scaled; visual only.
-func _prop(
-	parent: Node3D, path: String, at: Vector3, orientation := Basis.IDENTITY, scale_by := 1.0
-) -> Node3D:
-	var node := (load(path) as PackedScene).instantiate() as Node3D
+## One generated model (`Generators`, full level) at a place, shared by seed; visual only.
+func _gen(
+	parent: Node3D, id: String, seed_of: int, at := Vector3.ZERO, orientation := Basis.IDENTITY
+) -> MeshInstance3D:
+	var key := "%s#%d" % [id, seed_of]
+	if not _meshes.has(key):
+		_meshes[key] = Generators.build(id, seed_of, Palette.of(Layout.start_realm().id))[0]
+	var node := MeshInstance3D.new()
+	node.mesh = _meshes[key]
 	node.position = at
-	node.basis = orientation.scaled(Vector3.ONE * scale_by)
+	node.basis = orientation
+	parent.add_child(node)
+	return node
+
+
+## A plain painted box (a post, a jamb) from the palette's role, like the generated props.
+func _part(parent: Node3D, role: StringName, size: Vector3, at: Vector3) -> MeshInstance3D:
+	var key := "box:%s:%s" % [role, size]
+	if not _meshes.has(key):
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(key)
+		var palette := Palette.of(Layout.start_realm().id)
+		var box := PropKit.box(palette, rng, role, size, Vector3.ZERO, Vector2.ZERO, Budgets.FULL)
+		_meshes[key] = MeshKit.commit([box])
+	var node := MeshInstance3D.new()
+	node.mesh = _meshes[key]
+	node.position = at
 	parent.add_child(node)
 	return node
 
@@ -170,24 +181,19 @@ func _prop(
 ## from the world seed like the gate.
 func _arrival_look(realm: RealmDef) -> void:
 	var parent := places[StringName(realm.id)] as Node3D
-	var rock := StandardMaterial3D.new()
-	rock.albedo_color = Color(0.2, 0.2, 0.22)
-	rock.roughness = 1.0
-	for stone in _arrival_stones(realm):
+	var stones := _arrival_stones(realm)
+	for k in stones.size():
 		var root := Node3D.new()
-		root.transform = stone
+		root.transform = stones[k]
 		parent.add_child(root)
-		var model := _prop(
-			root, NATURE + "stone_tallA.glb", Vector3.ZERO, Basis.IDENTITY, STONE_SCALE
-		)
-		_recolor(model, rock)
+		_gen(root, "ring_stone", k)
 	for side: float in [-1.0, 1.0]:
 		var spot := Layout.arrival_spot(realm, -3.0, side * 5.5)
 		var root := Node3D.new()
 		root.position = spot[0]
 		root.basis = SimPlayer.frame(spot[1], Vector3.BACK)
 		parent.add_child(root)
-		root.add_child(_block(Vector3(0.14, 1.7, 0.14), Vector3(0, 0.85, 0), _surface(BRICK, 0.3)))
+		_part(root, &"wood", Vector3(0.14, 1.7, 0.14), Vector3(0, 0.85, 0))
 		_torch(root, Vector3(0, 1.45, 0.07), Vector3.BACK, false)
 
 
@@ -197,7 +203,6 @@ func _arrival_look(realm: RealmDef) -> void:
 func _site_look(realm: RealmDef, site: BossSite) -> void:
 	var parent := places[StringName(realm.id)] as Node3D
 	var middle := site.center()
-	var stone := _surface(BRICK, 0.3)
 	for n in BossSite.STONES:
 		var spot := _site_spot(realm, site, TAU * (n + 0.5) / BossSite.STONES, SITE_TORCH_RADIUS)
 		if n % 2 == 1:
@@ -206,24 +211,22 @@ func _site_look(realm: RealmDef, site: BossSite) -> void:
 		root.position = spot[0]
 		root.basis = _site_frame(spot, middle)
 		parent.add_child(root)
-		root.add_child(_block(Vector3(0.22, 2.0, 0.22), Vector3(0, 1.0, 0), stone))
+		_part(root, &"stone", Vector3(0.22, 2.0, 0.22), Vector3(0, 1.0, 0))
 		_torch(root, Vector3(0, 1.7, -0.11), Vector3.FORWARD, false)
 	var door := _site_spot(realm, site, TAU * 3.0 / 16.0, SITE_DOOR_RADIUS)
 	var root := Node3D.new()
 	root.position = door[0]
 	root.basis = _site_frame(door, middle)
 	parent.add_child(root)
-	var mound := MeshInstance3D.new()
-	var dome := SphereMesh.new()
-	dome.radial_segments = 32
-	dome.rings = 16
-	dome.material = _surface(GROUND, 0.2)
-	mound.mesh = dome
-	mound.scale = SITE_MOUND
-	mound.position = Vector3(0, -0.4, SITE_MOUND.z * 0.8)
-	root.add_child(mound)
-	var doorway := _prop(root, VILLAGE + "DoorFrame_Round_Brick.gltf", Vector3(0, -0.05, 0))
-	doorway.basis = Basis(Vector3.UP, PI).scaled(Vector3.ONE * 1.7)
+	var mound := _gen(root, "mound", 1, Vector3(0, 0, SITE_MOUND.z * 0.8))
+	mound.scale = Vector3(
+		SITE_MOUND.x / (MoundKind.NOMINAL.x * 0.5),
+		SITE_MOUND.y / MoundKind.NOMINAL.y,
+		SITE_MOUND.z / (MoundKind.NOMINAL.z * 0.5)
+	)
+	for side: float in [-1.0, 1.0]:
+		_part(root, &"stone", Vector3(0.5, 3.6, 0.5), Vector3(side * 1.35, 1.8, 0.2))
+	_part(root, &"stone_dark", Vector3(3.2, 0.5, 0.6), Vector3(0, 3.85, 0.2))
 	var dark := StandardMaterial3D.new()
 	dark.albedo_color = Color(0.01, 0.01, 0.015)
 	dark.roughness = 1.0
@@ -232,7 +235,7 @@ func _site_look(realm: RealmDef, site: BossSite) -> void:
 		var post := Node3D.new()
 		post.position = Vector3(side * 2.4, 0, -0.6)
 		root.add_child(post)
-		post.add_child(_block(Vector3(0.2, 1.8, 0.2), Vector3(0, 0.9, 0), stone))
+		_part(post, &"stone", Vector3(0.2, 1.8, 0.2), Vector3(0, 0.9, 0))
 		_torch(post, Vector3(0, 1.5, -0.1), Vector3.FORWARD, false)
 	_site_realm = StringName(realm.id)
 	_site_embers = _make_embers(parent, middle, site.direction)
@@ -343,43 +346,26 @@ func _frame_at(spot: Array) -> Basis:
 	return SimPlayer.frame(up, inward.normalized())
 
 
-## Gives every surface of a model's meshes one material.
-func _recolor(node: Node, material: Material) -> void:
-	if node is MeshInstance3D:
-		(node as MeshInstance3D).material_override = material
-	for child in node.get_children():
-		_recolor(child, material)
-
-
-## A wall torch: the MegaKit's iron torch with a flame and a flickering warm light, mounted on
-## a wall whose face looks along out.
+## A wall torch: the generated iron torch with a glowing flame and a flickering warm light,
+## mounted on a wall whose face looks along out.
 func _torch(parent: Node3D, at: Vector3, out: Vector3, shadows: bool) -> void:
 	var root := Node3D.new()
 	root.position = at
-	# The model's plate is at its origin and it reaches out along +Z.
+	# The torch's plate is at its origin and it reaches out along +Z.
 	root.basis = Basis.looking_at(-out, Vector3.UP)
 	parent.add_child(root)
-	root.add_child(_model(PROPS + "Torch_Metal.gltf"))
-	var flame := MeshInstance3D.new()
-	var shape := SphereMesh.new()
-	shape.radius = 0.07
-	shape.height = 0.22
-	var fire := StandardMaterial3D.new()
-	fire.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	fire.albedo_color = Color(1.0, 0.55, 0.2)
-	fire.emission_enabled = true
-	fire.emission = Color(1.0, 0.5, 0.15)
-	fire.emission_energy_multiplier = 8.0
-	shape.material = fire
-	flame.mesh = shape
-	flame.position = Vector3(0, 0.45, 0.3)
+	_gen(root, "torch", 0)
+	var flame := _gen(root, "torch_flame", 0, TorchKind.FLAME_AT)
+	if _fire == null:
+		_fire = MeshKit.material().duplicate() as ShaderMaterial
+		_fire.set_shader_parameter("glow", 8.0)
+	flame.material_override = _fire
 	flame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	root.add_child(flame)
 	var light := OmniLight3D.new()
 	light.light_color = TORCH_LIGHT
 	light.omni_range = 11.0
 	light.omni_attenuation = 1.4
-	light.position = Vector3(0, 0.6, 0.55)
+	light.position = Vector3(0, 1.0, 0.45)
 	light.shadow_enabled = shadows
 	root.add_child(light)
 	_torches.append(light)
@@ -393,10 +379,7 @@ func _portal(portal: Portal) -> Node3D:
 	root.position = portal.position
 	root.basis = SimPlayer.frame(portal.up, Vector3.FORWARD)
 	(places[Layout.place_at(portal.position)] as Node3D).add_child(root)
-	var stone := _surface(BRICK, 0.6)
-	for x: float in [-GATE_PILLAR_X, GATE_PILLAR_X]:
-		root.add_child(_block(GATE_PILLAR, Vector3(x, GATE_PILLAR.y * 0.5, 0), stone))
-	root.add_child(_block(GATE_LINTEL, Vector3(0, GATE_LINTEL_Y, 0), stone))
+	_gen(root, "gate_arch", 0)
 	var veil := MeshInstance3D.new()
 	var quad := QuadMesh.new()
 	quad.size = Vector2(2.8, 3.9)
@@ -436,45 +419,6 @@ func _block(size: Vector3, at: Vector3, material: Material) -> MeshInstance3D:
 	mesh.mesh = box
 	mesh.position = at
 	return mesh
-
-
-func _model(path: String) -> Node3D:
-	return (load(path) as PackedScene).instantiate() as Node3D
-
-
-## A tiling PBR material, triplanar at scale tiles per meter: an ambientCG set from
-## assets/ambientcg/<name>/ (Color, NormalGL, Roughness, AmbientOcclusion where present) or a
-## MegaKit set (village:<name> → T_<name>_BaseColor/Normal/Roughness).
-func _surface(surface: String, scale_by := 0.25) -> StandardMaterial3D:
-	var key := "%s@%s" % [surface, scale_by]
-	if _materials.has(key):
-		return _materials[key]
-	var material := StandardMaterial3D.new()
-	material.normal_enabled = true
-	material.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GRAYSCALE
-	if surface.begins_with("village:"):
-		var base := VILLAGE + "T_" + surface.trim_prefix("village:")
-		material.albedo_texture = load(base + "_BaseColor.png")
-		material.normal_texture = load(base + "_Normal.png")
-		material.roughness_texture = load(base + "_Roughness.png")
-		# Worn and darker than the kit's sunny village.
-		material.albedo_color = Color(0.75, 0.72, 0.7)
-	else:
-		var dir := AMBIENTCG + surface + "/"
-		material.albedo_texture = load(dir + "Color.jpg")
-		material.normal_texture = load(dir + "NormalGL.jpg")
-		material.roughness_texture = load(dir + "Roughness.jpg")
-		if ResourceLoader.exists(dir + "AmbientOcclusion.jpg"):
-			material.ao_enabled = true
-			material.ao_texture = load(dir + "AmbientOcclusion.jpg")
-			material.ao_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GRAYSCALE
-		if surface == GROUND:
-			material.albedo_color = Color(0.55, 0.58, 0.5)
-	material.uv1_triplanar = true
-	material.uv1_world_triplanar = true
-	material.uv1_scale = Vector3.ONE * scale_by
-	_materials[key] = material
-	return material
 
 
 ## Moonlight, the night sky with its moon, and post-processing (PLAN §3.1, §3.2).

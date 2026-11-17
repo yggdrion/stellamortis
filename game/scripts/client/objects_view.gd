@@ -24,7 +24,9 @@ const BOB := 0.07
 const SPIN := 0.9
 ## Longest side (m) a model is fitted to, lying and standing.
 const MODEL_SIZE := 1.0
-const CHEST_SCALE := 1.25
+## How far the chest lid swings open (radians about its hinge).
+const LID_OPEN := -1.9
+const LID_TIME := 0.4
 ## Beams start at this rarity.
 const BEAM_RARITY := 2
 const BEAM_HEIGHT := 7.0
@@ -41,7 +43,6 @@ const KIND_SOLID := {
 	ItemDef.Kind.TRINKET: Color(0.82, 0.72, 0.4),
 }
 const BEAM_SHADER := preload("res://shaders/loot_beam.gdshader")
-const CHEST_MODEL := "res://assets/quaternius/props/Chest_Wood.gltf"
 
 static var _ring_texture: GradientTexture2D
 static var _materials := {}
@@ -460,14 +461,14 @@ class Drop:
 		_item.add_child(mesh)
 
 
-## The elite's chest: Chest_Wood with its own open and close clips, a gold light and beam while
-## it is shut.
+## The elite's chest: the generated `chest` with its `chest_lid` swinging on the hinge, a gold
+## light and beam while it is shut.
 class ChestLook:
 	extends Lying
 
 	var opened := false
 	var _yaw := 0.0
-	var _player: AnimationPlayer
+	var _lid: MeshInstance3D
 	var _beam: MeshInstance3D
 	var _light: OmniLight3D
 
@@ -481,10 +482,14 @@ class ChestLook:
 	func _ready() -> void:
 		var forward := SimPlayer._tangent(Vector3.FORWARD, up).rotated(up, _yaw)
 		global_transform = Transform3D(SimPlayer.frame(up, forward), rest)
-		var model := (load(CHEST_MODEL) as PackedScene).instantiate() as Node3D
-		model.scale = Vector3.ONE * CHEST_SCALE
-		add_child(model)
-		_player = model.find_child("AnimationPlayer", true, false) as AnimationPlayer
+		var palette := Palette.of(Layout.start_realm().id)
+		var body := MeshInstance3D.new()
+		body.mesh = Generators.build("chest", 0, palette)[0]
+		add_child(body)
+		_lid = MeshInstance3D.new()
+		_lid.mesh = Generators.build("chest_lid", 0, palette)[0]
+		_lid.position = ChestKind.HINGE
+		add_child(_lid)
 		var gold := ItemDef.RARITY_COLORS[4]
 		add_child(ObjectsView._ring(gold, 2.6))
 		_light = ObjectsView._light(gold, 0.9)
@@ -509,11 +514,13 @@ class ChestLook:
 			_beam.visible = not is_open
 		if _light:
 			_light.visible = not is_open
-		if _player == null:
+		if _lid == null:
 			return
-		var clip := ("Chest_Open" if animate else "Chest_Opened") if is_open else "Chest_Closed"
-		if _player.has_animation(clip):
-			_player.play(clip)
+		var angle := LID_OPEN if is_open else 0.0
+		if animate:
+			create_tween().tween_property(_lid, "rotation:x", angle, LID_TIME)
+		else:
+			_lid.rotation.x = angle
 		if animate and is_open:
 			Sounds.play(self, &"chest_open", 0.0, 1.0)
 			HitEffects.burst(self, rest + up * 0.8, up, HitEffects.Kind.EMBERS)

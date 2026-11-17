@@ -5,7 +5,7 @@ extends RefCounted
 
 const NOMINAL := Vector3(0.3, 1.1, 0.5)
 ## Where the flame's foot sits (the basket's middle).
-const FLAME_AT := Vector3(0.0, 0.8, 0.3)
+const FLAME_AT := Vector3(0.0, 0.85, 0.3)
 
 
 static func build(rng: RandomNumberGenerator, palette: Palette, lod: int) -> Array:

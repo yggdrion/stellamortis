@@ -12,3 +12,5 @@ stack = 1
 rarity = 0
 weight = 1.0
 defense = 1
+look = &"helm"
+look_params = { "role": "leather", "nasal": false }

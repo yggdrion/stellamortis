@@ -178,13 +178,13 @@ func _make_model() -> CharacterModel:
 				{
 					"sword":
 					["RightHand", Gear.sword({"role": "iron", "length": 1.3, "guard": 0.3})],
-					"helm": ["Head", Gear.helm(Gear.IRON)],
-					"horns": ["Head", Gear.horns(1.6)],
+					"helm": ["Head", Gear.helm({"role": "iron"})],
+					"horns": ["Head", Gear.horns({"size": 1.6, "role": "stone_dark"})],
 					"crown": ["Head", Gear.crown()],
 					"eyes": ["Head", Gear.eyes(Gear.EMBER, 16.0)],
 					"glare": ["Head", _glare()],
 					"cape": ["UpperChest", Gear.cape()],
-					"pauldrons": ["UpperChest", Gear.pauldrons()],
+					"pauldrons": ["UpperChest", Gear.pauldrons({"role": "iron"})],
 				},
 				enemy.height / SimPlayer.HEIGHT
 			)
@@ -214,9 +214,9 @@ func _make_model() -> CharacterModel:
 					human,
 					{
 						"sword": ["RightHand", Gear.sword(_rusty(1.1, 0.5))],
-						"helm": ["Head", Gear.helm(Gear.IRON.lightened(0.1))],
+						"helm": ["Head", Gear.helm({"role": "iron", "wear": 0.4})],
 						"eyes": ["Head", Gear.eyes(Gear.EMBER, 12.0)],
-						"pauldrons": ["UpperChest", Gear.pauldrons(Gear.IRON.lightened(0.1))],
+						"pauldrons": ["UpperChest", Gear.pauldrons({"role": "iron", "wear": 0.4})],
 					},
 					enemy.height / SimPlayer.HEIGHT
 				)

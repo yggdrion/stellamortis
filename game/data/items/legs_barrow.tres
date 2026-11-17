@@ -12,3 +12,5 @@ stack = 1
 rarity = 2
 weight = 4.0
 defense = 3
+look = &"greaves"
+look_params = { "role": "leather", "trim": "iron" }

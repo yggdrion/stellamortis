@@ -12,3 +12,5 @@ stack = 1
 rarity = 1
 weight = 6.0
 defense = 3
+look = &"cuirass"
+look_params = { "role": "iron", "trim": "leather", "plates": 2 }

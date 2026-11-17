@@ -87,7 +87,7 @@ static func dead(archer: bool, held: Dictionary) -> CharacterModel:
 
 ## A shield bearer: one of the dead in a dark set, shield up (the helm and shield are held).
 static func bearer(held: Dictionary) -> CharacterModel:
-	held["helm"] = ["Head", helm(IRON.lightened(0.1))]
+	held["helm"] = ["Head", helm({"role": "iron", "wear": 0.5})]
 	held["shield"] = ["LeftLowerArm", tower_shield()]
 	return dead(false, held)
 
@@ -102,126 +102,29 @@ static func berserker(held: Dictionary) -> CharacterModel:
 	return model
 
 
-## A rounded bascinet: a dome over a short cylinder, a dark eye slit and a nasal ridge, for
-## the head bone.
-static func helm(plate := STEEL) -> Node3D:
-	var root := Node3D.new()
-	var steel := _metal(plate, 0.4)
-	steel.metallic = 0.5
-	var shell := MeshInstance3D.new()
-	var can := CylinderMesh.new()
-	can.top_radius = 0.135
-	can.bottom_radius = 0.14
-	can.height = 0.17
-	can.material = steel
-	shell.mesh = can
-	shell.position = Vector3(0, 0.06, 0.01)
-	root.add_child(shell)
-	var dome := MeshInstance3D.new()
-	var cap := SphereMesh.new()
-	cap.radius = 0.135
-	cap.height = 0.17
-	cap.is_hemisphere = true
-	cap.material = steel
-	dome.mesh = cap
-	dome.position = Vector3(0, 0.145, 0.01)
-	root.add_child(dome)
-	root.add_child(_box(Vector3(0.19, 0.022, 0.03), Vector3(0, 0.1, 0.135), _metal(IRON, 0.9)))
-	root.add_child(_box(Vector3(0.022, 0.13, 0.025), Vector3(0, 0.06, 0.145), steel))
-	return root
+## A rounded bascinet for the head bone.
+static func helm(params := {}) -> Node3D:
+	return make(&"helm", params)
 
 
-## Two horns curving up and out of the Warden's helm, for the head bone.
-static func horns(size := 1.0) -> Node3D:
-	var root := Node3D.new()
-	var bone := _plain(Color(0.12, 0.1, 0.08), 0.6)
-	for side: float in [-1.0, 1.0]:
-		var at := Vector3(side * 0.12, 0.16, 0.0)
-		var tilt := 0.0
-		# Three tapering segments, each bent further out and up: a curved horn.
-		for i in 3:
-			var segment := MeshInstance3D.new()
-			var cone := CylinderMesh.new()
-			cone.bottom_radius = 0.045 - 0.013 * i
-			cone.top_radius = 0.045 - 0.013 * (i + 1) if i < 2 else 0.0
-			cone.height = 0.14
-			cone.material = bone
-			segment.mesh = cone
-			tilt += 0.55 - 0.25 * i
-			segment.rotation = Vector3(-0.25, 0.0, -side * tilt)
-			var along := segment.basis.y * cone.height
-			segment.position = at + along / 2.0
-			at += along
-			root.add_child(segment)
-	root.scale = Vector3.ONE * size
-	root.position.y = 0.16 * (1.0 - size)
-	return root
+## Two horns curving up and out of a helm, for the head bone.
+static func horns(params := {}) -> Node3D:
+	return make(&"horns", params)
 
 
 ## A crown of iron spikes around the helm, for the head bone.
-static func crown(plate := IRON) -> Node3D:
-	var root := Node3D.new()
-	var iron := _metal(plate.lightened(0.1), 0.5)
-	for i in 7:
-		var angle := PI * (i / 6.0 - 0.5) * 0.9
-		var spike := MeshInstance3D.new()
-		var cone := CylinderMesh.new()
-		cone.bottom_radius = 0.018
-		cone.top_radius = 0.0
-		cone.height = 0.11 if i % 2 == 0 else 0.07
-		cone.material = iron
-		spike.mesh = cone
-		var out := Vector3(sin(angle), 0.0, cos(angle))
-		spike.position = Vector3(0, 0.2, 0.01) + out * 0.11 + Vector3.UP * cone.height / 2.0
-		spike.rotation = Vector3(out.z * 0.3, 0.0, -out.x * 0.3)
-		root.add_child(spike)
-	return root
+static func crown(params := {}) -> Node3D:
+	return make(&"crown", params)
 
 
-## A tattered black cape hanging from the shoulders, for the upper chest bone: strips of
-## uneven length, so it reads ragged.
-static func cape() -> Node3D:
-	var root := Node3D.new()
-	var cloth := _plain(Color(0.05, 0.04, 0.04), 0.95)
-	cloth.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var lengths := [0.95, 1.15, 0.8, 1.2, 1.0, 0.85, 1.1]
-	for i in lengths.size():
-		var length: float = lengths[i]
-		var x := (i - (lengths.size() - 1) / 2.0) * 0.075
-		var strip := _box(
-			Vector3(0.08, length, 0.012), Vector3(x, 0.12 - length / 2.0, -0.17), cloth
-		)
-		strip.rotation.x = 0.12
-		root.add_child(strip)
-	return root
+## A tattered cape hanging from the shoulders, for the upper chest bone.
+static func cape(params := {}) -> Node3D:
+	return make(&"cape", params)
 
 
 ## Spiked pauldrons on both shoulders, for the upper chest bone.
-static func pauldrons(plate := IRON) -> Node3D:
-	var root := Node3D.new()
-	var iron := _metal(plate, 0.45)
-	for side: float in [-1.0, 1.0]:
-		var shell := MeshInstance3D.new()
-		var dome := SphereMesh.new()
-		dome.radius = 0.12
-		dome.height = 0.14
-		dome.is_hemisphere = true
-		dome.material = iron
-		shell.mesh = dome
-		shell.position = Vector3(side * 0.2, 0.1, 0.0)
-		shell.rotation.z = -side * 0.35
-		root.add_child(shell)
-		var spike := MeshInstance3D.new()
-		var cone := CylinderMesh.new()
-		cone.bottom_radius = 0.03
-		cone.top_radius = 0.0
-		cone.height = 0.16
-		cone.material = _metal(plate.lightened(0.15), 0.5)
-		spike.mesh = cone
-		spike.position = Vector3(side * 0.25, 0.22, 0.0)
-		spike.rotation.z = -side * 0.5
-		root.add_child(spike)
-	return root
+static func pauldrons(params := {}) -> Node3D:
+	return make(&"pauldrons", params)
 
 
 ## Two ember eyes, for the head bone of the dead.
@@ -283,27 +186,10 @@ static func crossbow(params := {}) -> Node3D:
 	return make(&"crossbow", params)
 
 
-static func _box(size: Vector3, at: Vector3, material: Material) -> MeshInstance3D:
-	var mesh := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = size
-	mesh.mesh = box
-	mesh.position = at
-	mesh.material_override = material
-	return mesh
-
-
 static func _metal(color: Color, roughness: float) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
 	material.metallic = 0.85
-	material.roughness = roughness
-	return material
-
-
-static func _plain(color: Color, roughness: float) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
 	material.roughness = roughness
 	return material
 

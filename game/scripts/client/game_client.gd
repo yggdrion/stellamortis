@@ -26,6 +26,13 @@ var bot_duration := 5.0
 ## Bot: "" walks and runs through everything; "shoot" stands, aims where the camera looks and
 ## fires full draws (screenshots).
 var bot_plan := ""
+## Bot: a skill of data/bots/ (novice, average, good, expert) plays like a person instead of a
+## plan, towards the goal (camp, boss, roam, dummy, follow); its randomness comes from bot_seed;
+## the role "ranged" fights with the crossbow.
+var bot_skill := ""
+var bot_goal := "camp"
+var bot_seed := 0
+var bot_role := ""
 ## Saves a PNG of the screen here after screenshot_delay seconds, then quits (visual checks).
 var screenshot_path := ""
 var screenshot_delay := 4.0
@@ -99,6 +106,7 @@ var _bot_start: Variant = null
 var _bot_moved := false
 ## Bot: how far its inventory exercise got (take the shield off, put it on again).
 var _bot_gear_step := 0
+var _brain: BotBrain
 
 
 func _init() -> void:
@@ -331,6 +339,8 @@ func _on_player_spawned(player: SimPlayer) -> void:
 	_map.me = me
 	_hud.player = me
 	me.controls.reader = _bot_controls if bot else _read_controls
+	if bot and bot_skill != "":
+		_brain = _make_brain()
 	_rig.target = me
 	if look is Vector2:
 		_rig.yaw = deg_to_rad((look as Vector2).x)
@@ -343,6 +353,28 @@ func _on_player_spawned(player: SimPlayer) -> void:
 		_map.span = INF if map_start == "full" else float(map_start)
 		_map.visible = true
 	entered.emit()
+
+
+func _make_brain() -> BotBrain:
+	var skill := load("res://data/bots/%s.tres" % bot_skill) as BotSkill
+	if skill == null:
+		push_error("No bot skill %s in res://data/bots/" % bot_skill)
+		get_tree().quit(2)
+	var brain := BotBrain.new(skill, StringName(bot_goal), bot_seed)
+	brain.me = me
+	brain.drops = _objects.spots
+	brain.heal = _bot_heal
+	return brain
+
+
+## Eats the first bandage in the bag (the bot's answer to low health).
+func _bot_heal() -> void:
+	for cell in Inventory.BAG_SIZE:
+		var stack := inventory.at(cell)
+		var def := Items.by_id(stack.id) if stack else null
+		if def != null and def.kind == ItemDef.Kind.CONSUMABLE and def.heal > 0.0:
+			send_intent(Net.Op.USE, cell)
+			return
 
 
 ## Asks the server to change the own inventory; the answer comes as a delta.
@@ -405,38 +437,15 @@ func _read_controls(controls: PlayerControls) -> void:
 			controls.buttons |= held[action]
 
 
-## Walks a circle and runs through jump, attack, heavy, roll and block on a rhythm, so the
-## network test exercises combat and rollback too.
+## A bot's input: a BotBrain of its skill plays like a person, else a plan of BotPlans walks and
+## fights on a script (the network test exercises combat and rollback with it).
 func _bot_controls(controls: PlayerControls) -> void:
 	var seconds := (Time.get_ticks_msec() - _started_ms) / 1000.0
-	if bot_plan == "combo" or bot_plan == "combo_walk":
-		# Looks where --look points and chains light combos, every 4th time a heavy; combo_walk
-		# also walks forward and sweeps the camera (rubberband checks: STELLAMORTIS_SNAP_LOG=1).
-		var walking := bot_plan == "combo_walk"
-		controls.move = Vector2(0.0, 1.0) if walking else Vector2.ZERO
-		controls.yaw = _rig.yaw + (sin(seconds * 1.3) * 0.8 if walking else 0.0)
-		controls.pitch = _rig.pitch
-		controls.weapon = SimPlayer.Weapon.SWORD
-		var beat := int(seconds * 5.0)
-		var heavy := beat % 40 >= 30
-		var b := PlayerControls.Buttons
-		controls.buttons = (b.HEAVY if heavy else b.ATTACK) if beat % 2 == 0 else 0
+	if _brain != null:
+		_brain.fill(controls, seconds)
 		return
-	if bot_plan == "shoot":
-		controls.move = Vector2.ZERO
-		controls.yaw = _rig.yaw
-		controls.pitch = _rig.pitch
-		controls.weapon = SimPlayer.Weapon.CROSSBOW
-		var b := PlayerControls.Buttons
-		controls.buttons = b.BLOCK | (b.ATTACK if fmod(seconds, 1.4) < 1.0 else 0)
-		_rig.aiming = true
-		return
-	controls.move = Vector2(0.0, 1.0)
-	controls.yaw = fposmod(seconds * 0.8 + me.peer_id % 7, TAU)
-	var b := PlayerControls.Buttons
-	controls.buttons = [b.JUMP, b.ATTACK, b.HEAVY, b.ROLL, b.BLOCK, 0][int(seconds * 2.0) % 6]
-	# Every other 4 s with the crossbow: draws on ATTACK, aims on BLOCK.
-	controls.weapon = int(seconds / 4.0) % 2
+	BotPlans.fill(bot_plan, controls, seconds, _rig.yaw, _rig.pitch, me.peer_id)
+	_rig.aiming = bot_plan == "shoot"
 
 
 func _process(delta: float) -> void:
@@ -511,6 +520,11 @@ func _each_second() -> void:
 	if _map.visible and _map.realm_id() != "":
 		net.request_cleared_camps.rpc_id(1, _map.realm_id())
 	if bot:
+		if _brain != null:
+			var no_sword := inventory.at(Inventory.Cell.MAIN) == null
+			_brain.ranged = (
+				bot_role == "ranged" or (no_sword and inventory.at(Inventory.Cell.RANGED) != null)
+			)
 		interact()
 		_bot_gear()
 		_check_bot()

@@ -63,6 +63,16 @@ func _process(_delta: float) -> void:
 	_pick_focus()
 
 
+## Where the objects the own player could take lie (bots walk to them).
+func spots() -> Array[Vector3]:
+	var found: Array[Vector3] = []
+	for id: int in _nodes:
+		var node: Lying = _nodes[id]
+		if node.usable():
+			found.append(node.rest)
+	return found
+
+
 ## The server's whole list, once after joining: everything is already there, nothing animates.
 func snapshot(all: Dictionary) -> void:
 	for id: int in _nodes.keys():

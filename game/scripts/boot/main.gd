@@ -27,6 +27,9 @@ extends Node
 ##                                  combo: chain sword combos there (combo_walk: while walking
 ##                                  and sweeping the camera); STELLAMORTIS_SNAP_LOG=1 prints
 ##                                  the own player's rollback jumps
+##     [--bot-skill=novice|average|good|expert]   play like a person of that skill (data/bots/)
+##       instead of a plan: [--bot-goal=camp|boss|roam|dummy|follow] (default camp)
+##       [--bot-seed=N] (its randomness) [--bot-role=ranged] (the crossbow instead of the sword)
 ##     [--duration=SECS]
 ##   --solo                         solo: spawns a local --solo server and joins it
 ##   --name=NAME                    player name (instead of the saved one)
@@ -189,6 +192,10 @@ func _start(mode: String, code := "", world_name := "", seed_text := "") -> void
 	client.bot_expect = int(_args.get("expect", "1"))
 	client.bot_duration = float(_args.get("duration", "5"))
 	client.bot_plan = _args.get("bot-plan", "")
+	client.bot_skill = _args.get("bot-skill", "")
+	client.bot_goal = _args.get("bot-goal", "camp")
+	client.bot_seed = int(_args.get("bot-seed", "0"))
+	client.bot_role = _args.get("bot-role", "")
 	client.player_name = _args.get("name", Settings.player_name)
 	client.screenshot_path = _args.get("screenshot", "")
 	client.screenshot_delay = float(_args.get("delay", "4"))

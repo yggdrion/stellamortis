@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="BotSkill" format=3]
+
+[ext_resource type="Script" path="res://scripts/client/bot/bot_skill.gd" id="1_skill"]
+
+[resource]
+script = ExtResource("1_skill")
+reaction_ms = 320.0
+reaction_spread_ms = 80.0
+dodge_chance = 0.5
+parry_chance = 0.1
+block_chance = 0.5
+dodge_error_ms = 90.0
+parry_error_ms = 110.0
+block_error_ms = 110.0
+mistake_rate = 0.12
+aim_error_deg = 5.0
+aim_settle = 2.0
+stamina_reserve = 15.0
+aggression = 0.7
+retreat_health = 0.3
+combo_length = 2
+uses_heavy = false
+uses_riposte = false
+presses_per_second = 4.0

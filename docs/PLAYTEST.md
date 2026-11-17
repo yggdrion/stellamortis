@@ -252,6 +252,13 @@ Task 2 (gallery: `python tools/godot.py -- --gallery`, or `--gallery=rock` / `--
 - [ ] Next to the 1.8 m figure a rock is knee to hip high and a young pine about 3 to 5 m: right for the Barrowlands?
 - [ ] The dusk light: shadow sides still readable, faces not black; is the facet size right (visible, not noisy)?
 
+## M24 Bot play-tests
+
+Task 1 (bot brain and skills):
+
+- [ ] Skill calibration: play one camp and the Warden yourself, then watch `--bot --bot-skill=novice|average|good|expert --bot-goal=camp` (and `--encounter=boss --bot-goal=boss`) on the same spot. Say which skill plays like you: the numbers in `game/data/bots/*.tres` (reaction, dodge and parry chances and timing errors, stamina reserve, mistake rate, press cap) are guesses until you do.
+- [ ] A skill bot looks like a player and not a machine: it does not stare at the target with perfect aim, it rolls and parries visibly, it backs off to get its stamina back, and a novice swings itself empty and gets hit. Say what looks wrong.
+
 ## Join stall
 
 - [ ] Start a solo game with `--seed=1234`: no "No word from the server" on the HUD in the first 15 s, and the ping in the debug overlay (F3) stays low; other players seen moving smoothly right after joining.

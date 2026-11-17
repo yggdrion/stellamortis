@@ -8,7 +8,7 @@ The world moves and breathes: trees and grass sway in the wind, water lies in th
 
 ## Depends on
 
-M37 (scatter and ground cover), M41 (wind strength and direction, sky and light). M45 (Myrkfen) needs this milestone's water.
+M37 (scatter and ground cover), M41 (wind strength and direction, sky and light). M57 (Myrkfen) needs this milestone's water.
 
 ## Design
 
@@ -29,7 +29,7 @@ File level detail is added when M41 lands.
 
 ## Out of scope
 
-Swimming, wading speed and anything else water does to the sim (M45). Fire spreading, destructible scatter. Volumetric clouds. Footprints.
+Swimming, wading speed and anything else water does to the sim (M57). Fire spreading, destructible scatter. Volumetric clouds. Footprints.
 
 ## Pitfalls
 

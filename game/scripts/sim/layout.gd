@@ -37,7 +37,7 @@ static func gravity_zones() -> Array[GravityZone]:
 
 
 ## Pads that launch a jumping player along their up (none now; the Skyshards bring them back
-## in M47, tests add their own).
+## in M59, tests add their own).
 static func jump_pads() -> Array[JumpPad]:
 	return _pads
 
@@ -48,7 +48,7 @@ static func set_world_seed(world_seed: int) -> void:
 	_portals.clear()
 
 
-## The gates between realms (none yet: M45 adds the one to Myrkfen at the arrival, shut until
+## The gates between realms (none yet: M57 adds the one to Myrkfen at the arrival, shut until
 ## the Warden's flag is set; tests add their own).
 static func portals() -> Array[Portal]:
 	return _portals

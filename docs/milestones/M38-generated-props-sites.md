@@ -28,7 +28,7 @@ File level detail is added when M37 lands.
 
 ## Out of scope
 
-Building pieces for players (M48 builds them with the kit). Weapons and worn gear (M39). Crafting stations beyond the anvil and cauldron already placed (M44).
+Building pieces for players (M64 builds them with the kit). Weapons and worn gear (M39). Crafting stations beyond the anvil and cauldron already placed (M55).
 
 ## Pitfalls
 

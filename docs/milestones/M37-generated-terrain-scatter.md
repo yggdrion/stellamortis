@@ -55,7 +55,7 @@ Done when: screenshots at the arrival, in old wood, on a steep rocky slope and o
 
 ## Out of scope
 
-Wind sway and water (M42). Felling and mining (M44 uses these kinds). Other realms' palettes and species (their own milestones). The arrival's stones and props (M38).
+Wind sway and water (M42). Felling and mining (M55 uses these kinds). Other realms' palettes and species (their own milestones). The arrival's stones and props (M38).
 
 ## Pitfalls
 

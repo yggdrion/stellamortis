@@ -1,4 +1,4 @@
-# M45 Myrkfen
+# M57 Myrkfen
 
 Status: planned.
 
@@ -8,7 +8,7 @@ The second realm, behind the Warden's gate: a drowned moor under low gravity. Lo
 
 ## Depends on
 
-M44 (gear tier 1, recipes, resource nodes). File level detail is added by M44's last task.
+M55 (gear tier 1, recipes, resource nodes). File level detail is added by M55's last task.
 
 ## Design
 
@@ -23,7 +23,7 @@ M44 (gear tier 1, recipes, resource nodes). File level detail is added by M44's 
 1. **Realm and biome (Sonnet).** `RealmDef`, terrain shaping parameters for the biome, water view and wading zone (the zone is sim: Opus reviews it), scatter, fog and light, ambience. Screenshots.
 2. **Enemy kinds (Opus for behaviors, Sonnet for defs and looks).** Lobbed shots that leave a ground area (enemy bolt slots plus a rolled back area slot), the wisp's burst, defs, attacks, looks, sounds, camp recipes. Tests for each behavior.
 3. **Resources and tier 2 (Sonnet).** Nodes, items, recipes, two sets with set perks, perk tree tier 2.
-4. **The drowned jotun (Opus).** Boss behavior, site, health scaling, tests like `encounter_test.gd` (each move, phase 2, the flag, the gate). Then detail M46's brief and close the milestone.
+4. **The drowned jotun (Opus).** Boss behavior, site, health scaling, tests like `encounter_test.gd` (each move, phase 2, the flag, the gate). Then detail M58's brief and close the milestone.
 
 ## Out of scope
 

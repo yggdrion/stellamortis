@@ -2,7 +2,7 @@ class_name Scatter
 extends RefCounted
 ## What stands on a generated realm's ground (M20): pines, birches, boulders, standing stones and
 ## burial mounds, a pure function of (realm, world seed, chunk). No scene tree and no shared
-## state, so a worker thread can run it; the client draws the points (TerrainView) and M44 gives
+## state, so a worker thread can run it; the client draws the points (TerrainView) and M55 gives
 ## the same points collision and health on the server. Points carry a rank in [0, 1): a view
 ## that wants fewer (lower graphics presets) draws those under its density and every peer's
 ## solid objects stay the same.

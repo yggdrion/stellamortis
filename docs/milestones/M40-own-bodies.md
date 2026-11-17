@@ -39,7 +39,7 @@ File level detail for tasks 2 and 3 is added after the spike.
 
 ## Out of scope
 
-New animations (UAL stays). Faces that move. Beasts and animals (M50 and the realm milestones build theirs the same way, as rigid or simply rigged Blender-scripted models). Character customization in the menu.
+New animations (UAL stays). Faces that move. Beasts and animals (M67 and the realm milestones build theirs the same way, as rigid or simply rigged Blender-scripted models). Character customization in the menu.
 
 ## Pitfalls
 

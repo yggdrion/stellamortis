@@ -3,7 +3,7 @@ extends RefCounted
 ## The character file (M23): `user://characters/<name>.json`, kept on the player's machine and
 ## sent with hello, so it travels between worlds and servers (the server trusts it, clamped).
 ## Fields: `version`, `id` (the player ID graves know it by), `name`, `inventory`
-## (Inventory.to_dict) and `junk` (item ids starred as junk); M43 adds level and perks.
+## (Inventory.to_dict) and `junk` (item ids starred as junk); M54 adds level and perks.
 
 const VERSION := 1
 const FOLDER := "user://characters/"

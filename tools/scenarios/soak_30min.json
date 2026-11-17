@@ -1,0 +1,51 @@
+{
+  "about": "six bots roam and fight for 30 minutes at two camp spots: desync and leak watch (--short for a quick run)",
+  "seed": 1234,
+  "spawn": "2448.021,993.742,1966.962;1851.48,287.395,2505.412",
+  "duration": 1800,
+  "fps": 60,
+  "party": [
+    {
+      "skill": "average",
+      "goal": "roam",
+      "seed": 1,
+      "lag": 0
+    },
+    {
+      "skill": "good",
+      "goal": "roam",
+      "seed": 2,
+      "lag": 40
+    },
+    {
+      "skill": "expert",
+      "goal": "roam",
+      "seed": 3,
+      "lag": 80
+    },
+    {
+      "skill": "average",
+      "goal": "roam",
+      "seed": 4,
+      "lag": 0
+    },
+    {
+      "skill": "good",
+      "goal": "roam",
+      "seed": 5,
+      "lag": 40
+    },
+    {
+      "skill": "expert",
+      "goal": "roam",
+      "seed": 6,
+      "lag": 80
+    }
+  ],
+  "expect": {
+    "desyncs_max": 0,
+    "tps_min": 28,
+    "script_errors_max": 0,
+    "hits_min": 1
+  }
+}

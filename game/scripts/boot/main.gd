@@ -130,6 +130,8 @@ func _ready() -> void:
 		Settings.max_fps_flag = maxi(int(_args["max-fps"]), 0)
 	if DisplayServer.get_name() != "headless":
 		Settings.apply_pacing()
+	elif Settings.max_fps_flag >= 0:
+		Engine.max_fps = Settings.max_fps_flag  # headless bots of a big party (tools/playtest.py)
 	if not _args.has("windowed") and not _args.has("bot") and not OS.is_debug_build():
 		Settings.apply_window(get_window())
 	if gallery:

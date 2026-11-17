@@ -1,6 +1,7 @@
 """Runs all checks locally (there is no CI) and stops at the first failure:
   1. gdlint + gdformat --check   2. lobby tests (pinned Bun)   3. gdUnit4 tests (pinned Godot)
   4. headless network test (ENet with fake lag, and WebRTC through a local lobby)
+  5. the smoke play-test (two bots at a camp, 30 s; tools/playtest.py)
 
 Usage: python tools/check.py [--quick | --tests]
   --quick   only step 1 (no Godot), a few seconds
@@ -49,5 +50,8 @@ if "--tests" in args:
 
 step("Network test")
 tool("run_network_test")
+
+step("Bot play-test smoke scenario")
+tool("playtest", "smoke")
 
 print("\nAll checks passed.")

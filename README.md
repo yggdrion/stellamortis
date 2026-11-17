@@ -74,6 +74,12 @@ The red zone to the west has high gravity.
     python tools/check.py            # lint, lobby tests, gdUnit4 tests, network test (ENet, WebRTC)
     python tools/run_load_test.py    # 6 bots on one server: ticks per second, tick loop, kB/s (--lag=MS)
     python tools/check.py --quick    # lint only
+    python tools/playtest.py smoke   # bot play-test of one scenario (tools/scenarios/NAME.json), --repeat=N
+    python tools/playtest.py --suite # every scenario (soak_30min takes 30 min; --short caps each at 30 s)
+
+`playtest.py` starts a headless server and headless bots (each through its own lag proxy), stops the
+server cleanly, and writes `build/playtest/NAME/report.md` and `report.json` (fight, network, desync
+check). Expectations in the scenario file fail the run (exit 1).
 
 `STELLAMORTIS_EVENT_LOG=PATH` makes the server (PATH) and every client (PATH.<peer id>) write a JSON
 line event log (hits, deaths, camps waking, stats, state hashes); `python tools/desync.py PATH

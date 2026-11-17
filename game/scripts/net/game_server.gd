@@ -79,6 +79,8 @@ var _ever_joined := false
 var _host_id := 0
 var _started_ms := 0
 var _loop_began := 0
+## A file whose appearance makes the server quit (tools/playtest.py), from STELLAMORTIS_STOP_FILE.
+var _stop_file := OS.get_environment("STELLAMORTIS_STOP_FILE")
 var _stats_ticks := 0
 var _stats_ms := 0.0
 var _stats_sum_ms := 0.0
@@ -285,6 +287,10 @@ func _send_character(id: int) -> void:
 
 func _process(_delta: float) -> void:
 	_drop_silent()
+	# tools/playtest.py stops the server cleanly (a kill would lose the event log's last 2 s).
+	if _stop_file != "" and Engine.get_process_frames() % 30 == 0:
+		if FileAccess.file_exists(_stop_file):
+			_quit()
 	var now := Time.get_ticks_msec()
 	for id: int in _character_dirty.keys():
 		if _heard.has(id) and now - _character_sent.get(id, 0) >= CHARACTER_EVERY * 1000:

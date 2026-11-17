@@ -1,0 +1,24 @@
+{
+  "about": "two bots at a camp for 30 s: the runner, logs and desync check work",
+  "seed": 1234,
+  "spawn": "2448.021,993.742,1966.962",
+  "duration": 30,
+  "party": [
+    {
+      "skill": "good",
+      "goal": "camp",
+      "seed": 1
+    },
+    {
+      "skill": "good",
+      "goal": "camp",
+      "seed": 2
+    }
+  ],
+  "expect": {
+    "desyncs_max": 0,
+    "tps_min": 28,
+    "script_errors_max": 0,
+    "hits_min": 1
+  }
+}

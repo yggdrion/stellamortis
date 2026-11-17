@@ -1,0 +1,37 @@
+{
+  "about": "four expert bots against the Warden",
+  "seed": 1234,
+  "encounter": "boss",
+  "duration": 240,
+  "end_on": "boss",
+  "fps": 60,
+  "party": [
+    {
+      "skill": "expert",
+      "goal": "boss",
+      "seed": 1
+    },
+    {
+      "skill": "expert",
+      "goal": "boss",
+      "seed": 2
+    },
+    {
+      "skill": "expert",
+      "goal": "boss",
+      "seed": 3
+    },
+    {
+      "skill": "expert",
+      "goal": "boss",
+      "seed": 4,
+      "role": "ranged"
+    }
+  ],
+  "expect": {
+    "desyncs_max": 0,
+    "tps_min": 28,
+    "script_errors_max": 0,
+    "hits_min": 1
+  }
+}

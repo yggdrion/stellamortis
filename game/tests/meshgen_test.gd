@@ -206,6 +206,40 @@ func test_stone_kinds_fit_their_scatter_shape() -> void:
 	assert_float(mound.size.x).is_less(10.5)
 
 
+## The M38 props keep to their nominal sizes (a tenth of slack), and the solid ones fit the boxes
+## `Arena` gives them.
+func test_prop_sizes() -> void:
+	var palette := Palette.of("barrowlands")
+	var sized := {
+		"ring_stone": RingStoneKind.NOMINAL,
+		"gate_arch": GateArchKind.NOMINAL,
+		"torch": TorchKind.NOMINAL,
+		"torch_flame": TorchFlameKind.NOMINAL,
+		"chest": Vector3(1.0, ChestKind.BODY_HEIGHT, 0.65),
+		"barrel": BarrelKind.NOMINAL,
+		"crate": CrateKind.NOMINAL,
+		"anvil": AnvilKind.NOMINAL,
+		"cauldron": CauldronKind.NOMINAL,
+		"weapon_stand": WeaponStandKind.NOMINAL,
+		"brazier": BrazierKind.NOMINAL,
+		"banner": BannerKind.NOMINAL,
+	}
+	for id: String in sized:
+		var nominal: Vector3 = sized[id]
+		for variant in 3:
+			var box := Generators.bounds(Generators.arrays(id, variant, palette)[0])
+			assert_float(box.size.x).is_less(nominal.x * 1.1 + 0.05)
+			assert_float(box.size.y).is_between(nominal.y * 0.8, nominal.y * 1.1 + 0.3)
+			assert_float(box.size.z).is_less(nominal.z * 1.1 + 0.05)
+	var stone := Generators.bounds(Generators.arrays("ring_stone", 2, palette)[0])
+	assert_float(stone.size.x).is_less(Arena.STONE_SOLID.x + 0.05)
+	assert_float(stone.size.z).is_less(Arena.STONE_SOLID.z + 0.05)
+	assert_float(stone.end.y).is_less(Arena.STONE_SOLID.y + 0.1)
+	var lid := Generators.bounds(Generators.arrays("chest_lid", 1, palette)[0])
+	assert_float(lid.position.y).is_greater(-0.05)
+	assert_float(lid.position.z).is_greater(-0.05)
+
+
 func test_every_generator_is_deterministic() -> void:
 	var palette := Palette.of("barrowlands")
 	for id in Generators.ids():

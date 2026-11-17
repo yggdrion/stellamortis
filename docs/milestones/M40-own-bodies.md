@@ -49,3 +49,7 @@ New animations (UAL stays). Faces that move. Beasts and animals (M67 and the rea
 - New `MeshInstance3D`s under a skeleton need `skeleton = ".."`.
 - Blender versions change the exporter: pin the version in the script and in `docs/RESOURCES.md`.
 - This milestone is the block's risk. The spike exists so the risk is paid first and cheaply.
+
+## Left by M39
+
+Armor generators exist (`helm`, `cuirass`, `pauldrons`, `greaves`, `cape`) with `GearKit.covers(look, params)` naming the covered bones (`Head`, `UpperChest`, `Spine`, `LeftUpperArm`, `RightUpperArm`, `<side>LowerLeg`); nothing hides body parts yet and no player model shows worn armor: only `SimPlayer.armor` (a sum) is synced, so showing a helm or cuirass on every peer needs the worn item indices sent (a protocol bump) or derived. Greaves are built for one leg (origin at the knee, shin along -Y): check against the UAL rest pose when bodies land.

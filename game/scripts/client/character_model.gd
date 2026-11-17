@@ -107,6 +107,19 @@ func _init(scene_path: String, held: Dictionary, scale_by := 1.0) -> void:
 		mesh.material_overlay = _flash
 
 
+## Replaces the node of a held prop (same bone, same visibility); null puts nothing there.
+func set_prop(name_of: String, node: Node3D) -> void:
+	var old := props[name_of] as Node3D
+	var slot := old.get_parent()
+	var shown := old.visible
+	slot.remove_child(old)
+	old.queue_free()
+	var fresh := node if node != null else Node3D.new()
+	fresh.visible = shown
+	slot.add_child(fresh)
+	props[name_of] = fresh
+
+
 ## A prop from a scene file, for held.
 static func prop(scene_path: String, at := Transform3D.IDENTITY) -> Node3D:
 	var node := (load(scene_path) as PackedScene).instantiate() as Node3D

@@ -84,6 +84,7 @@ var _presence: Presence
 
 func _ready() -> void:
 	_args = parse_args(OS.get_cmdline_user_args())
+	ItemIcons.warm(self)
 	if _args.has("bench"):
 		var bench := Bench.new()
 		bench.players = int(_args["bench"])

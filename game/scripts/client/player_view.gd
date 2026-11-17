@@ -30,6 +30,8 @@ var _heard_weapon := -1
 var _heard_respawns := -1
 var _heard_rise := 0.0
 var _stride := 0.0
+## The worn main hand, off hand and ranged item indices the props were built for.
+var _worn := Vector3i(-1, -1, -1)
 var _last_feet := Vector3.ZERO
 
 
@@ -41,9 +43,9 @@ func _init(of: SimPlayer, show_name: bool) -> void:
 		. ranger(
 			player.peer_id,
 			{
-				"sword": ["RightHand", Gear.sword()],
-				"shield": ["LeftLowerArm", Gear.shield()],
-				"crossbow": ["RightHand", Gear.crossbow()],
+				"sword": ["RightHand", Node3D.new()],
+				"shield": ["LeftLowerArm", Node3D.new()],
+				"crossbow": ["RightHand", Node3D.new()],
 			}
 		)
 	)
@@ -71,6 +73,7 @@ func _process(delta: float) -> void:
 	_last_health = player.health
 	_dealt()
 	_sounds(delta)
+	_sync_gear()
 	var crossbow := player.weapon == SimPlayer.Weapon.CROSSBOW
 	_model.show_prop("sword", not crossbow)
 	_model.show_prop("shield", not crossbow)
@@ -79,6 +82,23 @@ func _process(delta: float) -> void:
 		_hold -= delta
 	else:
 		_pose()
+
+
+## Rebuilds the held props whenever a worn item changes (the indices are rolled back state, so
+## this runs on every change, not once).
+func _sync_gear() -> void:
+	var now := Vector3i(player.main_hand, player.off_hand, player.ranged)
+	if now == _worn:
+		return
+	_worn = now
+	_model.set_prop("sword", _gear_of(now.x))
+	_model.set_prop("shield", _gear_of(now.y))
+	_model.set_prop("crossbow", _gear_of(now.z))
+
+
+static func _gear_of(item_index: int) -> Node3D:
+	var def := Items.def(item_index)
+	return Gear.of_item(def) if def != null and def.look != &"" else null
 
 
 ## A hit on this player, seen in the health (a respawn refills it and never counts): hold the

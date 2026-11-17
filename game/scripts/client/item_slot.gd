@@ -51,9 +51,16 @@ func _draw() -> void:
 		color = ItemDef.RARITY_COLORS[def.rarity]
 		draw_rect(rect.grow(-1.0), Color(color, 0.07))
 		draw_rect(rect, Color(color, 0.55), false, 1.0)
-		draw_glyph(
-			self, def, rect.grow(-9.0), color.lightened(0.1) if not junk else color.darkened(0.35)
-		)
+		var icon := ItemIcons.texture(def.id)
+		if icon != null:
+			draw_texture_rect(icon, rect.grow(-3.0), false, Color(1, 1, 1, 0.45 if junk else 1.0))
+		else:
+			draw_glyph(
+				self,
+				def,
+				rect.grow(-9.0),
+				color.lightened(0.1) if not junk else color.darkened(0.35)
+			)
 		if stack.count > 1:
 			var font := Menus.title_font()
 			var text := str(stack.count)

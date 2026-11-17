@@ -1,6 +1,6 @@
 # M39 Generated gear
 
-Status: Planned.
+Status: Built (2026-11-17, v0.29.0), play-test pending.
 
 ## Goal
 

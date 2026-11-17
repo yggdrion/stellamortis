@@ -37,7 +37,5 @@ const RARITY_COLORS: Array[Color] = [
 ## items with no model, and the generator's params (sizes, material roles, wear).
 @export var look: StringName = &""
 @export var look_params: Dictionary = {}
-## A prop glTF (res://assets/...) for its look in the hand or on the ground.
-@export var model := ""
 ## The CharacterModel.show_prop name of a hand item.
 @export var prop: StringName = &""

@@ -306,3 +306,12 @@ Task 1 (bot brain and skills):
 - [ ] An elite's chest: it opens with the lid swinging up on its back edge (about 0.4 s), the glow and beam go out; it looks right from the front and the side.
 - [ ] Colors: stone, wood and iron are readable at night and not pinkish.
 - [ ] `python tools/godot.py -- --gallery` shows every prop at three levels; say which read badly at the far level.
+
+## M39 Generated gear
+
+- [ ] `python tools/godot.py -- --gallery=items`: sword, runed sword, axe, shields, crossbows, helm, chain shirt and greaves each read as what they are; tier differences (runed sword's gold, iron shield's steel rim) show at a glance.
+- [ ] In the hand: the sword, the round shield and the crossbow look right on your character and swing without clipping; equip the runed sword, the iron shield and the ash crossbow and the held model changes at once.
+- [ ] Inventory (`I`): icons match the held models and are readable at slot size; the first open does not hitch.
+- [ ] Dropped weapons and shields on the ground lie sensibly and are not tiny or huge.
+- [ ] Enemies: the dead's swords look rusted, the berserker's axes dark and worn, the shield bearer's tower shield and helm fit; the Warden's helm, horns, crown, pauldrons and cape look like the old ones or better.
+- [ ] No blade looks longer than the swing reaches (the sword and axe against what they hit).

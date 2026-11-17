@@ -433,9 +433,8 @@ class Drop:
 		return at.lerp(player.global_position + up * 0.6, pull * pull * 0.85)
 
 	func _build_item() -> void:
-		var model := def.model
-		if model != "" and ResourceLoader.exists(model):
-			var node := (load(model) as PackedScene).instantiate() as Node3D
+		if def.look != &"":
+			var node := Gear.of_item(def)
 			_item.add_child(node)
 			# Lies on its side (swords and axes) or stands a little tilted (shields).
 			if def.kind == ItemDef.Kind.SHIELD:

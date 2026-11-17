@@ -169,7 +169,7 @@ func test_a_ring_stone_stops_a_walker() -> void:
 
 
 func test_the_gate_opening_stays_passable() -> void:
-	# A gate behind the arrival (none stands there until M26), added after the world is built.
+	# A gate behind the arrival (none stands there until M45), added after the world is built.
 	var spot := Layout.arrival_spot(_realm, -10.0, 0.0)
 	var gate := Portal.at(spot[0], Vector3.ZERO, Vector3.BACK, "Test gate")
 	gate.up = spot[1]

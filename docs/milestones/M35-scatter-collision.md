@@ -8,7 +8,7 @@ Trees, boulders, standing stones and burial mounds are solid: players, enemies a
 
 ## Depends on
 
-M20 (`Scatter.points`, `TerrainChunks`), M34 (the arrival look). Comes before M22. M25 builds felling and mining on top of this collision instead of adding its own.
+M20 (`Scatter.points`, `TerrainChunks`), M34 (the arrival look). Comes before M22. M44 builds felling and mining on top of this collision instead of adding its own.
 
 ## Design
 
@@ -38,10 +38,10 @@ Tests: a mob chasing a player around a tree reaches them within a few seconds; n
 
 ## Out of scope
 
-Felling, mining and resource nodes (M25). Navigation meshes. Collision for grass and small props.
+Felling, mining and resource nodes (M44). Navigation meshes. Collision for grass and small props.
 
 ## Pitfalls
 
 - A client predicting its player against a shape the server does not have (or the other way) rubberbands every step: only `Scatter.points` decides, and the client's visual scatter radius (`Graphics` preset) must not limit the collision radius.
-- Changing `Scatter.points` now changes gameplay: tests that fingerprint scatter catch it, and M25 versions it for saves.
+- Changing `Scatter.points` now changes gameplay: tests that fingerprint scatter catch it, and M44 versions it for saves.
 - Shape counts: a dense chunk may hold hundreds of trees. Keep one body per chunk with many shapes, not one body per tree.

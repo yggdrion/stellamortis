@@ -1,6 +1,6 @@
 # M16 Frame pacing
 
-Status: built (2026-11-14, v0.17.0), play-test pending (`docs/PLAYTEST.md`). Required; independent of M19 to M29.
+Status: built (2026-11-14, v0.17.0), play-test pending (`docs/PLAYTEST.md`). Required; independent of the rest.
 
 ## Goal
 

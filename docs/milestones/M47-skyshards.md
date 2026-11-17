@@ -1,4 +1,4 @@
-# M28 Skyshards
+# M47 Skyshards
 
 Status: planned.
 
@@ -8,14 +8,14 @@ The fourth realm, behind the forge king's gate: a broken land hanging in the nig
 
 ## Depends on
 
-M27. File level detail is added by M27's last task.
+M46. File level detail is added by M46's last task.
 
 ## Design
 
 - Not a `Terrain` sphere: a seeded cluster of 15 to 25 shards (radius 15 to 60 m, point gravity each, as the PoC's asteroid: `GravityZone.sphere`, `Layout.pad_at`, `JumpPad`), spread over a few hundred metres. `ShardField.shards(seed)` and `ShardField.pads(seed)` are pure functions; pads come in pairs that are tested to land (a simulated launch per pair at generation, as `tests/asteroid_test.gd` does by hand).
 - Shards are small enough to build whole at load: displaced spheres with collision, no streaming.
 - Biome: pale rock, frost, old runestones, the launch stones as carved rings that glow blue (the gate color: travel).
-- Enemies: sentries (ranged, hold a shard and shoot across the gap: bolts bend through two gravity fields), frost draugr (melee, pull players off balance at the edge), and flyers if a CC0 model fits (a flyer needs movement outside `_walk`: decide in the brief detail whether it is worth it).
+- Enemies: sentries (ranged, hold a shard and shoot across the gap: bolts bend through two gravity fields), frost draugr (melee, pull players off balance at the edge), and flyers if a Blender-scripted model in the game's look (`docs/STYLE.md`, like M40's bodies) holds up (a flyer needs movement outside `_walk`: decide in the brief detail whether it is worth it).
 - Resources: sky iron; tier 4 recipes and sets.
 - Boss: fought across three shards. It leaps between them, and the players follow by pad; one shard breaks away in phase 2.
 
@@ -25,7 +25,7 @@ M27. File level detail is added by M27's last task.
 2. **Look (Sonnet).** Shard meshes and materials, launch stones, sky.
 3. **Enemies (Opus for behaviors, Sonnet for defs and looks).**
 4. **Resources and tier 4 (Sonnet).**
-5. **The boss (Opus).** Then detail M29's brief and close the milestone.
+5. **The boss (Opus).** Then detail M48's brief and close the milestone.
 
 ## Out of scope
 

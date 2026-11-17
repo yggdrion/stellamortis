@@ -1,4 +1,4 @@
-# M25 Gather and craft
+# M44 Gather and craft
 
 Status: planned.
 
@@ -8,11 +8,11 @@ The land gives materials and the smithy turns them into gear. A player fells tre
 
 ## Depends on
 
-M23 (items, world objects for drops, saves), M24 (set perks, crafter tree), M20's `Scatter.points`. File level detail is added by M24's last task.
+M23 (items, world objects for drops, saves), M43 (set perks, crafter tree), M20's `Scatter.points`. File level detail is added by M43's last task.
 
 ## Design
 
-- Resource nodes are world objects derived from the seed (`Scatter.points`, the same function the client used for visuals in M20): the world stores only what differs from the seed (felled, mined, regrowing with a time). Their collision already exists from M35 (built with the terrain chunks from `Scatter.points`); M25 removes a felled or mined node's shape.
+- Resource nodes are world objects derived from the seed (`Scatter.points`, the same function the client used for visuals in M20): the world stores only what differs from the seed (felled, mined, regrowing with a time). Their collision already exists from M35 (built with the terrain chunks from `Scatter.points`); M44 removes a felled or mined node's shape.
 - Hitting a node is a server decision from the player's swing (the sim tells the server which node a swing with a tool reached; node health is not rolled back). A felled tree falls, breaks into logs as drops, and regrows after a long time; ore veins do not regrow.
 - Tools are weapons with a `tool` kind and tier: axe (wood), pickaxe (stone, ore). A tool too weak for a node bounces off with a clear sound.
 - `Recipe` (resource): station, inputs, output, required flag. Stations: the workbench and the smithy next to the arrival gate (the keep is gone, M34). Crafting takes materials from the bag and from chests within a few metres. Upgrades raise an item's level for more materials.
@@ -22,11 +22,11 @@ M23 (items, world objects for drops, saves), M24 (set perks, crafter tree), M20'
 
 1. **Resource nodes (Opus).** Nodes in the sim from `Scatter.points` (their collision is M35's), the world's diff list, deltas and join snapshot, save and regrowth, tool hits. Tests: same seed gives the same nodes on two peers; a felled tree stays felled after a restart and for a late joiner; a player cannot walk through a tree; rollback replay near a node is deterministic.
 2. **Tools and gathering feel (Sonnet).** Axe and pickaxe (attack defs, clips), chop and crack sounds, chips flying, the tree leaning and falling, logs and stones as drops (M23's loot feel), the bounce for weak tools.
-3. **Recipes and stations (Sonnet).** `Recipe` data, the station panels (what you can make, what is missing, craft and upgrade), nearby chests as a source, tier 1 with both sets and their set perks. Then detail M26's brief and close the milestone.
+3. **Recipes and stations (Sonnet).** `Recipe` data, the station panels (what you can make, what is missing, craft and upgrade), nearby chests as a source, tier 1 with both sets and their set perks. Then detail M45's brief and close the milestone.
 
 ## Out of scope
 
-Placing stations in the world (M29). Farming and cooking (M30). Smelting chains (ore to bar is one recipe for now).
+Placing stations in the world (M48). Farming and cooking (M49). Smelting chains (ore to bar is one recipe for now).
 
 ## Pitfalls
 

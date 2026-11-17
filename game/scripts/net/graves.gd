@@ -3,7 +3,7 @@ extends Node
 ## Death on the server (M23): the first step a player is DEAD, its bag (not the worn gear) is
 ## moved into a GRAVE world object where the body fell. The owner takes it back by walking to it
 ## and pressing E (Looting.open); for GRAVE_LOCK world seconds nobody else can. A second death
-## makes a second grave: nothing is ever destroyed (M24's XP in the grave is lost then, PLAN §4.8).
+## makes a second grave: nothing is ever destroyed (M43's XP in the grave is lost then, PLAN §4.8).
 ##
 ## Runs after every rollback step like Spawner.update, so a replayed tick (netfox restores older
 ## state, the player is DEAD again with the same `respawns`) finds the death in `_buried` and does

@@ -75,6 +75,10 @@ The red zone to the west has high gravity.
     python tools/run_load_test.py    # 6 bots on one server: ticks per second, tick loop, kB/s (--lag=MS)
     python tools/check.py --quick    # lint only
 
+`STELLAMORTIS_EVENT_LOG=PATH` makes the server (PATH) and every client (PATH.<peer id>) write a JSON
+line event log (hits, deaths, camps waking, stats, state hashes); `python tools/desync.py PATH
+PATH.<id>` compares the state hashes of server and client.
+
 `--screenshot=PATH` saves a PNG after a few seconds and quits, for checking visuals without
 playing.
 

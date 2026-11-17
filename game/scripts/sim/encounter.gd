@@ -63,9 +63,11 @@ func post() -> Transform3D:
 	return Transform3D(SimPlayer.frame(up, SimPlayer._tangent(Vector3.FORWARD, up)), feet)
 
 
-func _rollback_tick(_delta: float, _tick: int, _is_fresh: bool) -> void:
+func _rollback_tick(_delta: float, tick: int, _is_fresh: bool) -> void:
 	if site == null:
 		return
+	if EventLog.collect:
+		EventLog.begin(self, tick)
 	phase_time += 1
 	match phase:
 		Phase.IDLE:
@@ -99,6 +101,8 @@ func reset() -> void:
 
 
 func _set_phase(next: Phase) -> void:
+	if EventLog.server and next != phase:
+		EventLog.note("phase", {"realm": realm.id, "phase": Phase.keys()[next]})
 	phase = next
 	phase_time = 0
 

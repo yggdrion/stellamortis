@@ -235,7 +235,9 @@ func place(feet: Vector3, forward := Vector3.FORWARD) -> void:
 	global_transform = Transform3D(SimPlayer.frame(up, facing), feet)
 
 
-func _rollback_tick(delta: float, _tick: int, _is_fresh: bool) -> void:
+func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
+	if EventLog.collect:
+		EventLog.begin(self, tick)
 	step(controls.move, controls.yaw, controls.buttons, delta, controls.pitch, controls.weapon)
 
 
@@ -412,6 +414,8 @@ func _advance_action(
 			action_dir = wish.normalized()
 		facing = action_dir
 		_set_action(Action.ROLL)
+		if EventLog.server:
+			EventLog.note("roll", {"peer": peer_id})
 	elif weapon == Weapon.CROSSBOW:
 		if queued == Queued.LIGHT and stamina > 0.0:
 			queued = Queued.NOTHING
@@ -525,6 +529,28 @@ func _catch_bolts(t: Tuning) -> void:
 
 
 func _take(enemy: Enemy, def: AttackDef, t: Tuning) -> void:
+	var health_before := health
+	var blocking := action == Action.BLOCK
+	_take_hit(enemy, def, t)
+	if EventLog.server:
+		var parried := blocking and enemy.parried and health == health_before
+		var fields := {
+			"attacker": enemy.index,
+			"kind": Combat.ENEMY_KINDS[enemy.kind],
+			"target": peer_id,
+			"attack": EventLog.attack_id(def),
+			"damage": snappedf(health_before - health, 0.01),
+			"blocked": blocking and not parried,
+			"parried": parried,
+		}
+		EventLog.note("parry" if parried else "hit", fields)
+		if health_before > 0.0 and health <= 0.0:
+			EventLog.note(
+				"death", {"who": peer_id, "attack": fields["attack"], "enemy": enemy.index}
+			)
+
+
+func _take_hit(enemy: Enemy, def: AttackDef, t: Tuning) -> void:
 	invulnerable = Combat.ticks(t.hurt_invulnerable)
 	# Share of the attack's knockback: a block stops most of it, a guard break none.
 	var push := 1.0 if action != Action.BLOCK else t.block_knockback
@@ -569,13 +595,15 @@ func _strike() -> void:
 			center(), facing, up, def.reach, def.arc_degrees, enemy.center(), enemy.radius
 		):
 			swing_hits |= bit
-			enemy.take_hit(
+			var damage := enemy.take_hit(
 				def.damage * Loadout.damage_scale(main_hand),
 				global_position,
 				def.knockback,
 				def.flinch
 			)
 			_mutate(enemy)
+			if EventLog.server:
+				_note_hit(enemy, Combat.PLAYER_ATTACKS[attack], damage)
 
 
 ## Releases the drawn bolt toward what the crosshair is on (Combat.aim_target).
@@ -613,8 +641,10 @@ func _fly_bolts(delta: float, t: Tuning) -> void:
 		bolt_pos[i] = to
 		var enemy := Combat.enemy_on_segment(self, from, to)
 		if enemy:
-			enemy.take_hit(bolt_damage[i], from, t.bolt_knockback, t.bolt_flinch)
+			var damage := enemy.take_hit(bolt_damage[i], from, t.bolt_knockback, t.bolt_flinch)
 			_mutate(enemy)
+			if EventLog.server:
+				_note_hit(enemy, &"bolt", damage)
 			bolt_pos[i] = Combat.closest_on_segment(from, to, enemy.center())
 			bolt_life[i] = 0
 			continue
@@ -622,6 +652,30 @@ func _fly_bolts(delta: float, t: Tuning) -> void:
 		if not wall.is_empty():
 			bolt_pos[i] = wall.position
 			bolt_life[i] = 0
+
+
+## Event log: this player's hit on an enemy, and its kill when the hit was the last.
+func _note_hit(enemy: Enemy, attack_id: StringName, damage: float) -> void:
+	if damage <= 0.0:
+		return
+	var kind := Combat.ENEMY_KINDS[enemy.kind]
+	(
+		EventLog
+		. note(
+			"hit",
+			{
+				"attacker": peer_id,
+				"target": enemy.index,
+				"kind": kind,
+				"attack": attack_id,
+				"damage": snappedf(damage, 0.01),
+				"blocked": false,
+				"parried": false,
+			}
+		)
+	)
+	if not enemy.alive():
+		EventLog.note("kill", {"by": peer_id, "enemy": enemy.index, "kind": kind})
 
 
 ## Steps through a portal the player stands in (one with a flag only once it is set).

@@ -199,6 +199,7 @@ func start(port: int) -> void:
 	NetworkTime.on_tick.connect(func(_delta: float, _tick: int) -> void: _stats_ticks += 1)
 	_started_ms = Time.get_ticks_msec()
 	_stats_at = _started_ms
+	EventLog.open(OS.get_environment("STELLAMORTIS_EVENT_LOG"), true)
 	if OS.has_environment("STELLAMORTIS_SERVER_STATS"):
 		_profile = RollbackProfile.new()
 		_profile.attach()
@@ -259,11 +260,13 @@ func save_world() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE:
 		save_world()
+		EventLog.close()
 
 
 ## Quits after saving the world.
 func _quit(code := 0) -> void:
 	save_world()
+	EventLog.close()
 	get_tree().quit(code)
 
 
@@ -315,6 +318,24 @@ func _track_stats() -> void:
 		in_kbps = received / 1000.0 / seconds / _names.size()
 	if not _names.is_empty():
 		net.server_stats.rpc(tps, _stats_ms, average, out_kbps)
+	if EventLog.server:
+		(
+			EventLog
+			. emit_now(
+				"stats",
+				{
+					"players": _names.size(),
+					"tps": snappedf(tps, 0.1),
+					"tick_avg_ms": snappedf(average, 0.01),
+					"tick_max_ms": snappedf(_stats_ms, 0.01),
+					"resim_ticks":
+					snappedf(float(_stats_rollback_ticks) / maxi(_stats_loops, 1), 0.1),
+					"out_kbps": snappedf(out_kbps, 0.01),
+					"in_kbps": snappedf(in_kbps, 0.01),
+					"awake": _awake_slots(),
+				}
+			)
+		)
 	if OS.has_environment("STELLAMORTIS_SERVER_STATS"):
 		# One parseable line per second (tools/run_load_test.py reads it).
 		print(
@@ -394,6 +415,7 @@ func _on_hello(
 	net.objects_snapshot.rpc_id(id, _looting.snapshot())
 	_heard[id] = Time.get_ticks_msec()
 	print("%s joined (%d)" % [_names[id], id])
+	EventLog.emit_now("join", {"peer": id, "name": _names[id], "at": at})
 	if debug_loot != "":
 		var body := _world.player(id)
 		_looting.debug_pile(body.global_position, body.up, SimPlayer._tangent(body.facing, body.up))
@@ -447,6 +469,7 @@ func _drop_silent() -> void:
 	for id: int in _heard.keys():
 		if now - _heard[id] > SILENT_DROP * 1000:
 			print("%s went silent (%d)" % [_names.get(id, "?"), id])
+			EventLog.emit_now("leave", {"peer": id, "name": _names.get(id, "?"), "why": "silent"})
 			_send_character(id)
 			_heard.erase(id)
 			_tell_others(id, "%s lost the connection" % _names.get(id, "A player"))
@@ -466,6 +489,7 @@ func _on_peer_disconnected(id: int) -> void:
 	if not _names.has(id):
 		return
 	print("%s left (%d)" % [_names[id], id])
+	EventLog.emit_now("leave", {"peer": id, "name": _names[id], "why": "left"})
 	if _heard.has(id):
 		_heard.erase(id)
 		_tell_others(id, "%s left" % _names[id])

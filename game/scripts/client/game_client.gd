@@ -99,6 +99,11 @@ var _first_seen := {}
 var _snap_log := OS.get_environment("STELLAMORTIS_SNAP_LOG") == "1"
 var _snap_tick := -1
 var _snap_at := Vector3.ZERO
+## Event log: input changes and corrections since the last per-second line.
+var _inputs := 0
+var _snaps := 0
+var _last_buttons := 0
+var _last_move := Vector2.ZERO
 var _seen_moved := {}
 ## Bot: where it first stood, and whether it has been 4 m away from there since (a respawn
 ## near the spawn must not undo that).
@@ -316,6 +321,7 @@ func _leave_to_menu() -> void:
 ## lambdas; drop them, so a later game doesn't call into a freed one.
 func _exit_tree() -> void:
 	save_character()
+	EventLog.close()
 	for source: Object in [net, multiplayer]:
 		if source == null:
 			continue
@@ -335,6 +341,8 @@ func _on_player_spawned(player: SimPlayer) -> void:
 		_first_seen[player.peer_id] = player.global_position
 		return
 	me = player
+	if not EventLog.is_open():
+		EventLog.open(OS.get_environment("STELLAMORTIS_EVENT_LOG"), false, player.peer_id)
 	_objects.me = me
 	_map.me = me
 	_hud.player = me
@@ -454,7 +462,7 @@ func _process(delta: float) -> void:
 	_hud.prompt = _objects.prompt if not covered else ""
 	_hud.prompt_color = _objects.prompt_color
 	_watch_silence()
-	if _snap_log and me != null:
+	if (_snap_log or EventLog.collect) and me != null:
 		_log_snaps()
 	if me != null:
 		var place := Layout.place_at(me.global_position)
@@ -495,7 +503,18 @@ func _log_snaps() -> void:
 		var ticks := maxi(1, NetworkTime.tick - _snap_tick)
 		var moved := at.distance_to(_snap_at)
 		var allowed := (me.velocity.length() + 1.0) * ticks / 30.0 + 0.05
-		if moved > allowed:
+		var buttons := me.controls.buttons
+		var move := me.controls.move
+		if buttons != _last_buttons or move != _last_move:
+			_inputs += 1
+		_last_buttons = buttons
+		_last_move = move
+		if moved > allowed and EventLog.collect:
+			_snaps += 1
+			EventLog.emit_now(
+				"snap", {"peer": me.peer_id, "m": snappedf(moved, 0.01), "ticks": ticks}
+			)
+		if moved > allowed and _snap_log:
 			print(
 				(
 					"snap %.2f m over %d ticks, action %d time %d attack %d health %.0f tick %d"
@@ -517,6 +536,12 @@ func _log_snaps() -> void:
 func _each_second() -> void:
 	if me != null:
 		net.ping.rpc_id(1, Time.get_ticks_msec())
+		if EventLog.collect:
+			EventLog.emit_now(
+				"client", {"peer": me.peer_id, "ping": ping_ms, "inputs": _inputs, "snaps": _snaps}
+			)
+			_inputs = 0
+			_snaps = 0
 	if _map.visible and _map.realm_id() != "":
 		net.request_cleared_camps.rpc_id(1, _map.realm_id())
 	if bot:

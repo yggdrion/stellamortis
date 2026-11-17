@@ -554,6 +554,10 @@ func _tend(unit: int, tick: int, players: Array[SimPlayer]) -> void:
 		var corpse := dead.has(member)
 		var gone := tick - int(dead.get(member, tick)) >= Combat.ticks(CORPSE_TIME)
 		if (corpse and gone) or (not corpse and calm and living > 0):
+			if EventLog.server:
+				EventLog.emit_now(
+					"sleep", {"unit": unit, "kind": Combat.ENEMY_KINDS[enemy.kind], "dead": corpse}
+				)
 			_free(enemy)
 			slots.erase(member)
 	if slots.is_empty():
@@ -630,6 +634,18 @@ func _wake_near(players: Array[SimPlayer]) -> void:
 			slots[member] = free.pop_back()
 			_rise(world.pool_slot(slots[member]), _units[unit][member], count)
 		_awake[unit] = slots
+		if EventLog.server:
+			EventLog.emit_now(
+				"wake",
+				{
+					"unit": unit,
+					"players": count,
+					"kinds":
+					members.map(
+						func(m: int) -> String: return Combat.ENEMY_KINDS[_units[unit][m].kind]
+					),
+				}
+			)
 		if free.is_empty():
 			return
 

@@ -253,7 +253,9 @@ func join_room(lobby_url: String, code: String) -> void:
 ## the file wins, so a character keeps its graves when settings.cfg is new.
 func _say_hello() -> void:
 	Settings.ensure_player_id()
-	var character := CharacterSave.read(player_name)
+	# Bots start as a new character every run: a file left by an earlier run (dead, gear moved)
+	# would make the run depend on it (the network test waited forever for a lost shield).
+	var character := {} if bot else CharacterSave.read(player_name)
 	if character.is_empty():
 		Settings.junk = []
 	else:

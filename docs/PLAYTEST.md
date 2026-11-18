@@ -343,5 +343,6 @@ Task 1 (the sim; the inventory panel's equip load line, the weapon bar and the s
 - [ ] Medium (chain shirt and cap worn, 16.0 = 64 %): the roll is a little slower and shorter, costs more stamina, stamina comes back a little slower; noticeable, not punishing. Walking is 5 % slower.
 - [ ] Heavy (`equip_load_max` 20 with the same gear): the roll is slow with a long recovery and a short invulnerable window; walking is 10 % slower; a dodge that works light fails if pressed on the light timing. The roll clip plays slower to match and the feet still plant when the body stops.
 - [ ] Overloaded (`equip_load_max` 10): the roll key does nothing, attacks and blocks still start, walking and sprinting are 25 % slower, stamina comes back at 40 % after a long wait.
+- [ ] Task 2 (spare gear): a new character (new name) has the cap, chain shirt, iron shield and bronze axe on the hotbar (keys 3 to 6); try each on and see the equip load change; a loaded old character has no spares and a saved one does not get them again.
 - [ ] A gear swap (keys 3 to 6) in the middle of a roll does not change that roll; the next roll uses the new class.
 - [ ] Walk and jog clips match the slower speed (no foot sliding) in Medium, Heavy and Overloaded.

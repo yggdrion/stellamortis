@@ -409,10 +409,8 @@ func _on_hello(
 		at = _world.encounter.site.ring_spot(id)
 	# The ground under the spawn stands before the body does (a debug spawn may be elsewhere).
 	_world.chunks.ensure_around(at)
-	# What cannot be read as an inventory starts as the starting kit.
-	var inventory := Inventory.starting_kit()
-	if character.get("inventory") is Dictionary:
-		inventory = Inventory.from_dict(character["inventory"])
+	# What cannot be read as an inventory starts as a new character (kit plus spares).
+	var inventory := Inventory.for_character(character)
 	if debug_bag:
 		inventory = _debug_inventory()
 	_inventories.add_peer(id, inventory, CharacterSave.clean_id(player_id))

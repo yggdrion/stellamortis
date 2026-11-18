@@ -34,6 +34,38 @@ func test_starting_kit_is_worn_and_the_bag_empty() -> void:
 		assert_object(inv.at(cell)).is_null()
 
 
+func test_new_character_kit_wears_the_old_kit_and_bags_four_spares() -> void:
+	var inv := Inventory.new_character_kit()
+	var worn := Inventory.starting_kit()
+	for cell in range(Inventory.BAG_SIZE, Inventory.CELLS):
+		assert_str(String(inv.at(cell).id) if inv.at(cell) else "").is_equal(
+			String(worn.at(cell).id) if worn.at(cell) else ""
+		)
+	var spares := [&"helm_leather", &"chest_chain", &"shield_iron", &"axe_bronze"]
+	for i in spares.size():
+		assert_str(String(inv.at(i).id)).is_equal(String(spares[i]))
+	assert_object(inv.at(spares.size())).is_null()
+	assert_int(Loadout.of(inv).burden).is_equal(Loadout.Burden.LIGHT)
+
+
+func test_each_spare_can_be_worn_and_swaps_the_worn_piece_into_the_bag() -> void:
+	for cell in 4:
+		var inv := Inventory.new_character_kit()
+		var id := inv.at(cell).id
+		assert_bool(inv.equip(cell)).is_true()
+		assert_int(inv.count_of(id)).is_equal(0)
+		var def := Items.by_id(id)
+		assert_str(String(inv.at(Inventory.SLOT_CELL[def.slot]).id)).is_equal(String(id))
+
+
+func test_a_saved_character_does_not_get_the_spares_again() -> void:
+	var saved := Inventory.for_character({"inventory": Inventory.starting_kit().to_dict()})
+	for cell in Inventory.BAG_SIZE:
+		assert_object(saved.at(cell)).is_null()
+	assert_str(String(Inventory.for_character({}).at(0).id)).is_equal("helm_leather")
+	assert_str(String(Inventory.for_character({"inventory": 5}).at(3).id)).is_equal("axe_bronze")
+
+
 func test_add_stacks_first_then_empty_cells_and_reports_leftover() -> void:
 	var inv := Inventory.new()
 	assert_int(inv.add(&"hide", 30)).is_equal(0)

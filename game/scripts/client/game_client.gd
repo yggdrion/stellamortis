@@ -566,9 +566,14 @@ func _bot_gear() -> void:
 	if _bot_gear_step == 0:
 		send_intent(Net.Op.UNEQUIP, Inventory.Cell.OFF)
 		_bot_gear_step = 1
-	elif _bot_gear_step == 1 and inventory.at(0) != null:
-		send_intent(Net.Op.EQUIP, 0)
-		_bot_gear_step = 2
+	elif _bot_gear_step == 1:
+		# The shield lands in the first empty bag cell (after a new character's spares).
+		for cell in Inventory.BAG_SIZE:
+			var stack := inventory.at(cell)
+			if stack != null and stack.id == &"shield_wood":
+				send_intent(Net.Op.EQUIP, cell)
+				_bot_gear_step = 2
+				break
 
 
 ## Passes once it ran bot_duration, moved itself and saw every other expected player move.

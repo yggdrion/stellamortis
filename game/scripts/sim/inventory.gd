@@ -54,6 +54,22 @@ static func starting_kit() -> Inventory:
 	return inventory
 
 
+## What a new character starts with: the worn kit plus four spares in bag cells 0 to 3 (hotbar
+## keys 3 to 6 wear them).
+static func new_character_kit() -> Inventory:
+	var inventory := starting_kit()
+	for id: StringName in [&"helm_leather", &"chest_chain", &"shield_iron", &"axe_bronze"]:
+		inventory.add(id, 1)
+	return inventory
+
+
+## The inventory a joining character starts with: the saved one, else a new character's kit.
+static func for_character(character: Dictionary) -> Inventory:
+	if character.get("inventory") is Dictionary:
+		return from_dict(character["inventory"])
+	return new_character_kit()
+
+
 static func is_gear(cell: int) -> bool:
 	return cell >= BAG_SIZE and cell < CELLS
 

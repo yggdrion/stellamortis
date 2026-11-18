@@ -75,6 +75,8 @@ const STATE := [
 	"off_hand",
 	"ranged",
 	"armor",
+	"burden",
+	"roll_burden",
 ]
 const MOTION := ["up", "ref_forward", "facing", "grounded", "action_dir"]
 const COMBAT := [
@@ -97,9 +99,11 @@ const COMBAT := [
 	"off_hand",
 	"ranged",
 	"armor",
+	"burden",
+	"roll_burden",
 ]
 ## The worn gear combat reads (Loadout): set only by the server (Inventories), as part of COMBAT.
-const GEAR := ["main_hand", "off_hand", "ranged", "armor"]
+const GEAR := ["main_hand", "off_hand", "ranged", "armor", "burden"]
 const BOLTS := ["bolt_pos", "bolt_vel", "bolt_life", "bolt_damage"]
 const SYNCED := ["transform", "velocity", "net_motion", "net_combat", "net_bolts"]
 
@@ -150,12 +154,18 @@ var bolt_vel := PackedVector3Array()
 ## Ticks left in flight, 0 for a free slot.
 var bolt_life := PackedInt32Array()
 var bolt_damage := PackedFloat32Array()
-## Item indices (Items.IDS) of the worn main hand, off hand and crossbow, and the armor total
-## (Loadout). The starting kit until the server says otherwise.
+## Item indices (Items.IDS) of the worn main hand, off hand and crossbow, the armor total and
+## the burden (Loadout). The starting kit until the server says otherwise.
 var main_hand := 0
 var off_hand := 0
 var ranged := 0
 var armor := 0
+## Loadout.Burden of the worn gear: set by the server like armor. Regen, delay and walking
+## read it live.
+var burden := 0
+## The burden the roll in flight started with: everything about a roll reads this, so a gear
+## swap in the middle cannot change it.
+var roll_burden := 0
 
 ## The packed groups netfox synchronizes (SYNCED).
 var net_motion: PackedByteArray:
@@ -281,7 +291,9 @@ func step(
 			)
 			if sprinting:
 				_spend(t.sprint_stamina * delta, t)
-			horizontal_target = wish * (t.sprint_speed if sprinting else t.walk_speed)
+			horizontal_target = (
+				wish * (t.sprint_speed if sprinting else t.walk_speed) * move_scale_of(t, burden)
+			)
 		Action.DRAW, Action.SHOOT:
 			horizontal_target = wish * t.aim_speed
 			facing = look_forward
@@ -297,11 +309,17 @@ func step(
 			# Travel, easing into what follows: walking on with a direction held, else a stop
 			# while the model stands up.
 			var walk_on := wish.length_squared() > 0.01
-			var after := wish * t.walk_speed if walk_on else action_dir * t.roll_speed * ROLL_END
-			if action_time < roll_travel_ticks(t):
-				var left := 1.0 - float(action_time) / roll_travel_ticks(t)
+			var roll_speed := roll_speed_of(t, roll_burden)
+			var after := (
+				wish * t.walk_speed * move_scale_of(t, burden)
+				if walk_on
+				else action_dir * roll_speed * ROLL_END
+			)
+			var travel := roll_travel_ticks(t, roll_burden)
+			if action_time < travel:
+				var left := 1.0 - float(action_time) / travel
 				var rolling := clampf(left / ROLL_SLOW, 0.0, 1.0)
-				horizontal_target = after.lerp(action_dir * t.roll_speed, rolling)
+				horizontal_target = after.lerp(action_dir * roll_speed, rolling)
 				accel = 1000.0
 			elif walk_on:
 				horizontal_target = after
@@ -353,19 +371,56 @@ func step(
 	_fly_bolts(delta, t)
 
 
+## The scale of a Burden class in one of Tuning's scale arrays (never out of range).
+static func _scale(scales: PackedFloat32Array, cls: int) -> float:
+	return scales[clampi(cls, 0, scales.size() - 1)]
+
+
+## Ticks of a roll of a Burden class.
+static func roll_ticks(t: Tuning, cls := 0) -> int:
+	return Combat.ticks(t.roll_time * _scale(t.roll_time_scale, cls))
+
+
 ## Ticks of a roll in which the body travels.
-static func roll_travel_ticks(t: Tuning) -> int:
-	return roundi(Combat.ticks(t.roll_time) * ROLL_TRAVEL)
+static func roll_travel_ticks(t: Tuning, cls := 0) -> int:
+	return roundi(roll_ticks(t, cls) * ROLL_TRAVEL)
+
+
+static func roll_speed_of(t: Tuning, cls: int) -> float:
+	return t.roll_speed * _scale(t.roll_speed_scale, cls)
+
+
+static func roll_stamina_of(t: Tuning, cls: int) -> float:
+	return t.roll_stamina * _scale(t.roll_stamina_scale, cls)
+
+
+## Multiplier on the seconds of the roll's invulnerable window.
+static func iframe_scale_of(t: Tuning, cls: int) -> float:
+	return _scale(t.roll_iframe_scale, cls)
+
+
+## The first and last tick (action_time) of the roll's invulnerable window.
+static func iframe_ticks(t: Tuning, cls: int) -> Vector2i:
+	var scale := iframe_scale_of(t, cls)
+	return Vector2i(
+		Combat.ticks(t.roll_iframes_start * scale), Combat.ticks(t.roll_iframes_end * scale)
+	)
+
+
+## Ticks stamina waits after a spend.
+static func delay_ticks(t: Tuning, cls: int) -> int:
+	return Combat.ticks(t.stamina_delay * _scale(t.delay_scale, cls))
+
+
+## Multiplier on walk and sprint speed.
+static func move_scale_of(t: Tuning, cls: int) -> float:
+	return _scale(t.move_scale, cls)
 
 
 ## In the roll's invulnerable window.
 func dodging() -> bool:
-	var t := Tuning.data()
-	return (
-		action == Action.ROLL
-		and action_time >= Combat.ticks(t.roll_iframes_start)
-		and action_time <= Combat.ticks(t.roll_iframes_end)
-	)
+	var window := iframe_ticks(Tuning.data(), roll_burden)
+	return action == Action.ROLL and action_time >= window.x and action_time <= window.y
 
 
 func center() -> Vector3:
@@ -378,16 +433,17 @@ func _count_down(t: Tuning) -> void:
 	if stamina_wait > 0:
 		stamina_wait -= 1
 	elif action != Action.BLOCK or stamina <= 0.0:
-		stamina = minf(t.max_stamina, stamina + t.stamina_regen / Combat.TICKRATE)
+		var regen := t.stamina_regen * _scale(t.regen_scale, burden)
+		stamina = minf(t.max_stamina, stamina + regen / Combat.TICKRATE)
 
 
 func _spend(amount: float, t: Tuning) -> void:
 	stamina = maxf(0.0, stamina - amount)
-	stamina_wait = Combat.ticks(t.stamina_delay)
+	stamina_wait = delay_ticks(t, burden)
 
 
 func _buffer(pressed: int, t: Tuning) -> void:
-	if pressed & PlayerControls.Buttons.ROLL:
+	if pressed & PlayerControls.Buttons.ROLL and burden != Loadout.Burden.OVERLOADED:
 		queued = Queued.ROLL
 	elif pressed & PlayerControls.Buttons.ATTACK:
 		queued = Queued.LIGHT
@@ -408,9 +464,12 @@ func _advance_action(
 	if _keep_acting(buttons, look_forward, t, yaw, pitch):
 		return
 	# Free to act.
+	if queued == Queued.ROLL and burden == Loadout.Burden.OVERLOADED:
+		queued = Queued.NOTHING
 	if queued == Queued.ROLL and stamina > 0.0:
 		queued = Queued.NOTHING
-		_spend(t.roll_stamina, t)
+		roll_burden = burden
+		_spend(roll_stamina_of(t, burden), t)
 		# Without a direction: where the camera looks (Valheim).
 		action_dir = look_forward
 		if wish.length_squared() > 0.01:
@@ -444,7 +503,7 @@ func _keep_acting(buttons: int, look_forward: Vector3, t: Tuning, yaw: float, pi
 		Action.STAGGER:
 			busy = action_time < action_length
 		Action.ROLL:
-			busy = action_time < Combat.ticks(t.roll_time)
+			busy = action_time < roll_ticks(t, roll_burden)
 		Action.ATTACK:
 			var def := Combat.player_attack(attack)
 			var in_recover := action_time >= def.active_end_ticks()
@@ -566,7 +625,7 @@ func _take_hit(enemy: Enemy, def: AttackDef, t: Tuning) -> void:
 		var blocked := damage * Loadout.block_share(off_hand)
 		health -= damage - blocked
 		stamina -= blocked * t.block_stamina
-		stamina_wait = Combat.ticks(t.stamina_delay)
+		stamina_wait = delay_ticks(t, burden)
 		if stamina < 0.0:
 			# Guard break: the rest of the hit goes through and the guard drops.
 			health -= -stamina / t.block_stamina

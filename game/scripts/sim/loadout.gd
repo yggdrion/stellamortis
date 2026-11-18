@@ -1,14 +1,20 @@
 class_name Loadout
 extends RefCounted
-## What combat needs from an Inventory (M23): four small ints that travel in the rolled back
+## What combat needs from an Inventory (M23): five small ints that travel in the rolled back
 ## state (SimPlayer.GEAR) and the rules that read them. Nothing else about items reaches the
 ## simulation. Item indices are Items.IDS; 0 is "nothing worn".
+
+## How heavy the worn gear is (M42): the roll and stamina classes. Not Class: that shadows a
+## native name.
+enum Burden { LIGHT, MEDIUM, HEAVY, OVERLOADED }
 
 var main_hand := 0
 var off_hand := 0
 var ranged := 0
 ## Sum of the worn armor pieces' defense, 0 to 255.
 var armor := 0
+## The Burden of the worn gear (equip_load against Tuning.equip_load_max).
+var burden := 0
 
 
 static func of(inventory: Inventory) -> Loadout:
@@ -21,7 +27,29 @@ static func of(inventory: Inventory) -> Loadout:
 		var def := Items.def(_worn(inventory, cell))
 		total += def.defense if def else 0.0
 	loadout.armor = clampi(roundi(total), 0, 255)
+	loadout.burden = burden_of(equip_load(inventory), Tuning.data())
 	return loadout
+
+
+## The weight of everything worn (the gear cells, bolts by count); the bag weighs nothing.
+static func equip_load(inventory: Inventory) -> float:
+	var total := 0.0
+	for cell in range(Inventory.Cell.MAIN, Inventory.Cell.BOLTS + 1):
+		var stack := inventory.at(cell)
+		var def := Items.by_id(stack.id) if stack else null
+		if def:
+			total += def.weight * stack.count
+	return total
+
+
+## The class of a load: a ratio below a limit is the lower class.
+static func burden_of(load_value: float, t: Tuning) -> int:
+	var ratio := load_value / t.equip_load_max
+	if ratio < t.load_light_ratio:
+		return Burden.LIGHT
+	if ratio < t.load_medium_ratio:
+		return Burden.MEDIUM
+	return Burden.HEAVY if ratio < 1.0 else Burden.OVERLOADED
 
 
 ## The item index in a gear cell, 0 when empty.

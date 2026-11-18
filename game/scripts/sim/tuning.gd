@@ -52,6 +52,26 @@ static var _data: Tuning
 @export var input_buffer := 0.3
 @export var death_time := 3.0
 
+@export_group("Equip load")
+## The worn load (Loadout.equip_load) at which the player cannot roll any more.
+@export var equip_load_max := 25.0
+## Load shares of the max below which the player is LIGHT and MEDIUM; below 1.0 is HEAVY.
+@export var load_light_ratio := 0.4
+@export var load_medium_ratio := 0.7
+## Scale factors on the LIGHT numbers above, one entry per Loadout.Burden (LIGHT is 1.0). The
+## OVERLOADED roll entries are never used (there is no roll). Read them through SimPlayer's
+## static helpers only.
+@export var roll_time_scale := PackedFloat32Array([1.0, 1.15, 1.4, 1.0])
+@export var roll_speed_scale := PackedFloat32Array([1.0, 0.9, 0.7, 1.0])
+@export var roll_stamina_scale := PackedFloat32Array([1.0, 1.2, 1.6, 1.0])
+## On the start and end of the invulnerable window.
+@export var roll_iframe_scale := PackedFloat32Array([1.0, 0.9, 0.7, 1.0])
+@export var regen_scale := PackedFloat32Array([1.0, 0.85, 0.6, 0.4])
+## On stamina_delay: the longer recovery.
+@export var delay_scale := PackedFloat32Array([1.0, 1.0, 1.4, 1.6])
+## On walk and sprint speed.
+@export var move_scale := PackedFloat32Array([1.0, 0.95, 0.9, 0.75])
+
 @export_group("Crossbow")
 ## Seconds to a full draw; charge scales bolt speed, damage and stamina.
 @export var draw_time := 0.9

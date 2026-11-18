@@ -111,6 +111,7 @@ class Seen:
 	var ready := 0.0
 	var health := 0.0
 	var stamina := 0.0
+	var burden := 0
 	var action := SimPlayer.Action.NONE
 	var foes: Array[Foe] = []
 	var drops: Array[Vector3] = []
@@ -156,6 +157,7 @@ func _observe(now: float) -> void:
 	seen.ready = _last_ready
 	seen.health = me.health
 	seen.stamina = me.stamina
+	seen.burden = me.burden
 	seen.action = me.action
 	var tree := me.get_tree()
 	for node in tree.get_nodes_in_group(Enemy.GROUP):
@@ -222,14 +224,14 @@ func _track(view: Seen, now: float) -> void:
 		var start := view.t - foe.action_time * TICK
 		var plan := _plans.get(foe.index) as Plan
 		if plan == null or absf(plan.start - start) > 0.25:
-			_plans[foe.index] = _plan(foe, start, now)
+			_plans[foe.index] = _plan(foe, start, now, view.burden)
 
 
 # --- Answering telegraphs -------------------------------------------------------------------
 
 
 ## Decides how (and whether) to answer a swing, and when to press.
-func _plan(foe: Foe, start: float, now: float) -> Plan:
+func _plan(foe: Foe, start: float, now: float, burden: int) -> Plan:
 	var t := Tuning.data()
 	var swing := foe.swing
 	var plan := Plan.new()
@@ -239,7 +241,8 @@ func _plan(foe: Foe, start: float, now: float) -> Plan:
 		plan.strike_at += _dist(foe) / swing.bolt_speed
 	plan.end_at = plan.strike_at + swing.active + 0.2
 	plan.side = 1.0 if _rng.randf() < 0.5 else -1.0
-	var roll_at := plan.strike_at - (t.roll_iframes_start + t.roll_iframes_end) / 2.0
+	var window_scale := SimPlayer.iframe_scale_of(t, burden)
+	var roll_at := plan.strike_at - (t.roll_iframes_start + t.roll_iframes_end) / 2.0 * window_scale
 	roll_at += swing.active / 2.0 - TICK
 	if _rng.randf() < skill.mistake_rate:
 		plan.slip = _rng.randi_range(1, 3) as Slip
@@ -256,7 +259,7 @@ func _plan(foe: Foe, start: float, now: float) -> Plan:
 				plan.kind = Evade.PARRY
 				plan.press_at = plan.strike_at - t.parry_window / 2.0 - TICK
 				plan.press_at += _rng.randfn(0.0, skill.parry_error_ms) / 1000.0
-			elif _rng.randf() < skill.dodge_chance:
+			elif burden != Loadout.Burden.OVERLOADED and _rng.randf() < skill.dodge_chance:
 				plan.kind = Evade.ROLL
 				plan.press_at = roll_at + _rng.randfn(0.0, skill.dodge_error_ms) / 1000.0
 			elif _rng.randf() < skill.block_chance:

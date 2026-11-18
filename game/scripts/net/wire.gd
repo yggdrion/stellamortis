@@ -87,6 +87,8 @@ static func _fill() -> void:
 		"off_hand": u8,
 		"ranged": u8,
 		"armor": u8,
+		"burden": u8,
+		"roll_burden": u8,
 		"phase": u8,
 		"combo": counter,
 		"action_time": counter,

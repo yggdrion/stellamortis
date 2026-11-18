@@ -334,3 +334,14 @@ Task 1 (bot brain and skills):
 - [ ] Hands (task 2): the sword leaves the closed fist past the thumb (grip inside the fist, blade up when the arm is raised, not along the fingers); with the shield up (hold block) the shield's face looks out and away from the outer forearm, not at your chest; the crossbow aimed sits along the hands and points where you look. Swordsmen, berserkers (axes in both fists), shield bearers and the Warden hold their gear the same way. Idle and mid-swing both.
 
 - [ ] Faces and hair (task 4): in the main menu body picker and in the world, all four bodies show a skin face (forehead, eyes, nose, cheeks, ears), hair only on the scalp and nape (long hair falls behind the head), the beard on the chin and jaw only (male A short, male B full); the dead (male, female) show rot-green faces with the same hair. No dark mask over the face from the front or the three-quarter view.
+
+## M42 Loadout and equip load
+
+Task 1 (the sim; the inventory panel's equip load line, the weapon bar and the spare starting gear come with tasks 2 and 3). Until the spares exist, reach the classes by editing a character file or `data/tuning.tres` (`equip_load_max` 20, then 10) or `--debug-bag`.
+
+- [ ] Light is the roll you know: with the starting kit (9.0 of 25) nothing feels different from before (roll length, distance, stamina, walking).
+- [ ] Medium (chain shirt and cap worn, 16.0 = 64 %): the roll is a little slower and shorter, costs more stamina, stamina comes back a little slower; noticeable, not punishing. Walking is 5 % slower.
+- [ ] Heavy (`equip_load_max` 20 with the same gear): the roll is slow with a long recovery and a short invulnerable window; walking is 10 % slower; a dodge that works light fails if pressed on the light timing. The roll clip plays slower to match and the feet still plant when the body stops.
+- [ ] Overloaded (`equip_load_max` 10): the roll key does nothing, attacks and blocks still start, walking and sprinting are 25 % slower, stamina comes back at 40 % after a long wait.
+- [ ] A gear swap (keys 3 to 6) in the middle of a roll does not change that roll; the next roll uses the new class.
+- [ ] Walk and jog clips match the slower speed (no foot sliding) in Medium, Heavy and Overloaded.

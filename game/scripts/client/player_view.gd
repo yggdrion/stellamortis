@@ -223,13 +223,14 @@ func _pose() -> void:
 			# The clip travels for ROLL_CLIP_TRAVEL of its length and then stands up in place;
 			# the body travels for SimPlayer.ROLL_TRAVEL of the roll. Each part of the clip is
 			# stretched over its part of the roll, so the feet plant when the body stops.
-			var progress := time / Combat.ticks(t.roll_time)
+			var roll_time := t.roll_time * t.roll_time_scale[player.roll_burden]
+			var progress := time / SimPlayer.roll_ticks(t, player.roll_burden)
 			var travel := SimPlayer.ROLL_TRAVEL
 			if progress < travel:
 				_model.play_timed(
 					&"Roll",
 					progress / travel * ROLL_CLIP_TRAVEL,
-					t.roll_time * travel / ROLL_CLIP_TRAVEL
+					roll_time * travel / ROLL_CLIP_TRAVEL
 				)
 			elif _ground_speed() > 0.4:
 				# Walking on out of the roll: straight into the walk, no stand-up.
@@ -241,7 +242,7 @@ func _pose() -> void:
 						ROLL_CLIP_TRAVEL
 						+ (progress - travel) / (1.0 - travel) * (1.0 - ROLL_CLIP_TRAVEL)
 					),
-					t.roll_time * (1.0 - travel) / (1.0 - ROLL_CLIP_TRAVEL)
+					roll_time * (1.0 - travel) / (1.0 - ROLL_CLIP_TRAVEL)
 				)
 		SimPlayer.Action.BLOCK:
 			_guarded(&"Idle_Shield", &"Walk_Shield")
@@ -279,9 +280,12 @@ func _locomotion(t: Tuning) -> void:
 		_model.loop(&"Jump")
 		return
 	var speed := _ground_speed()
+	var scale := SimPlayer.move_scale_of(t, player.burden)
+	var walk := t.walk_speed * scale
+	var sprint := t.sprint_speed * scale
 	if speed < 0.4:
 		_model.loop(&"Sword_Idle" if player.weapon == SimPlayer.Weapon.SWORD else &"Pistol_Idle")
-	elif speed < (t.walk_speed + t.sprint_speed) / 2.0:
-		_model.loop(&"Jog_Fwd", speed / t.walk_speed * 0.8)
+	elif speed < (walk + sprint) / 2.0:
+		_model.loop(&"Jog_Fwd", speed / walk * 0.8)
 	else:
-		_model.loop(&"Sprint", speed / t.sprint_speed * 1.1)
+		_model.loop(&"Sprint", speed / sprint * 1.1)

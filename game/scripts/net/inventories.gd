@@ -20,7 +20,7 @@ var net: Net
 var world: World
 
 var _inventories := {}
-## Peer id -> [main_hand, off_hand, ranged, armor], from Loadout.of at the last change.
+## Peer id -> [main_hand, off_hand, ranged, armor, burden], from Loadout.of at the last change.
 var _gear := {}
 ## Peer id -> the player ID (a string that outlives the connection: graves know their owner by it).
 var _ids := {}
@@ -167,7 +167,7 @@ func _on_intent(peer_id: int, op: int, a: int, b: int) -> void:
 
 func _loadout_ints(inv: Inventory) -> Array[int]:
 	var loadout := Loadout.of(inv)
-	return [loadout.main_hand, loadout.off_hand, loadout.ranged, loadout.armor]
+	return [loadout.main_hand, loadout.off_hand, loadout.ranged, loadout.armor, loadout.burden]
 
 
 ## After every rollback step, before netfox records the tick: the players wear what their
@@ -184,11 +184,13 @@ func _apply_gear(tick: int) -> void:
 			or player.off_hand != ints[1]
 			or player.ranged != ints[2]
 			or player.armor != ints[3]
+			or player.burden != ints[4]
 		):
 			player.main_hand = ints[0]
 			player.off_hand = ints[1]
 			player.ranged = ints[2]
 			player.armor = ints[3]
+			player.burden = ints[4]
 
 
 ## A heal belongs to the tick it was asked in: applied there every time that tick runs, so a

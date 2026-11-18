@@ -186,6 +186,36 @@ func test_an_equip_on_the_server_changes_the_rolled_back_ints() -> void:
 	assert_int(other.armor).is_equal(body.armor)
 
 
+func test_inventories_write_burden_to_the_player() -> void:
+	var world := auto_free(World.new(false)) as World
+	add_child(world)
+	var body := SimPlayer.new()
+	body.name = "Player9"
+	body.peer_id = 9
+	world.players.add_child(body)
+	var inventories := auto_free(Inventories.new()) as Inventories
+	inventories.net = auto_free(Net.new()) as Net
+	inventories.world = world
+	add_child(inventories)
+	var inv := Inventory.starting_kit()
+	inv.cells[0] = Inventory.Stack.new(&"chest_chain", 1)
+	inv.cells[1] = Inventory.Stack.new(&"helm_leather", 1)
+	inventories.add_peer(9, inv)
+	inventories._apply_gear(1)
+	assert_int(body.burden).is_equal(Loadout.Burden.LIGHT)
+	assert_bool(inventories.apply(9, Net.Op.EQUIP, 0, 0)).is_true()
+	assert_bool(inventories.apply(9, Net.Op.EQUIP, 1, 0)).is_true()
+	inventories._apply_gear(2)
+	assert_int(body.burden).is_equal(Loadout.Burden.MEDIUM)
+	# A resimulated tick restores older state; the next step writes the class again.
+	body.burden = Loadout.Burden.LIGHT
+	inventories._apply_gear(2)
+	assert_int(body.burden).is_equal(Loadout.Burden.MEDIUM)
+	var other := auto_free(SimPlayer.new()) as SimPlayer
+	other.net_combat = body.net_combat
+	assert_int(other.burden).is_equal(Loadout.Burden.MEDIUM)
+
+
 func test_bad_intents_change_nothing() -> void:
 	var world := auto_free(World.new(false)) as World
 	add_child(world)

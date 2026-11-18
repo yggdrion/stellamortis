@@ -34,28 +34,28 @@ Files and changes:
 - `scripts/sim/loadout.gd`: `enum Burden { LIGHT, MEDIUM, HEAVY, OVERLOADED }`; `var burden := 0` (an int, like the other fields, so it packs); `static func equip_load(inventory: Inventory) -> float` (cells `Cell.MAIN` to `Cell.BOLTS`, `Items.def(...).weight * count`); `static func burden_of(load: float, t: Tuning) -> int`; `Loadout.of` sets `burden`. Reuse `_worn`, `Items.def`.
 - `scripts/sim/sim_player.gd`:
   - fields `burden`, `roll_burden` in `STATE`, `COMBAT`; `burden` in `GEAR`; both default 0 (so tests that call `step` directly are LIGHT).
-  - static helpers next to `roll_travel_ticks`: `roll_ticks(t, cls := 0)`, `roll_travel_ticks(t, cls := 0)` (existing signature kept), `roll_speed_of(t, cls)`, `roll_stamina_of(t, cls)`, `iframe_ticks(t, cls) -> Vector2i` (start, end). `dodging()` uses `roll_burden`.
-  - `_keep_acting` `Action.ROLL`: `busy = action_time < roll_ticks(t, roll_burden)`. `step`: the ROLL branch uses `roll_speed_of`, `roll_travel_ticks(t, roll_burden)`; the walk and sprint lines multiply by `t.move_scale[burden]`. `_count_down` multiplies `stamina_regen` by `regen_scale[burden]`; `_spend` multiplies the delay by `delay_scale[burden]`. `_advance_action`: the roll start sets `roll_burden = burden`, spends `roll_stamina_of(t, burden)`. `_buffer`: no ROLL queue when overloaded. `_respawn`/`_use_portal` keep `burden` (it is gear, not life).
+  - static helpers next to `roll_travel_ticks`: `roll_ticks(t, cls := 0)`, `roll_travel_ticks(t, cls := 0)` (existing signature kept), `roll_speed_of(t, cls)`, `roll_stamina_of(t, cls)`, `iframe_scale_of(t, cls)`, `iframe_ticks(t, cls) -> Vector2i` (start, end), `delay_ticks(t, cls)`, `move_scale_of(t, cls)`; all index through one private `_scale` that clamps. `dodging()` uses `roll_burden`.
+  - `_keep_acting` `Action.ROLL`: `busy = action_time < roll_ticks(t, roll_burden)`. `step`: the ROLL branch uses `roll_speed_of`, `roll_travel_ticks(t, roll_burden)`; the walk and sprint lines multiply by `t.move_scale[burden]`. `_count_down` multiplies `stamina_regen` by `regen_scale[burden]`; `_spend` and the block's stamina wait in `_defend` use `delay_ticks(t, burden)`. `_advance_action`: the roll start sets `roll_burden = burden`, spends `roll_stamina_of(t, burden)`. `_buffer`: no ROLL queue when overloaded. `_respawn`/`_use_portal` keep `burden` (it is gear, not life).
 - `scripts/net/wire.gd`: `"burden": u8`, `"roll_burden": u8` in `_fill()`.
 - `scripts/net/inventories.gd`: `_loadout_ints` returns five ints, the comment on `_gear` and `_apply_gear` compare and write the fifth. Fix the doc comment "[main_hand, off_hand, ranged, armor]".
 - `scripts/net/net.gd`: `PROTOCOL_VERSION := 35`.
 - `scripts/client/player_view.gd` `_pose`: the roll branch uses `SimPlayer.roll_ticks(t, player.roll_burden)` and `t.roll_time * t.roll_time_scale[...]` where it uses `t.roll_time` (lines ~226 to 244), so a slow roll plays its clip slower; `_locomotion` speed ratios divide by the scaled walk speed (the jog/sprint clip choice at line ~284 compares to `walk_speed`/`sprint_speed`; scale both by `move_scale[player.burden]`).
-- `scripts/client/bot/bot_brain.gd`: `roll_at` (line ~242) uses `SimPlayer.iframe_ticks(t, view.burden)` converted to seconds; if `view.burden == OVERLOADED` the evade choice never picks ROLL (falls to PARRY/BLOCK). `Seen` gets `burden` (copied where `seen.stamina = me.stamina`). Bots wear the starting kit (LIGHT), so numbers do not move; this keeps the suite honest once a bot is heavy.
+- `scripts/client/bot/bot_brain.gd`: `roll_at` (line ~242) multiplies the window's seconds by `SimPlayer.iframe_scale_of(t, burden)` (not `iframe_ticks`: the tick center is 0.2333 s against 0.23 s and would move the LIGHT numbers); `_plan` takes `burden` as a fourth argument; if `view.burden == OVERLOADED` the evade choice never picks ROLL (falls to PARRY/BLOCK). `Seen` gets `burden` (copied where `seen.stamina = me.stamina`). Bots wear the starting kit (LIGHT), so numbers do not move; this keeps the suite honest once a bot is heavy.
 
 Steps: 1 tuning, loadout, tests for `Loadout` alone; 2 sim_player and wire; 3 inventories and protocol; 4 view and bot.
 
-Tests (`tests/combat_test.gd`, `tests/inventory_test.gd` or a new `tests/loadout_test.gd`, `tests/wire_test.gd`):
+Tests (`tests/loadout_test.gd` for the pure ones, `tests/burden_test.gd` for the sim ones, `tests/gear_test.gd` for the Inventories one, `tests/wire_test.gd`; the sim ones are not in `combat_test.gd`, which is at gdlint's 20 public methods):
 
 - `test_equip_load_counts_only_worn_cells`: a bag full of `chest_chain` adds nothing; wearing it adds 6.0; the bolts add 0.05 each.
 - `test_burden_class_boundaries`: exactly 40% is MEDIUM, 69.9% MEDIUM, 70% HEAVY, 100% OVERLOADED.
 - `test_starting_kit_is_light_and_chain_plus_cap_is_medium` (and all four spares worn are HEAVY).
-- `test_each_burden_rolls_as_tuned` (combat_test): set `_player.burden` to each class, roll, and check the roll's length in ticks, the distance covered, the stamina spent and the i-frame window against the scaled tuning.
+- `test_each_burden_rolls_as_tuned` (burden_test): set `_player.burden` to each class, roll, and check the roll's length in ticks, the distance covered, the stamina spent and the i-frame window against the scaled tuning.
 - `test_overloaded_cannot_roll_and_attacks_still_start`: a ROLL press does nothing and the next LIGHT press attacks.
 - `test_burden_change_mid_roll_keeps_the_roll`: start a light roll, set `burden = HEAVY`, the roll ends at the light length and covers the light distance.
 - `test_regen_and_delay_fall_with_burden`: stamina after N ticks per class.
 - `test_walk_speed_scales_with_burden`.
 - `wire_test`: the two new fields round trip and a full state fits 508 bytes.
-- Gear: `test_inventories_write_burden_to_the_player` (in `save_test.gd`'s fixture or `loot_test`): equipping the chain shirt through `Inventories.apply(peer, Net.Op.EQUIP, cell, 0)` and one `_apply_gear` call sets `player.burden` MEDIUM; a resimulated tick keeps it.
+- Gear: `test_inventories_write_burden_to_the_player` (gear_test): equipping the chain shirt through `Inventories.apply(peer, Net.Op.EQUIP, cell, 0)` and one `_apply_gear` call sets `player.burden` MEDIUM; a resimulated tick keeps it.
 
 Done when: checks green; `python tools/playtest.py --suite` against the baselines in `docs/PLAN.md` §8 (all bots LIGHT: no number should move; if one does, the class leaked into LIGHT); `python tools/run_load_test.py` still 29 tps with 6 bots, numbers in the commit message (the state grew by 2 bytes per player); desync check clean (`tools/desync.py`).
 

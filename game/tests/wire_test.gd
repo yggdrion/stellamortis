@@ -47,10 +47,16 @@ func test_player_state_round_trips_and_fits_a_packet() -> void:
 	player.bolt_life[2] = 90
 	player.bolt_damage[2] = 37.25
 	player.armor = 200
+	player.burden = 3
+	player.roll_burden = 2
 	_round_trip(player, SimPlayer.STATE)
 	var size := _encoded_size(player, SimPlayer.SYNCED)
 	# Headroom for netfox's tick, identity reference and size prefix.
 	assert_int(size).is_less(PACKET_LIMIT - 32)
+	var other := auto_free(SimPlayer.new()) as SimPlayer
+	Wire.unpack(other, SimPlayer.COMBAT, Wire.pack(player, SimPlayer.COMBAT))
+	assert_int(other.burden).is_equal(3)
+	assert_int(other.roll_burden).is_equal(2)
 
 
 func test_every_enemy_kind_round_trips_and_fits_a_packet() -> void:
@@ -123,6 +129,7 @@ func test_the_gear_ints_are_one_byte_each_in_the_combat_group() -> void:
 	player.off_hand = Items.index(&"shield_iron")
 	player.ranged = Items.index(&"crossbow_ash")
 	player.armor = 255
+	player.burden = Loadout.Burden.HEAVY
 	var other := auto_free(SimPlayer.new()) as SimPlayer
 	Wire.unpack(other, SimPlayer.COMBAT, Wire.pack(player, SimPlayer.COMBAT))
 	for field: String in SimPlayer.GEAR:

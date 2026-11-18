@@ -397,6 +397,7 @@ func send_intent(op: Net.Op, a := 0, b := 0) -> void:
 func _show_inventory() -> void:
 	_panel.show_inventory(inventory)
 	_hud.hotbar.show_inventory(inventory)
+	_hud.weapon_bar.show_inventory(inventory)
 	inventory_updated.emit()
 
 

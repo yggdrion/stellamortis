@@ -25,10 +25,10 @@ var warning := ""
 var prompt := ""
 var prompt_color := TEXT
 var hotbar: Hotbar
+var weapon_bar: WeaponBar
 var _health: ProgressBar
 var _stamina: ProgressBar
 var _dead: Label
-var _weapon: Label
 var _crosshair: Crosshair
 var _goal: Label
 var _room: Label
@@ -71,11 +71,6 @@ func _ready() -> void:
 	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	root.add_child(hint)
-
-	_weapon = Label.new()
-	_weapon.add_theme_font_size_override("font_size", 16)
-	box.add_child(_weapon)
-	box.move_child(_weapon, 0)
 
 	_crosshair = Crosshair.new()
 	_crosshair.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
@@ -126,6 +121,14 @@ func _ready() -> void:
 	hotbar.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	hotbar.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	root.add_child(hotbar)
+	weapon_bar = WeaponBar.new()
+	weapon_bar.set_anchors_and_offsets_preset(
+		Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_MINSIZE, 16
+	)
+	weapon_bar.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	weapon_bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	weapon_bar.offset_right = -(Hotbar.WIDTH / 2.0 + 16.0)
+	root.add_child(weapon_bar)
 	_warning = Label.new()
 	_warning.add_theme_font_size_override("font_size", 22)
 	_warning.add_theme_color_override("font_color", Color(0.9, 0.5, 0.38))
@@ -187,7 +190,7 @@ func _process(delta: float) -> void:
 	_stamina.value = player.stamina
 	_dead.visible = player.action == SimPlayer.Action.DEAD
 	var crossbow := player.weapon == SimPlayer.Weapon.CROSSBOW
-	_weapon.text = "2  CROSSBOW" if crossbow else "1  SWORD · SHIELD"
+	weapon_bar.set_active(player.weapon)
 	_crosshair.visible = crossbow and player.action != SimPlayer.Action.DEAD
 	var draw := 0.0
 	if player.action == SimPlayer.Action.DRAW:

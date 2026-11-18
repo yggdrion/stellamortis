@@ -1,6 +1,6 @@
 # M42 Loadout and equip load
 
-Status: Planned (detailed 2026-11-18, after M41).
+Status: Built (2026-11-18, v0.32.0), play-test pending.
 
 ## Goal
 

@@ -59,12 +59,18 @@ func test_cells_show_the_stacks_and_the_worn_kit() -> void:
 	assert_int(panel._slots[Inventory.Cell.BOLTS].stack.count).is_equal(20)
 	assert_object(panel._slots[Inventory.Cell.HELM].stack).is_null()
 	assert_int(panel._slots.size()).is_equal(Inventory.CELLS)
-	var total := 0.0
-	for cell in Inventory.CELLS:
-		var stack := panel.inventory.at(cell)
-		if stack != null:
-			total += Items.by_id(stack.id).weight * stack.count
-	assert_str(panel._weight.text).is_equal("Weight  %.1f" % total)
+
+
+func test_weight_line_shows_equip_load_and_class() -> void:
+	var panel := _panel()  # starting kit worn, a full bag
+	assert_str(panel._weight.text).contains("9.0 / 25").contains("Light")
+	var inv := Inventory.starting_kit()
+	inv.cells[Inventory.Cell.CHEST] = Inventory.Stack.new(&"chest_chain", 1)
+	panel.show_inventory(inv)
+	assert_str(panel._weight.text).contains("15.0 / 25").contains("Medium")
+	inv.cells[0] = Inventory.Stack.new(&"chest_chain", 1)
+	panel.show_inventory(inv)
+	assert_str(panel._weight.text).contains("15.0 / 25")
 
 
 func test_a_drag_emits_one_move_and_never_touches_the_inventory() -> void:

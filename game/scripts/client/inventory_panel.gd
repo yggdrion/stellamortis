@@ -13,6 +13,13 @@ signal intent_sent(op: int, a: int, b: int)
 signal junk_changed
 
 const COLUMNS := 8
+## The equip load line by Loadout.Burden.
+const BURDEN_NAMES: Array[String] = [
+	"Light roll", "Medium roll", "Heavy roll", "Overloaded, no roll"
+]
+const BURDEN_COLORS: Array[Color] = [
+	Color(0.86, 0.8, 0.68), Color(0.86, 0.8, 0.68), Color(0.9, 0.7, 0.35), Color(0.9, 0.45, 0.38)
+]
 ## Gear cells on the paper doll as grid positions (column 0 left of the figure, 2 right of it).
 const GEAR_POS := {
 	Inventory.Cell.HELM: Vector2i(0, 0),
@@ -194,15 +201,22 @@ func show_inventory(value: Inventory) -> void:
 	inventory = value
 	if _weight == null:
 		return
-	var weight := 0.0
 	for cell in Inventory.CELLS:
 		var stack := inventory.at(cell)
 		_slots[cell].show_stack(stack, stack != null and Settings.junk.has(stack.id))
 		_slots[cell].mark(cell == cursor, cell == held)
-		if stack != null:
-			weight += Items.by_id(stack.id).weight * stack.count
-	_weight.text = "Weight  %.1f" % weight
+	_show_load()
 	_update_tooltip()
+
+
+## "Equip load 9.0 / 25  Light roll": worn gear only, colored by class.
+func _show_load() -> void:
+	var t := Tuning.data()
+	var load_value := Loadout.equip_load(inventory)
+	var burden := Loadout.burden_of(load_value, t)
+	var max_text := str(roundi(t.equip_load_max))
+	_weight.text = "Equip load  %.1f / %s  %s" % [load_value, max_text, BURDEN_NAMES[burden]]
+	_weight.add_theme_color_override("font_color", BURDEN_COLORS[burden])
 
 
 func set_cursor(cell: int) -> void:

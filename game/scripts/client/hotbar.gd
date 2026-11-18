@@ -5,6 +5,8 @@ extends HBoxContainer
 ## the bag's own, so moving an item to the left of the bag puts it on the bar.
 
 const CELLS := 8
+## Width of the bar: slots of 44 px with 4 px gaps.
+const WIDTH := CELLS * 44.0 + (CELLS - 1) * 4.0
 ## Keys that use cell 0 to 5 (Controls use_1 .. use_6).
 const USE_ACTIONS: Array[StringName] = [&"use_1", &"use_2", &"use_3", &"use_4", &"use_5", &"use_6"]
 const KEY_LABELS: Array[String] = ["3", "4", "5", "6", "7", "8"]

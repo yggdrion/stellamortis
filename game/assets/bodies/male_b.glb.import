@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://ktsabarsx3vu"
-path="res://.godot/imported/male_average_auto.glb-99393643cffa5bc5240f43db8c83c51a.scn"
+uid="uid://pxt6yxv76luv"
+path="res://.godot/imported/male_b.glb-6accb65a9b20891a0702fcd3f54d0dd3.scn"
 
 [deps]
 
-source_file="res://assets/bodies/male_average_auto.glb"
-dest_files=["res://.godot/imported/male_average_auto.glb-99393643cffa5bc5240f43db8c83c51a.scn"]
+source_file="res://assets/bodies/male_b.glb"
+dest_files=["res://.godot/imported/male_b.glb-6accb65a9b20891a0702fcd3f54d0dd3.scn"]
 
 [params]
 

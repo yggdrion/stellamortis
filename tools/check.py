@@ -9,9 +9,11 @@ Usage: python tools/check.py [--quick | --tests]
 python tools/setup.py installs it as a git pre-push hook (skip once with: git push --no-verify).
 """
 
+import os
 import sys
 
 import install
+import make_bodies
 from _common import ROOT, fail, run
 
 args = set(sys.argv[1:])
@@ -33,6 +35,11 @@ step("Lint and format")
 venv_py = install.venv()
 run(venv_py, "-m", "gdtoolkit.linter", *dirs, cwd=ROOT)
 run(venv_py, "-m", "gdtoolkit.formatter", "--check", *dirs, cwd=ROOT)
+
+if os.path.exists(make_bodies.BLENDER_EXE):
+    # CI has no Blender (there is no CI): the committed bodies are what ships.
+    step("Bodies (Blender)")
+    tool("make_bodies", "--check")
 
 if "--quick" in args:
     print("\nQuick checks passed (Godot tests skipped).")

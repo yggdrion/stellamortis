@@ -1,6 +1,6 @@
 # M40 Own bodies
 
-Status: In progress: task 1 (spike) done 2026-11-18, verdict below; tasks 2 and 3 open.
+Status: In progress: tasks 1 (spike) and 2 (bodies) done 2026-11-18; tasks 3 and 4 open.
 
 ## Goal
 
@@ -39,7 +39,18 @@ Done when: a side by side screenshot burst (`--frames`) of old and new body thro
 
 Four player bodies: male A, male B, female A, female B (two builds per sex from task 2's parameters, for example slim/average male and average/heavy female, plus head shape and default hair per type). The choice is saved in `Settings` (`body`, 0 to 3), picked in the main menu (a row of four previews in a `SubViewport` with the idle clip, turning slowly) and in `SettingsPanel`, sent to the server in `Net.hello` and told to every peer with the player's other join data (a protocol bump: `Net.PROTOCOL_VERSION`; not rolled back state, a reliable RPC and a snapshot at join like the name), and `Gear.ranger(peer_id)` picks the body from it instead of the peer id parity. Skin and hair colors stay by peer id for now. Tests: `Settings` round trip, hello carries the choice, `Gear.ranger` returns each of the four. Done when: four looks in screenshots, a joiner's choice shows on the host and the other clients.
 
-File level detail for tasks 2 and 3 is added after the spike.
+## Task 2 result (2026-11-18)
+
+`tools/make_bodies.py [ID ...] [--check] [--skin=rigid|auto]` builds the nine bodies of `SPECS` into `game/assets/bodies/<id>.glb` (and writes each `.import` with the UAL1 bone map): the four player bodies `male_a` (average, short hair, short beard), `male_b` (heavy, square head, long hair, full beard), `female_a` (slim, long hair), `female_b` (average, long head, bun, wide hips), the dead (`dead_male` sunken, `dead_female` bone arms and shins, `dead_skull` bare skull jaw), `berserker` (bare, heavy, full beard) and `warden` (heavy, bald; the game scales it by 2). Parameters in a spec: `sex`, `build` (slim, average, heavy), `head` (egg, square, long), `hair` (bald, buzzed, short, long, bun, braid), `beard` (none, short, full, long), `shoulder`, `hip`, `dead` (sunken, bone, skull), `outfit` (tunic, bare, plate). Height is the model's scale in the game, not a parameter (the mesh must fit the UAL rest pose).
+
+- Parts are material slots, in this order: head, hair, beard, torso, upper_arm, lower_arm, hand, upper_leg, lower_leg, foot (surface index = part index; a part with no faces has no surface, so read the surface's material name, not its index, in task 3). Eyes, nose, brows and ears belong to `head`.
+- Vertex colors are role indices, float, red channel = index / 255, no color management: `ROLES` in the script = skin, hair, tunic, sleeve, trousers, boot, belt, eye, bone, rot. Resolve in `CharacterModel` by rewriting each surface's `ARRAY_COLOR` (alpha = roughness, the flat shader reads it) with the palette: skin -> `skin_a..d` and hair -> `hair_a..d` by the player's choice, tunic and sleeve -> `cloth`, trousers -> `cloth_dark`, boot and belt -> `leather`, eye -> `iron`, bone -> `bone`, rot -> `rot`. The dead's flesh is already the `rot` role. Rebuild with `add_surface_from_arrays(..., flags)` where flags = the surface format and `ARRAY_FLAG_USE_8_BONE_WEIGHTS`, as `CharacterModel._head_of` does. Checked in a scratch scene with all nine bodies and `Sword_Idle`: the roles resolve, the flat shader draws them.
+- Weights are rigid with blended joint rings (shoulder ring 0.12 m, the deltoid ring overlapping the torso); at most 2 influences a vertex. Fingers, toes and the root have no weights by design (`UNWEIGHTED`): the hand is a fist block, the foot a boot, so a clip curling a finger moves nothing.
+- `--check` fails when a non-finger bone has no weights, a vertex has over 4 influences or weights not summing to 1, a body (without head) is over 3000 triangles or the head with hair and beard over 900 (STYLE.md section 5), or a part is missing. Numbers now: 1312 to 1472 triangles a body, 304 to 464 for the head with hair and beard. `tools/check.py` runs `--check` when Blender is installed (`BLENDER` env var or the default path).
+- Deviations from the plan: no three LOD files (Godot's import generates LODs, `meshes/generate_lods` is on in the `.import`); the dead's `skull` variant colors the lower head `bone` rather than removing the jaw; the Warden has no armor yet (its `plate` outfit is one flat color, the generated plate of M39 goes on top in task 3).
+- Looks: the faces are plain (brow, nose, two eye insets, ears); the bodies differ in build, head, hair and beard but the two sexes differ little at game distance (bust, narrower shoulders, wider hips). Tune the numbers after seeing them in the game (task 3's screenshots).
+
+File level detail for task 3 follows below.
 
 ## Spike result (task 1, 2026-11-18)
 

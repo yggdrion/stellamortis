@@ -1,6 +1,6 @@
 # M43 Minimap, compass and map
 
-Status: Planned.
+Status: Built (2026-11-18, v0.33.0), play-test pending.
 
 ## Goal
 
@@ -53,7 +53,9 @@ Tests: `tests/minimap_test.gd`: `test_minimap_zoom_puts_the_rim_at_half_the_span
 
 Done when: checks green; a screenshot at the arrival (`--seed=1234`, no flags) shows the minimap top right with the ring of stones and the dummies as dots; the image appears without opening the map; the minimap costs nothing measurable (frame time with it on and off within noise: `STELLAMORTIS_FRAME_STATS=5`).
 
-### 3. Compass, close (Sonnet)
+### 3. Compass, close (Sonnet) - built 2026-11-18
+
+Built: `Compass.markers(realm, world_seed, boss_fallen)` is a static (no live client) and returns `[direction from the realm center, color, label]`; the distance is computed when drawing (`Compass.distance`, ground arc), so the arrival marker needs no `Terrain.surface` and no cache. Screenshot runs need `--delay=25` for the player to join (`--delay=6` shows no HUD yet).
 
 Files: new `scripts/client/compass.gd`; `scripts/client/hud.gd` (`compass` var, node top center at 8 px, `top` box margin 20 to 52); `scripts/client/game_client.gd` (set `me`, `camera`, `world`); `docs/PLAYTEST.md` (the map text of M33 task 1 updated, M43 items below); `CLAUDE.md` "Where we are" (M43 built, Next becomes M44 and M45; the map entry says north-up); `docs/PLAN.md` §6 and §8; `VERSION` minor +1.
 

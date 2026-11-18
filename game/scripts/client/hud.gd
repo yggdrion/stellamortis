@@ -27,6 +27,7 @@ var prompt_color := TEXT
 var hotbar: Hotbar
 var weapon_bar: WeaponBar
 var minimap: Minimap
+var compass: Compass
 var _health: ProgressBar
 var _stamina: ProgressBar
 var _dead: Label
@@ -78,7 +79,7 @@ func _ready() -> void:
 	root.add_child(_crosshair)
 
 	var top := VBoxContainer.new()
-	top.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_MINSIZE, 20)
+	top.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_MINSIZE, 52)
 	top.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	top.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(top)
@@ -97,6 +98,13 @@ func _ready() -> void:
 	_room.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_room.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	root.add_child(_room)
+	compass = Compass.new()
+	compass.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	compass.offset_left = -Compass.WIDTH * 0.5
+	compass.offset_right = Compass.WIDTH * 0.5
+	compass.offset_top = 8.0
+	compass.offset_bottom = 8.0 + Compass.HEIGHT
+	root.add_child(compass)
 	minimap = Minimap.new()
 	minimap.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	minimap.offset_left = -16.0 - Minimap.SIZE

@@ -146,6 +146,8 @@ func _ready() -> void:
 	_map.camera = _rig.camera
 	_hud.minimap.camera = _rig.camera
 	_hud.minimap.world = _world
+	_hud.compass.camera = _rig.camera
+	_hud.compass.world = _world
 	var map_layer := CanvasLayer.new()
 	map_layer.layer = 5
 	map_layer.add_child(_map)
@@ -354,6 +356,7 @@ func _on_player_spawned(player: SimPlayer) -> void:
 	_objects.me = me
 	_map.me = me
 	_hud.minimap.me = me
+	_hud.compass.me = me
 	_hud.player = me
 	me.controls.reader = _bot_controls if bot else _read_controls
 	if bot and bot_skill != "":
@@ -485,6 +488,7 @@ func _bot_controls(controls: PlayerControls) -> void:
 func _process(delta: float) -> void:
 	_hud.room = room
 	_hud.minimap.map_open = _map.visible
+	_hud.compass.visible = not _map.visible
 	var covered := _pause.visible or _map.visible or _panel.visible
 	_hud.prompt = _objects.prompt if not covered else ""
 	_hud.prompt_color = _objects.prompt_color

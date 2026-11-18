@@ -102,9 +102,9 @@ The pool size (task 5, `World.POOL` 20 after the load test with bots):
 
 ## M33 Map
 
-The map (task 1, `client/map_panel.gd`; hold M on the Barrowlands, the mouse is free while it is open and the player stands still):
+The map (task 1, `client/map_panel.gd`; hold M on the Barrowlands, the mouse is free while it is open; since M43 north is up and you can walk, see M43):
 
-- [ ] M held on the Barrowlands shows the terrain with you in the middle as an arrow, the camera's forward up; turning the camera turns the map, walking moves it, and releasing M gives the mouse back. Zoom with the wheel from about 150 m to the whole realm; the terrain image appears within a few seconds of the first opening (markers alone until then) with no frame hitch.
+- [ ] M held on the Barrowlands shows the terrain with you in the middle as an arrow, north up; turning the camera turns only the arrow, walking moves the map, and releasing M gives the mouse back. Zoom with the wheel from about 150 m to the whole realm; the terrain image appears within a few seconds of the first opening (markers alone until then) with no frame hitch.
 - [ ] The terrain matches the ground: a hill or ridge you can see in the world is light and shaded on the map in the same place and direction; the arrival gate "To the old barrow" stands 10 m behind where you arrived.
 - [ ] Camps (rings with their size) and roamers (dots) match what you meet; awake enemies show colored by kind and move; hovering a marker names it (kind, slot, action, camp, distance); a second player shows as a green dot.
 - [ ] In the old realm the map says "No map here". It does not pause the game: enemies keep moving while it is open.
@@ -347,3 +347,12 @@ Task 1 (the sim; the inventory panel's equip load line, the weapon bar and the s
 - [ ] A gear swap (keys 3 to 6) in the middle of a roll does not change that roll; the next roll uses the new class.
 - [ ] Walk and jog clips match the slower speed (no foot sliding) in Medium, Heavy and Overloaded.
 - [ ] Task 3 (weapon bar and panel): the weapon bar left of the hotbar shows the sword and shield (set 1) and the crossbow with its bolt count (set 2, key 2); the active set is lit and follows keys 1, 2 and the wheel; the bar does not crowd the hotbar, the bars or the prompt at 1280 by 720 and 1920 by 1080. The inventory shows "Equip load x / 25" with the class (Light, Medium, Heavy, Overloaded) in its color; the bag does not change it.
+
+## M43 Minimap, compass and map
+
+- [ ] The compass shows N, E, S, W and ticks; turning the camera slides it; at the start you face north (the N in the middle) and the arrival marker is a few meters off (you start on the ring around it; beside or behind you, an arrow at the edge when outside the window), the boss site marker 450 to 800 m away.
+- [ ] The minimap shows the ring of stones, the dummies and any awake enemy as dots around you, north up, only your arrow turns; it is hidden while M is held and comes back on release.
+- [ ] Hold M and walk with WASD, Shift, Space and the roll key: you move, the camera does not turn, attack and block do nothing; releasing M gives the mouse back.
+- [ ] The map keeps north up when you turn; the same hill is in the same place whichever way you face.
+- [ ] Settings has a "Minimap" check box; off hides the minimap, the compass stays; it is remembered after a restart.
+- [ ] At 1280 by 720 the compass, the minimap and the room code label do not overlap each other, the goal text or the boss bar.

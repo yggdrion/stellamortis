@@ -167,14 +167,11 @@ static func _rusty(length: float, wear := 0.8) -> Dictionary:
 
 ## Which figure in which gear, at which size, with its clips.
 func _make_model() -> CharacterModel:
-	var human := CharacterModel.HUMAN
-	var model: CharacterModel
 	if _boss():
 		_clips = WARDEN_CLIPS
-		model = (
-			CharacterModel
-			. new(
-				human,
+		return (
+			Gear
+			. armored(
 				{
 					"sword":
 					["RightHand", Gear.sword({"role": "iron", "length": 1.3, "guard": 0.3})],
@@ -186,16 +183,16 @@ func _make_model() -> CharacterModel:
 					"cape": ["UpperChest", Gear.cape()],
 					"pauldrons": ["UpperChest", Gear.pauldrons({"role": "iron"})],
 				},
-				enemy.height / SimPlayer.HEIGHT
+				enemy.height / SimPlayer.HEIGHT,
+				Gear.IRON.lightened(0.08)
 			)
 		)
-		var iron := Gear.armor(Gear.IRON.lightened(0.08), Color(0.06, 0.04, 0.03))
-		model.skin(iron[0], {1: iron[1]})
-		return model
 	match enemy.def.look:
 		&"shield_bearer":
 			_clips = SHIELD_CLIPS.duplicate()
-			var bearer := Gear.bearer({"weapon": ["RightHand", Gear.sword(_rusty(0.5))]})
+			var bearer := Gear.bearer(
+				{"weapon": ["RightHand", Gear.sword(_rusty(0.5))]}, enemy.index
+			)
 			_clips["walk"] = bearer.mix(&"shield_walk", &"Walk", &"Idle_Shield")
 			return bearer
 		&"berserker":
@@ -208,27 +205,24 @@ func _make_model() -> CharacterModel:
 			)
 		&"barrow_elite":
 			_clips = ELITE_CLIPS
-			var elite := (
-				CharacterModel
-				. new(
-					human,
+			return (
+				Gear
+				. armored(
 					{
 						"sword": ["RightHand", Gear.sword(_rusty(1.1, 0.5))],
 						"helm": ["Head", Gear.helm({"role": "iron", "wear": 0.4})],
 						"eyes": ["Head", Gear.eyes(Gear.EMBER, 12.0)],
 						"pauldrons": ["UpperChest", Gear.pauldrons({"role": "iron", "wear": 0.4})],
 					},
-					enemy.height / SimPlayer.HEIGHT
+					enemy.height / SimPlayer.HEIGHT,
+					Color(0.3, 0.25, 0.22)
 				)
 			)
-			var plate := Gear.armor(Color(0.3, 0.25, 0.22), Color(0.1, 0.07, 0.05))
-			elite.skin(plate[0], {1: plate[1]})
-			return elite
 	if enemy.def.look != &"squire":
 		var ranged := enemy.def.behavior == EnemyDef.Behavior.RANGED
 		_clips = ARCHER_CLIPS if ranged else UNDEAD_CLIPS
 		var weapon := Gear.crossbow() if ranged else Gear.sword(_rusty(0.7))
-		return Gear.dead(ranged, {"weapon": ["RightHand", weapon]})
+		return Gear.dead(ranged, {"weapon": ["RightHand", weapon]}, enemy.index)
 	_clips = HUMAN_CLIPS
 	return Gear.squire(enemy.index, {"sword": ["RightHand", Gear.sword()]})
 

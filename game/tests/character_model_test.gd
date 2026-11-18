@@ -5,7 +5,9 @@ extends GdUnitTestSuite
 
 
 func test_clips_keep_the_root_in_place() -> void:
-	var model := auto_free(CharacterModel.new(CharacterModel.HUMAN, {})) as CharacterModel
+	var model := (
+		auto_free(CharacterModel.new(CharacterModel.body_path(&"male_a"), {})) as CharacterModel
+	)
 	var player := model.animation
 	for clip_name in player.get_animation_list():
 		var clip := player.get_animation(clip_name)

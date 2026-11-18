@@ -11,22 +11,24 @@ extends Node3D
 const BURN := "res://shaders/burn_away.gdshader"
 const HUMAN := "res://assets/quaternius/ual/UAL1.glb"
 const HUMAN_EXTRA := "res://assets/quaternius/ual/UAL2.glb"
-## Outfits (Quaternius Modular Character Outfits - Fantasy): rigged without clips, imported with
-## the humanoid bone map (assets/quaternius/outfits/outfit_bone_map.tres), so they play the UAL
-## clips.
-const OUTFITS := "res://assets/quaternius/outfits/"
-const RANGER_MALE := OUTFITS + "Male_Ranger.gltf"
-const RANGER_FEMALE := OUTFITS + "Female_Ranger.gltf"
-const PEASANT_MALE := OUTFITS + "Male_Peasant.gltf"
-const PEASANT_FEMALE := OUTFITS + "Female_Peasant.gltf"
-
-## Base characters (Quaternius Universal Base Characters): full bodies whose head, eyes and brows
-## go on an outfit, and hair rigged to the head bone. Same rig and bone map as the outfits.
-const CHARACTERS := "res://assets/quaternius/characters/"
-const BODY_MALE := CHARACTERS + "Superhero_Male_FullBody.gltf"
-const BODY_FEMALE := CHARACTERS + "Superhero_Female_FullBody.gltf"
-## Bones whose skin stays when a full body is cut down to its head.
-const HEAD_BONES := [&"Head", &"Neck"]
+## The generated bodies (tools/make_bodies.py, M40), skinned to the UAL1 skeleton and imported with
+## its humanoid bone map: no clips of their own, they take every UAL clip.
+const BODIES := "res://assets/bodies/"
+## The body's vertex colors are role indices (red channel / 255), in the order of ROLES in
+## tools/make_bodies.py; skin and hair come from the look, the rest from this palette map.
+const ROLES: Array[StringName] = [
+	&"skin", &"hair", &"tunic", &"sleeve", &"trousers", &"boot", &"belt", &"eye", &"bone", &"rot"
+]
+const ROLE_COLORS := {
+	&"tunic": &"cloth",
+	&"sleeve": &"cloth",
+	&"trousers": &"cloth_dark",
+	&"boot": &"leather",
+	&"belt": &"leather",
+	&"eye": &"iron",
+	&"bone": &"bone",
+	&"rot": &"rot",
+}
 ## Bones a mixed clip (mix()) takes from its legs clip; every other track comes from the upper one.
 const LEG_BONES := [
 	&"Root",
@@ -45,8 +47,8 @@ const LEG_BONES := [
 static var _cache := {}
 ## Scene paths whose own clips were pinned in place (_pin_root); the clips are shared resources.
 static var _pinned := {}
-## Full body meshes cut down to the head, by body path.
-static var _heads := {}
+## Role-colored body meshes, by body path, look and mesh name.
+static var _painted := {}
 
 var animation: AnimationPlayer
 var skeleton: Skeleton3D
@@ -56,14 +58,14 @@ var _meshes: Array[MeshInstance3D] = []
 var _flash: StandardMaterial3D
 var _flash_left := 0.0
 var _looping: StringName = &""
-## While burning away: the shader materials in use, and what they replaced as [mesh, surface,
-## override].
-var _burn_materials: Array[ShaderMaterial] = []
-var _burn_saved: Array = []
+## While burning away: the burn material in use.
+var _burn_material: ShaderMaterial
 
 
-## scale: model units to meters.
-func _init(scene_path: String, held: Dictionary, scale_by := 1.0) -> void:
+## scale: model units to meters. look: for a generated body, the palette roles of its `skin` and
+## `hair` (default skin_b, hair_b) and `roles`, a dictionary from a body role (&"belt") to a palette
+## role or a Color.
+func _init(scene_path: String, held: Dictionary, scale_by := 1.0, look := {}) -> void:
 	var model := (load(scene_path) as PackedScene).instantiate() as Node3D
 	model.scale = Vector3.ONE * scale_by
 	model.rotation.y = PI
@@ -92,6 +94,8 @@ func _init(scene_path: String, held: Dictionary, scale_by := 1.0) -> void:
 		_borrow_animations(HUMAN_EXTRA)
 	for node in model.find_children("*", "MeshInstance3D", true, false):
 		_meshes.append(node)
+	if scene_path.begins_with(BODIES) and not _headless():
+		_paint(scene_path, look)
 	for prop: String in held:
 		var slot := BoneAttachment3D.new()
 		slot.bone_name = held[prop][0]
@@ -127,33 +131,6 @@ static func prop(scene_path: String, at := Transform3D.IDENTITY) -> Node3D:
 	return node
 
 
-## Replaces the materials of every surface; per_surface[i] wins for surface i if given.
-func skin(material: Material, per_surface := {}) -> void:
-	if _headless():
-		return
-	for mesh in _meshes:
-		for i in mesh.mesh.get_surface_count():
-			mesh.set_surface_override_material(i, per_surface.get(i, material))
-
-
-## Adds an emission map to the model's own materials (the packs ship them unused).
-func light_up(texture: Texture2D, energy: float) -> void:
-	if _headless():
-		return
-	for mesh in _meshes:
-		for i in mesh.mesh.get_surface_count():
-			var source := mesh.mesh.surface_get_material(i) as StandardMaterial3D
-			if source == null:
-				continue
-			var material := source.duplicate() as StandardMaterial3D
-			material.emission_enabled = true
-			material.emission_texture = texture
-			material.emission = Color.WHITE
-			material.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY
-			material.emission_energy_multiplier = energy
-			mesh.set_surface_override_material(i, material)
-
-
 ## A looping animation (idle, walk, run), blended in when it changes.
 func loop(clip: StringName, speed := 1.0) -> void:
 	if _looping != clip:
@@ -184,55 +161,6 @@ func mix(name: StringName, legs_clip: StringName, upper_clip: StringName) -> Str
 			upper.copy_track(track, clip)
 	library.add_animation(name, clip)
 	return name
-
-
-## Puts a base character's head (its body cut to head and neck), eyes and brows on this
-## model's skeleton, and pieces (hair, beard, brows: scene paths rigged to the head bone). skin
-## replaces the face's color map (dark or light), null keeps it. For outfits, which ship without
-## heads.
-func wear_head(body_path: String, pieces: Array = [], skin_color: Texture2D = null) -> void:
-	var body := (load(body_path) as PackedScene).instantiate()
-	for source: MeshInstance3D in body.find_children("*", "MeshInstance3D", true, false):
-		var mesh := source.mesh
-		if source.mesh.get_surface_count() > 0 and _is_body(source):
-			mesh = _head_of(body_path, source)
-		var part := _wear(mesh, source.skin)
-		var own := mesh.surface_get_material(0) as StandardMaterial3D
-		if skin_color and mesh != source.mesh and own:
-			var face := own.duplicate() as StandardMaterial3D
-			face.albedo_texture = skin_color
-			part.set_surface_override_material(0, face)
-	body.free()
-	for path: String in pieces:
-		var piece := (load(path) as PackedScene).instantiate()
-		for source: MeshInstance3D in piece.find_children("*", "MeshInstance3D", true, false):
-			_wear(source.mesh, source.skin)
-		piece.free()
-
-
-## Replaces a color map on every surface that uses it (a file name like T_Ranger_BaseColor.png)
-## with another (an outfit's second color set).
-func swap_albedo(file_name: String, texture: Texture2D) -> void:
-	_each_material(
-		func(material: StandardMaterial3D) -> StandardMaterial3D:
-			if material.albedo_texture == null:
-				return null
-			if material.albedo_texture.resource_path.get_file() != file_name:
-				return null
-			var swapped := material.duplicate() as StandardMaterial3D
-			swapped.albedo_texture = texture
-			return swapped
-	)
-
-
-## Multiplies every surface's color (the dead's grey skin and faded clothes).
-func tint(color: Color) -> void:
-	_each_material(
-		func(material: StandardMaterial3D) -> StandardMaterial3D:
-			var tinted := material.duplicate() as StandardMaterial3D
-			tinted.albedo_color = material.albedo_color * color
-			return tinted
-	)
 
 
 ## A one-shot clip shown at progress 0..1 of its length (stretched to the action's length).
@@ -275,24 +203,26 @@ func punch(amount: float, seconds: float) -> void:
 	tween.tween_property(self, "scale", Vector3.ONE, seconds * 0.6)
 
 
-## Burns the body away, 0 whole to 1 gone: every surface gets BURN with its albedo while it runs
-## (held props vanish halfway); 0 puts the originals back. Skipped headless, like skin().
+## Burns the body away, 0 whole to 1 gone: the body's surfaces get one burn material while it runs
+## (held props vanish halfway); 0 puts the plain material back. Skipped headless, like the paint.
 func dissolve(amount: float) -> void:
 	if _headless():
 		return
 	if amount <= 0.0:
-		if not _burn_saved.is_empty():
-			for saved: Array in _burn_saved:
-				(saved[0] as MeshInstance3D).set_surface_override_material(saved[1], saved[2])
-			_burn_saved.clear()
-			_burn_materials.clear()
+		if _burn_material != null:
+			for mesh in _meshes:
+				for i in mesh.mesh.get_surface_count():
+					mesh.set_surface_override_material(i, null)
+			_burn_material = null
 			for prop: Node3D in props.values():
 				prop.visible = true
 		return
-	if _burn_saved.is_empty():
-		_start_burn()
-	for material in _burn_materials:
-		material.set_shader_parameter("amount", amount)
+	if _burn_material == null:
+		_burn_material = MeshKit.burn_material()
+		for mesh in _meshes:
+			for i in mesh.mesh.get_surface_count():
+				mesh.set_surface_override_material(i, _burn_material)
+	_burn_material.set_shader_parameter("burn_amount", amount)
 	for prop: Node3D in props.values():
 		prop.visible = amount < 0.5
 
@@ -310,23 +240,6 @@ func _process(delta: float) -> void:
 		_flash_left -= delta
 		if _flash_left <= 0.0:
 			_flash.albedo_color.a = 0.0
-
-
-func _start_burn() -> void:
-	var shader := load(BURN) as Shader
-	for mesh in _meshes:
-		for i in mesh.mesh.get_surface_count():
-			var current := mesh.get_surface_override_material(i)
-			var source := current if current else mesh.mesh.surface_get_material(i)
-			var standard := source as StandardMaterial3D
-			var burn := ShaderMaterial.new()
-			burn.shader = shader
-			if standard:
-				burn.set_shader_parameter("albedo_texture", standard.albedo_texture)
-				burn.set_shader_parameter("albedo_color", standard.albedo_color)
-			_burn_saved.append([mesh, i, current])
-			_burn_materials.append(burn)
-			mesh.set_surface_override_material(i, burn)
 
 
 ## Headless bots draw nothing; the dummy renderer logs an error for every surface override.
@@ -386,84 +299,49 @@ static func _pin_root(clip: Animation, track: int) -> void:
 		clip.track_set_key_value(track, key, Vector3(first.x, at.y, first.z))
 
 
-## Adds a skinned mesh to this skeleton (the skin binds by bone name, so any mesh of the same rig
-## fits) with the flash overlay.
-func _wear(mesh: Mesh, skin_binds: Skin) -> MeshInstance3D:
-	var part := MeshInstance3D.new()
-	part.mesh = mesh
-	part.skin = skin_binds
-	# A new MeshInstance3D's skeleton path is empty (unskinned); point it at its parent.
-	part.skeleton = NodePath("..")
-	skeleton.add_child(part)
-	part.material_overlay = _flash
-	_meshes.append(part)
-	return part
+## Path of a generated body by id (&"male_a").
+static func body_path(id: StringName) -> String:
+	return BODIES + String(id) + ".glb"
 
 
-## Calls change on every surface's material (override or the mesh's own); a returned material
-## becomes the override. Skipped headless, like skin().
-func _each_material(change: Callable) -> void:
-	if _headless():
-		return
+## Swaps every body mesh for one whose vertex colors are palette colors (the role indices
+## resolved), with the flat shader; cached per body, look and mesh.
+func _paint(scene_path: String, look: Dictionary) -> void:
+	var palette := Palette.of(Gear.REALM)
+	var key := "%s|%s" % [scene_path, look]
 	for mesh in _meshes:
-		for i in mesh.mesh.get_surface_count():
-			var current := mesh.get_surface_override_material(i)
-			if current == null:
-				current = mesh.mesh.surface_get_material(i)
-			var standard := current as StandardMaterial3D
-			if standard == null:
-				continue
-			var changed: StandardMaterial3D = change.call(standard)
-			if changed:
-				mesh.set_surface_override_material(i, changed)
+		var at := "%s|%s" % [key, mesh.name]
+		if not _painted.has(at):
+			_painted[at] = _resolve(mesh.mesh, look, palette)
+		mesh.mesh = _painted[at]
 
 
-## The base character's body mesh: the one that isn't eyes or brows.
-static func _is_body(source: MeshInstance3D) -> bool:
-	var lower := String(source.name).to_lower()
-	return not lower.contains("eye")
-
-
-## The body mesh with only the triangles whose corners are mostly skinned to the head and neck
-## (cached per body). The outfit covers the rest, so nothing pokes through it.
-static func _head_of(body_path: String, source: MeshInstance3D) -> Mesh:
-	if _heads.has(body_path):
-		return _heads[body_path]
-	var body := source.mesh
-	var source_skeleton := source.get_node(source.skeleton) as Skeleton3D
-	var keep_bones := {}
-	for bind in source.skin.get_bind_count():
-		var bone_name := source.skin.get_bind_name(bind)
-		if bone_name == &"":
-			bone_name = source_skeleton.get_bone_name(source.skin.get_bind_bone(bind))
-		if bone_name in HEAD_BONES:
-			keep_bones[bind] = true
-	var arrays := body.surface_get_arrays(0)
-	var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
-	var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
-	var count: int = (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
-	var per := bones.size() / maxi(count, 1)
-	var kept := PackedByteArray()
-	kept.resize(count)
-	for vertex in count:
-		var head := 0.0
-		for k in per:
-			if keep_bones.has(bones[vertex * per + k]):
-				head += weights[vertex * per + k]
-		kept[vertex] = 1 if head >= 0.5 else 0
-	var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
-	var cut := PackedInt32Array()
-	for t in range(0, indices.size(), 3):
-		if kept[indices[t]] and kept[indices[t + 1]] and kept[indices[t + 2]]:
-			cut.append_array([indices[t], indices[t + 1], indices[t + 2]])
-	arrays[Mesh.ARRAY_INDEX] = cut
-	# Custom channels (the female body has two) would need their format flags; the standard
-	# material doesn't read them.
-	for channel in [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3]:
-		arrays[channel] = null
-	var head_mesh := ArrayMesh.new()
-	var flags: int = body.surface_get_format(0) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS
-	head_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, flags)
-	head_mesh.surface_set_material(0, source.get_active_material(0))
-	_heads[body_path] = head_mesh
-	return head_mesh
+## A copy of a body mesh with role indices replaced by palette colors (alpha: roughness).
+static func _resolve(source: ArrayMesh, look: Dictionary, palette: Palette) -> ArrayMesh:
+	var colors: Array[Color] = []
+	var overrides: Dictionary = look.get("roles", {})
+	for role in ROLES:
+		var choice: Variant = overrides.get(role, null)
+		if choice == null:
+			choice = look.get(
+				role, ROLE_COLORS.get(role, &"skin_b" if role == &"skin" else &"hair_b")
+			)
+		if choice is Color:
+			var color := choice as Color
+			colors.append(Color(color.r, color.g, color.b, 0.8))
+		else:
+			colors.append(palette.color(choice as StringName))
+	var painted := ArrayMesh.new()
+	for surface in source.get_surface_count():
+		var arrays := source.surface_get_arrays(surface)
+		var vertex_colors: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
+		for i in vertex_colors.size():
+			vertex_colors[i] = colors[clampi(
+				roundi(vertex_colors[i].r * 255.0), 0, colors.size() - 1
+			)]
+		arrays[Mesh.ARRAY_COLOR] = vertex_colors
+		var flags: int = source.surface_get_format(surface) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS
+		painted.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, flags)
+		painted.surface_set_name(surface, source.surface_get_name(surface))
+		painted.surface_set_material(surface, MeshKit.material())
+	return painted

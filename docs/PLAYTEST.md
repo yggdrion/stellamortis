@@ -315,3 +315,12 @@ Task 1 (bot brain and skills):
 - [ ] Dropped weapons and shields on the ground lie sensibly and are not tiny or huge.
 - [ ] Enemies: the dead's swords look rusted, the berserker's axes dark and worn, the shield bearer's tower shield and helm fit; the Warden's helm, horns, crown, pauldrons and cape look like the old ones or better.
 - [ ] No blade looks longer than the swing reaches (the sword and axe against what they hit).
+
+## M40 Own bodies (tasks 1 to 3; task 4 adds the menu pick)
+
+- [ ] Players: four looks by player (male A lean with short hair and beard, female A slim with long hair, male B broad with long hair and a full beard, female B with a bun) read as different people from the camera's distance; the faces are plain but not ugly.
+- [ ] Animations: swings, roll, block, walk, sprint, crossbow aim and hit/death play without a bad bend at shoulders, hips or wrists; the sword stays in the hand; no model snaps back after a combo (the rubberband check).
+- [ ] The dead (sunken, bone arms and shins, skull jaw), the squires, the berserker, the elites and the Warden look like what they are; the dead's flesh reads rotten, not just green; the Warden at twice the size is not a stretched sack.
+- [ ] Death: bodies burn away as before (the flat burn material, embers).
+- [ ] Hit flash and telegraph tints still show on the new bodies.
+- [ ] Body colors: skin and hair colors are readable at night.

@@ -1,6 +1,6 @@
 # M40 Own bodies
 
-Status: In progress: tasks 1 (spike) and 2 (bodies) done 2026-11-18; tasks 3 and 4 open.
+Status: In progress: tasks 1 (spike), 2 (bodies) and 3 (in the game) done 2026-11-18; task 4 (pick a body) open.
 
 ## Goal
 
@@ -50,7 +50,12 @@ Four player bodies: male A, male B, female A, female B (two builds per sex from 
 - Deviations from the plan: no three LOD files (Godot's import generates LODs, `meshes/generate_lods` is on in the `.import`); the dead's `skull` variant colors the lower head `bone` rather than removing the jaw; the Warden has no armor yet (its `plate` outfit is one flat color, the generated plate of M39 goes on top in task 3).
 - Looks: the faces are plain (brow, nose, two eye insets, ears); the bodies differ in build, head, hair and beard but the two sexes differ little at game distance (bust, narrower shoulders, wider hips). Tune the numbers after seeing them in the game (task 3's screenshots).
 
-File level detail for task 3 follows below.
+## Task 3 result (2026-11-18)
+
+- `CharacterModel.new(path, held, scale, look)`: a body under `BODIES` (`CharacterModel.body_path(&"male_a")`) is painted at load by `_paint` / `_resolve` (not headless): the role indices become palette colors (`ROLE_COLORS`; `look.skin` and `look.hair` palette roles, default skin_b and hair_b; `look.roles` overrides a body role with a palette role or a Color), the mesh is rebuilt once per body, look and mesh name (`_painted`) and every surface gets `MeshKit.material()`. `dissolve` gives every surface one `MeshKit.burn_material()` (`burn_amount`). Removed: `wear_head`, `swap_albedo`, `tint`, `skin`, `light_up`, `_each_material`, `_wear`, `_head_of`, the outfit and character constants, `Gear.armor`, `Gear._metal`, `STEEL`, `LEATHER`, `DEAD`; `HUMAN` stays only as the clip source. `assets/quaternius/outfits/` and `characters/` and their RESOURCES rows are gone.
+- `Gear.ranger(peer_id)`: body `PLAYER_BODIES[peer_id % 4]` (male A, female A, male B, female B), skin `SKINS[(peer_id / 4) % 4]`, hair `HAIRS[(peer_id / 16) % 4]`; task 4 replaces the body pick with the saved choice. `squire(index)` male A or B, `dead(archer, held, index)` dead_female for archers, dead_male, every third swordsman dead_skull; `berserker` the bare body with a grey-red `PAINT` skin; `Gear.armored(held, scale, plate)` is the Warden and the elite (the `warden` body, belt, tunic and sleeve roles in the plate color; generated helm, horns, crown, pauldrons and cape on top).
+- Checked: screenshots of the start (squire), a camp (the dead lying, the player) and the boss site (`build/shots/`, not committed); `tests/character_model_test.gd` runs on `male_a`. Not covered: hiding body parts under armor and worn armor on peers (needs the worn item indices on the wire, a protocol bump; leave it to the milestone that shows armor: M48 or earlier on request); `GearKit.covers` is unused until then. Surfaces are named by the material names of the glTF only if Godot keeps them (not verified); a part that has no faces has no surface.
+
 
 ## Spike result (task 1, 2026-11-18)
 

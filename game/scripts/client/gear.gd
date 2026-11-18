@@ -117,6 +117,8 @@ static func make(look: StringName, params := {}, variant_seed := 1) -> Node3D:
 	var meshes := Generators.build(String(look), variant_seed, Palette.of(REALM), params)
 	var node := MeshInstance3D.new()
 	node.mesh = meshes[0]
+	if look == &"crossbow":
+		node.set_meta(CharacterModel.PISTOL_GRIP, true)
 	if not SHIELD_LOOKS.has(look):
 		return node
 	var holder := Node3D.new()

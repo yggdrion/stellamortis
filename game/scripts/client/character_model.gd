@@ -5,6 +5,20 @@ extends Node3D
 ## shows an action at a given progress, so the pose always follows the rolled back state
 ## instead of running its own clock.
 
+## How a held prop sits on its bone, by bone name (the rig's hand bones run along the fingers with
+## X toward the thumb in the T-pose, the forearm bones along the forearm). Props are built with
+## the grip at the origin and the long axis +Y: the fist turns that across the palm so the blade
+## leaves past the thumb; a shield faces away from the outer forearm.
+const GRIPS := {
+	&"RightHand": Transform3D(Basis(Vector3.BACK, -PI / 2.0), Vector3(0.0, 0.06, 0.0)),
+	&"LeftHand": Transform3D(Basis(Vector3.BACK, PI / 2.0), Vector3(0.0, 0.06, 0.0)),
+	&"LeftLowerArm": Transform3D(Basis(Vector3.UP, PI), Vector3(0.0, 0.1, 0.0)),
+}
+
+## Meta on a prop held like a pistol, along the hand: the crossbow's stock goes where the fingers
+## point, so it skips GRIPS.
+const PISTOL_GRIP := &"pistol_grip"
+
 ## The humanoid model and the second animation library it borrows from. Both are imported with
 ## a humanoid bone map (assets/quaternius/ual/*_bone_map.tres), so their bones share names.
 ## The dissolve shader of a dying body (dissolve()).
@@ -101,7 +115,10 @@ func _init(scene_path: String, held: Dictionary, scale_by := 1.0, look := {}) ->
 		slot.bone_name = held[prop][0]
 		skeleton.add_child(slot)
 		var node: Node3D = held[prop][1]
-		slot.add_child(node)
+		var holder := Node3D.new()
+		holder.transform = _grip(slot.bone_name, node)
+		slot.add_child(holder)
+		holder.add_child(node)
 		props[prop] = node
 	_flash = StandardMaterial3D.new()
 	_flash.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -111,16 +128,23 @@ func _init(scene_path: String, held: Dictionary, scale_by := 1.0, look := {}) ->
 		mesh.material_overlay = _flash
 
 
+static func _grip(bone: StringName, node: Node3D) -> Transform3D:
+	if node.has_meta(PISTOL_GRIP):
+		return Transform3D.IDENTITY
+	return GRIPS.get(bone, Transform3D.IDENTITY)
+
+
 ## Replaces the node of a held prop (same bone, same visibility); null puts nothing there.
 func set_prop(name_of: String, node: Node3D) -> void:
 	var old := props[name_of] as Node3D
-	var slot := old.get_parent()
+	var holder := old.get_parent() as Node3D
 	var shown := old.visible
-	slot.remove_child(old)
+	holder.remove_child(old)
 	old.queue_free()
 	var fresh := node if node != null else Node3D.new()
 	fresh.visible = shown
-	slot.add_child(fresh)
+	holder.transform = _grip((holder.get_parent() as BoneAttachment3D).bone_name, fresh)
+	holder.add_child(fresh)
 	props[name_of] = fresh
 
 

@@ -330,3 +330,4 @@ Task 1 (bot brain and skills):
 ## M41 Play-test fixes
 
 - [ ] Shadows (task 1): press F4 through Low, Medium, High and Ultra at the arrival and in old wood at night; shade (rock faces away from the moon, under the canopy, the player's shadow) is about as bright and readable on all four, none near black. Ultra still has SSR and TAA; SSIL and SDFGI are gone on purpose.
+- [ ] Trees, grass and bushes (task 3): in old wood a few giant trees stand among the old ones (up to about twice the old trees' size, trunks solid: walk into one, you stop at the trunk, not inside it); the moor and the wood edge have clearly more grass than before on every preset; bushes read as leafy bushes (dark inside, a few clumps on short stems), not rocks. Check Low is still smooth.

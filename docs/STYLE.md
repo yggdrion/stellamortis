@@ -46,7 +46,7 @@ Per model, three levels of detail. Full within 40 m, half to 120 m, far beyond (
 | Kind | Full | Half | Far |
 |---|---|---|---|
 | Grass tuft | 12 | 6 | none |
-| Fern, heather, bush | 60 | 24 | none |
+| Fern, heather, bush | 160 | 48 | none |
 | Pebble, small rock (under 0.5 m) | 40 | 20 | none |
 | Rock (0.5 to 2 m) | 160 | 80 | 24 |
 | Boulder (2 to 5 m) | 320 | 140 | 40 |

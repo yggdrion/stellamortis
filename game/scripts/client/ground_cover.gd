@@ -12,7 +12,7 @@ enum Kind { GRASS_TUFT, GRASS_TALL, FERN, HEATHER, BUSH, PEBBLE, LOG, STUMP }
 enum Habitat { WOOD, FRINGE, MOOR }
 
 ## One jittered candidate per square of this size (m).
-const SPACING := 2.0
+const SPACING := 1.5
 ## Cover keeps this far (m) from the edge of a solid's footprint.
 const MARGIN := 0.3
 ## Ground steeper than this (cosine of the slope) grows nothing but pebbles.
@@ -34,9 +34,9 @@ const WEIGHTS := {
 	],
 	Habitat.FRINGE:
 	[
-		[Kind.GRASS_TUFT, 4.0],
+		[Kind.GRASS_TUFT, 5.0],
 		[Kind.FERN, 2.0],
-		[Kind.GRASS_TALL, 1.5],
+		[Kind.GRASS_TALL, 2.0],
 		[Kind.BUSH, 0.8],
 		[Kind.HEATHER, 0.8],
 		[Kind.PEBBLE, 0.5],
@@ -45,9 +45,9 @@ const WEIGHTS := {
 	],
 	Habitat.MOOR:
 	[
-		[Kind.HEATHER, 4.0],
-		[Kind.GRASS_TUFT, 3.0],
-		[Kind.GRASS_TALL, 2.5],
+		[Kind.HEATHER, 3.0],
+		[Kind.GRASS_TUFT, 5.0],
+		[Kind.GRASS_TALL, 3.5],
 		[Kind.PEBBLE, 0.8],
 		[Kind.BUSH, 0.3],
 	],

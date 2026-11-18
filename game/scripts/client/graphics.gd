@@ -16,9 +16,10 @@ const SETTINGS := "user://settings.cfg"
 const VIEW_RADIUS := [250.0, 350.0, 450.0, 600.0]
 const SCATTER_RADIUS := [120.0, 180.0, 260.0, 340.0]
 ## Ground cover (GroundCover: grass, ferns, heather, bushes) per preset: how far it is drawn
-## (full to Budgets.full_distance, half beyond) and which share of its candidates bear anything.
+## (full to Budgets.full_distance, half beyond) and the odds of a candidate bearing anything, as a
+## multiple of GroundCover.CHANCE (above 1 fills in: the moor's 0.65 reaches 1.0 at 1.54).
 const COVER_RADIUS := [70.0, 100.0, 130.0, 160.0]
-const COVER_DENSITY := [0.8, 1.0, 1.0, 1.0]
+const COVER_DENSITY := [0.9, 1.1, 1.3, 1.5]
 ## Triangles in view the scatter and cover may cost per frame (docs/milestones/M37, cost rule);
 ## the debug overlay compares TerrainView.visible_triangles with it.
 const TRIANGLE_BUDGET := [1500000, 2000000, 2000000, 2500000]

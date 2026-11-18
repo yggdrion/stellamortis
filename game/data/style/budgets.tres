@@ -6,7 +6,7 @@
 script = ExtResource("1_budgets")
 kinds = {
 "grass_tuft": Vector3i(12, 6, -1),
-"fern_heather_bush": Vector3i(60, 24, -1),
+"fern_heather_bush": Vector3i(160, 48, -1),
 "pebble": Vector3i(40, 20, -1),
 "rock": Vector3i(160, 80, 24),
 "boulder": Vector3i(320, 140, 40),

@@ -5,7 +5,7 @@ extends GdUnitTestSuite
 const SEED := 1234
 ## A hash of the points of a patch of chunks around the arrival under SEED. If this changes on
 ## purpose (new numbers in Scatter), print patch_hash() and update it.
-const PATCH_HASH := -7648652564169651134
+const PATCH_HASH := -8674496475038999412
 const PATCH := 2
 
 

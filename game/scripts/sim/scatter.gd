@@ -47,6 +47,12 @@ const AGE_WAVELENGTH := 260.0
 const OLD_FROM := 0.3
 const YOUNG_BELOW := -0.25
 const AGE_BLUR := 0.2
+## Old trees: this share of them are giants, sized GIANT_FROM to GIANT_TO (point.size, the scale
+## is 0.8 + 0.5 size: 1.6 to 2.0 times, against 0.8 to 1.3 for the rest). The collision and the
+## spacing follow the same size.
+const GIANT_SHARE := 0.2
+const GIANT_FROM := 1.6
+const GIANT_TO := 2.4
 ## Forest noise above SPRUCE_FROM is spruce wood, down to PINE_FROM pine wood, down to
 ## BIRCH_FROM a birch fringe; below OAK_FROM the moor has dead trees only, between OAK_FROM and
 ## BIRCH_FROM oaks on low ground.
@@ -97,12 +103,16 @@ class Point:
 	## The direction from the realm center (local up).
 	var up: Vector3
 	var yaw: float
-	## 0.0 to 1.0, a size roll for the view.
+	## 0.0 to 1.0, a size roll for the view (giant old trees: GIANT_FROM to GIANT_TO).
 	var size: float
 	var rank: float
 	## Meters: how much ground the thing keeps for itself (its spacing) and its solid footprint.
 	var room := 0.0
 	var body := 0.0
+
+
+static func _is_old(kind: int) -> bool:
+	return kind < Kind.ROCK and kind % 3 == Age.OLD
 
 
 ## The kind of a tree of a species and age.
@@ -223,6 +233,8 @@ static func _candidates(
 			if kind < 0:
 				continue
 			point.kind = kind as Kind
+			if _is_old(point.kind) and fposmod(variant * 37.0, 1.0) < GIANT_SHARE:
+				point.size = lerpf(GIANT_FROM, GIANT_TO, point.size)
 			var shape := ScatterShape.of_kind(kind)
 			var scale_by := 0.8 + 0.5 * point.size
 			point.body = shape.footprint(shape.size * scale_by)

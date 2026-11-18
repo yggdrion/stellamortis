@@ -326,3 +326,7 @@ Task 1 (bot brain and skills):
 - [ ] Body colors: skin and hair colors are readable at night.
 - [ ] Body pick: the main menu shows four turning previews (male A, male B, female A, female B) under the name; a click highlights one and the choice is still there after a restart; Solo and Host show it in game; a joiner on another machine shows as the body they picked on the host and on a third client; bots and an old settings file (no pick) start as male A.
 - [ ] Training dummies: the two ahead of the arrival read as dummies (post, straw sack, target on the chest, a shield), not people; a hit flashes and sways one and plays the thud; a kill tips it over, it vanishes after about 2 s and stands up again when it rises; the telegraph tint and the fan still show when it swings.
+
+## M41 Play-test fixes
+
+- [ ] Shadows (task 1): press F4 through Low, Medium, High and Ultra at the arrival and in old wood at night; shade (rock faces away from the moon, under the canopy, the player's shadow) is about as bright and readable on all four, none near black. Ultra still has SSR and TAA; SSIL and SDFGI are gone on purpose.

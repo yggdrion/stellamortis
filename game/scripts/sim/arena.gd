@@ -457,7 +457,9 @@ func _add_environment() -> void:
 	env.tonemap_exposure = 1.25
 	env.ssao_enabled = true
 	env.ssao_intensity = 1.2
-	env.ssil_enabled = true
+	# No SSIL or SDFGI anywhere: they darken shade here (M41 task 1, Graphics).
+	env.ssil_enabled = false
+	env.sdfgi_enabled = false
 	env.glow_enabled = true
 	env.glow_bloom = 0.06
 	# Muted: grim, not cute. Barely any extra contrast, which crushed the shadows to black.

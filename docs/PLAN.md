@@ -46,7 +46,7 @@ Rendering (client):
 
 - Forward+ on Vulkan (Linux) and Direct3D 12 (Windows default since 4.6).
 - AgX tonemapping; glow blended before tonemapping (4.6). HDR output (new in 4.7) is left out for now (2026-11-09).
-- Lighting: one directional sun with tuned shadow cascades; LightmapGI baked for the static arena with SSAO and SSIL on top; SDFGI only in the Ultra preset. `AreaLight3D` (new in 4.7) for panel and window lights on structures.
+- Lighting: one directional sun with tuned shadow cascades; LightmapGI baked for the static arena with SSAO on top; no SSIL or SDFGI (M41 task 1: both darkened shade on the flat-shaded ground). `AreaLight3D` (new in 4.7) for panel and window lights on structures.
 - Atmosphere: volumetric fog per planet zone, sky shader with stars and the planet in view; SSR (rewritten in 4.6, half resolution mode) for wet and metal surfaces.
 - Effects: `GPUParticles3D` with collision for bolts, hits and dust; decals for impacts; compositor effects for screen-space distortion of the boss gravity well; stencil buffer for players seen through walls.
 - Anti-aliasing and scaling: TAA or SMAA, FSR 2 upscaling in lower presets.
@@ -64,7 +64,7 @@ Rendering (client):
   Draw calls 413 (Low moor) to 1265 (Ultra wood); scatter triangles in view (F3 count, camera range and frustum) 0.09 to 0.15 M on Low, 0.15 to 0.24 M Medium, 0.19 to 0.36 M High, 0.21 to 0.38 M Ultra (budgets 1.5, 2, 2, 2.5 M): the budget is far from used. Frames are CPU bound near 2 ms in every preset (GPU 0.5 to 1.4 ms), so the scatter's GPU cost sits under the M36 stress numbers (pine_young full 0.55 ms for 5000 trees on Low: the whole realm frame is 0.52 to 0.57 ms). Other Godot processes of another worker ran during most runs (the bot play-test suites; the second round of the same spots agreed with the first within 0.05 ms, and the quiet runs, arrival Low and Medium, wood Medium, rock Medium, sit in the same band); the GTX 1050 Ti was not measured.
 - Scene cost: occlusion culling, automatic mesh LOD, visibility ranges for distant props, `MultiMeshInstance3D` for rocks and debris.
 - Animation: `AnimationTree` with blend spaces, foot IK (the 4.6 IK modifiers) so feet sit on slopes and on the asteroid. Animations are visual only: no root motion, movement comes from the sim.
-- Graphics presets Low, Medium, High, Ultra (F4, saved in `user://settings.cfg`): Low and Medium render at 67%/80% and upscale with FSR 2, Low drops SSAO and the zone fog; High adds SSIL and SMAA; Ultra adds SDFGI, SSR and TAA. On a GTX 1050 Ti (vsync off): Low 146 fps (GPU 3.7 ms), Medium 132 (5.4), High 128 (5.6), Ultra 93 (10).
+- Graphics presets Low, Medium, High, Ultra (F4, saved in `user://settings.cfg`): Low and Medium render at 67%/80% and upscale with FSR 2, Low drops SSAO and the zone fog; High adds SMAA; Ultra adds SSR and TAA (SSIL and SDFGI were dropped in M41: SSIL darkened shade by a fifth, SDFGI turned shaded rock faces black). On a GTX 1050 Ti (vsync off): Low 146 fps (GPU 3.7 ms), Medium 132 (5.4), High 128 (5.6), Ultra 93 (10).
 
 Server and network:
 

@@ -1,7 +1,9 @@
 class_name Graphics
 extends RefCounted
 ## Graphics presets (PLAN §3.1), cycled with F4 and saved in user://settings.cfg. Low and
-## Medium render at a lower resolution and upscale with FSR 2; Ultra adds SDFGI and SSR.
+## Medium render at a lower resolution and upscale with FSR 2; Ultra adds SSR and TAA.
+## No SSIL or SDFGI: on flat-shaded vertex-colored
+## ground they only darkened shade (SSIL by a fifth, SDFGI to black on rock faces; M41).
 
 enum Preset { LOW, MEDIUM, HIGH, ULTRA }
 
@@ -85,9 +87,7 @@ static func apply(viewport: Viewport, arena: Arena) -> void:
 	viewport.use_taa = ultra
 
 	env.ssao_enabled = medium_up
-	env.ssil_enabled = high_up
 	env.volumetric_fog_enabled = medium_up
-	env.sdfgi_enabled = ultra
 	env.ssr_enabled = ultra
 	env.glow_enabled = true
 

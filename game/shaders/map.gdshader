@@ -12,6 +12,8 @@ uniform float zoom = 100.0;
 uniform vec2 view_size = vec2(800.0);
 uniform float realm_radius = 1000.0;
 uniform vec2 image_size = vec2(1024.0, 512.0);
+// The minimap (M43) is a circle: nothing outside it. The big map leaves this off.
+uniform bool circle = false;
 
 
 float height_at(vec2 uv) {
@@ -22,7 +24,7 @@ void fragment() {
 	vec2 p = (UV - 0.5) * view_size;
 	vec2 m = p / zoom;
 	float r = length(m);
-	if (r > 1.0) {
+	if (r > 1.0 || (circle && length(p) > view_size.x * 0.5)) {
 		COLOR = vec4(0.0);
 	} else if (!ready) {
 		COLOR = vec4(0.05, 0.045, 0.04, 1.0);

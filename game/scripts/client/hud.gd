@@ -26,6 +26,7 @@ var prompt := ""
 var prompt_color := TEXT
 var hotbar: Hotbar
 var weapon_bar: WeaponBar
+var minimap: Minimap
 var _health: ProgressBar
 var _stamina: ProgressBar
 var _dead: Label
@@ -96,6 +97,13 @@ func _ready() -> void:
 	_room.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_room.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	root.add_child(_room)
+	minimap = Minimap.new()
+	minimap.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	minimap.offset_left = -16.0 - Minimap.SIZE
+	minimap.offset_right = -16.0
+	minimap.offset_top = 48.0
+	minimap.offset_bottom = 48.0 + Minimap.SIZE
+	root.add_child(minimap)
 	_notice = Label.new()
 	_notice.add_theme_font_size_override("font_size", 18)
 	_notice.set_anchors_and_offsets_preset(

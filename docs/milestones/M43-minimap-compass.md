@@ -43,7 +43,7 @@ Tests (`tests/map_test.gd`; it has 3 public methods and the 20 limit is far):
 
 Done when: checks green; screenshots `--seed=1234 --spawn=2500,1004,1800 --map` with `--look=0,-6` and `--look=90,-6` show the same map and the arrow turned; a `--bot --bot-plan` run is unaffected (`python tools/check.py` smoke).
 
-### 2. Minimap (Sonnet)
+### 2. Minimap (Sonnet) - built 2026-11-18
 
 Files: new `scripts/client/minimap.gd`; `shaders/map.gdshader` (`uniform bool circle = false;` and the one early return); `scripts/client/map_panel.gd` (`texture_for` is task 1; make `KIND_COLORS`, `GATE`, `SITE`, `FRIEND`, `OWN` usable from outside, they already are consts); `scripts/client/hud.gd` (`minimap` var and the node in `_ready`, top right at 48 px under `_room`); `scripts/client/settings.gd` (`static var minimap := true`, `[display] minimap` in `load_saved` and `save`, next to `vsync`); `scripts/client/settings_panel.gd` ("Minimap" CheckBox with `Menus.row`, `_on_minimap`, saved like `_on_vsync`); `scripts/client/game_client.gd` (set `_hud.minimap.me`, `camera`, `world`; visibility from `_map.visible` and `Settings.minimap` in `_process`).
 

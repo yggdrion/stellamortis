@@ -17,6 +17,8 @@ static var body := 0
 static var sensitivity := 1.0
 static var fullscreen := true
 static var vsync := true
+## The round minimap in the HUD corner (M43).
+static var minimap := true
 ## Frame rate cap, 0 is unlimited.
 static var max_fps := 0
 ## --vsync / --max-fps for this run (-1: none); applied but never saved.
@@ -46,6 +48,7 @@ static func load_saved() -> void:
 	)
 	fullscreen = bool(config.get_value("display", "fullscreen", fullscreen))
 	vsync = bool(config.get_value("display", "vsync", vsync))
+	minimap = bool(config.get_value("display", "minimap", minimap))
 	# Only the caps the panel offers: a hand-edited cap below the 30 Hz tick would starve it.
 	max_fps = int(config.get_value("display", "max_fps", max_fps))
 	if max_fps not in FPS_CAPS:
@@ -72,6 +75,7 @@ static func save() -> void:
 	config.set_value("input", "sensitivity", sensitivity)
 	config.set_value("display", "fullscreen", fullscreen)
 	config.set_value("display", "vsync", vsync)
+	config.set_value("display", "minimap", minimap)
 	config.set_value("display", "max_fps", max_fps)
 	config.set_value("audio", "volume", volume)
 	config.set_value("input", "shake", shake)

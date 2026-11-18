@@ -67,6 +67,11 @@ func _ready() -> void:
 	vsync.toggled.connect(_on_vsync)
 	add_child(Menus.row("Vsync", vsync))
 
+	var minimap := CheckBox.new()
+	minimap.button_pressed = Settings.minimap
+	minimap.toggled.connect(_on_minimap)
+	add_child(Menus.row("Minimap", minimap))
+
 	var cap := OptionButton.new()
 	for fps: int in Settings.FPS_CAPS:
 		cap.add_item("Unlimited" if fps == 0 else str(fps))
@@ -111,6 +116,11 @@ func _on_fullscreen(on: bool) -> void:
 func _on_vsync(on: bool) -> void:
 	Settings.vsync = on
 	Settings.apply_pacing()
+	Settings.save()
+
+
+func _on_minimap(on: bool) -> void:
+	Settings.minimap = on
 	Settings.save()
 
 

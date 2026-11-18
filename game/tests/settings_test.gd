@@ -5,6 +5,7 @@ var _file := PackedByteArray()
 var _had_file := false
 var _vsync := true
 var _max_fps := 0
+var _minimap := true
 
 
 func before_test() -> void:
@@ -13,6 +14,7 @@ func before_test() -> void:
 		_file = FileAccess.get_file_as_bytes(Graphics.SETTINGS)
 	_vsync = Settings.vsync
 	_max_fps = Settings.max_fps
+	_minimap = Settings.minimap
 
 
 func after_test() -> void:
@@ -23,6 +25,7 @@ func after_test() -> void:
 		DirAccess.remove_absolute(Graphics.SETTINGS)
 	Settings.vsync = _vsync
 	Settings.max_fps = _max_fps
+	Settings.minimap = _minimap
 	Settings.vsync_flag = -1
 	Settings.max_fps_flag = -1
 	Engine.max_fps = 0
@@ -46,3 +49,12 @@ func test_apply_sets_engine_cap() -> void:
 	Settings.max_fps_flag = 0
 	Settings.apply_pacing()
 	assert_int(Engine.max_fps).is_equal(0)
+
+
+func test_minimap_round_trips_and_defaults_on() -> void:
+	assert_bool(_minimap).is_true()
+	Settings.minimap = false
+	Settings.save()
+	Settings.minimap = true
+	Settings.load_saved()
+	assert_bool(Settings.minimap).is_false()

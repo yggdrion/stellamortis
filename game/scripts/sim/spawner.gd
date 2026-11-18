@@ -169,6 +169,10 @@ class Solids:
 		return _by_chunk[chunk]
 
 
+## points() by realm and seed (they never change).
+static var _points_cache := {}
+static var _points_lock := Mutex.new()
+
 ## The elite camps' chests (chests), with the unit that guards each, server only.
 var chest_spots: Array[ChestSpot] = []
 ## Realm id -> true once its Warden's loot was rolled (task 4 saves it).
@@ -216,8 +220,38 @@ func _ready() -> void:
 	NetworkRollback.after_process_tick.connect(update)
 
 
-## The camps and roamers of a realm under a seed, in a fixed order.
+## The camps and roamers of a realm under a seed, in a fixed order. Cached per realm and seed
+## (about a second to find): the array is a copy, the SpawnPoints are shared and nobody may
+## change them.
 static func points(realm: RealmDef, world_seed: int) -> Array[SpawnPoint]:
+	var key := [
+		realm.id,
+		realm.center,
+		realm.radius,
+		realm.seed_salt,
+		realm.arrival,
+		realm.moor_height,
+		realm.moor_wavelength,
+		realm.hill_height,
+		realm.hill_wavelength,
+		realm.ridge_height,
+		realm.ridge_wavelength,
+		realm.ridge_mask_wavelength,
+		world_seed
+	]
+	_points_lock.lock()
+	var cached: Array[SpawnPoint] = _points_cache.get(key, [] as Array[SpawnPoint])
+	_points_lock.unlock()
+	if not cached.is_empty():
+		return cached.duplicate()
+	var found := _find_points(realm, world_seed)
+	_points_lock.lock()
+	_points_cache[key] = found
+	_points_lock.unlock()
+	return found.duplicate()
+
+
+static func _find_points(realm: RealmDef, world_seed: int) -> Array[SpawnPoint]:
 	var field := Terrain.Field.new(realm, world_seed)
 	var solids := Solids.new(realm, world_seed)
 	var rng := RandomNumberGenerator.new()

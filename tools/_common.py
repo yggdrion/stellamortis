@@ -5,6 +5,7 @@ Stdlib only, so every script runs with a bare Python 3.12+ on Windows and Linux.
 
 import hashlib
 import os
+import socket
 import subprocess
 import sys
 import urllib.request
@@ -32,6 +33,13 @@ def run(*cmd, **kwargs):
     code = subprocess.run([str(c) for c in cmd], check=False, **kwargs).returncode
     if code:
         fail(f"{Path(str(cmd[0])).name} {' '.join(map(str, cmd[1:]))} failed (exit {code})")
+
+
+def free_port(tcp=False):
+    """A port nobody holds right now (UDP, or TCP with tcp=True)."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM if tcp else socket.SOCK_DGRAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
 
 
 def expected_sum(name):

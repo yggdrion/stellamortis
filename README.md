@@ -71,7 +71,10 @@ The red zone to the west has high gravity.
 
 ## Check
 
-    python tools/check.py            # lint, lobby tests, gdUnit4 tests, network test (ENet, WebRTC)
+    python tools/check.py            # lint, lobby tests, gdUnit4 tests, network test (ENet, WebRTC), smoke play-test
+    python tools/check.py --tests    # lint, lobby tests, gdUnit4 only (CI job "tests")
+    python tools/check.py --net      # network test and smoke play-test only (CI job "net")
+    python tools/run_tests.py        # gdUnit4 alone; suites run in parallel, --jobs=N (default min(8, CPUs)), -a SUITE for one
     python tools/run_load_test.py    # 6 bots on one server: ticks per second, tick loop, kB/s (--lag=MS)
     python tools/check.py --quick    # lint only
     python tools/playtest.py smoke   # bot play-test of one scenario (tools/scenarios/NAME.json), --repeat=N
@@ -100,8 +103,8 @@ frame ms and the renderer's CPU and GPU ms per test (`STRESS` lines), uncapped; 
 
 ## Release
 
-Every push to `main` runs `.github/workflows/release.yml`: `tools/check.py` on Linux, then
-`tools/export.py` on a Linux, Windows and macOS runner each (macOS: universal app, ad-hoc signed,
+Every push to `main` (except docs-only ones) runs `.github/workflows/release.yml`: `tools/check.py --tests`
+and `--net` as two parallel jobs on Linux, beside `tools/export.py` on a Linux, Windows and macOS runner each (macOS: universal app, ad-hoc signed,
 not notarized). The exports are kept as workflow artifacts for 1 day and published as a
 GitHub Release `v<VERSION>.<patch>` with `stellamortis-<tag>-linux.zip`,
 `stellamortis-<tag>-windows.zip` and `stellamortis-<tag>-macos.zip` (e.g.

@@ -19,11 +19,11 @@ import time
 import urllib.request
 
 import lag_proxy
-from _common import GAME, ROOT, bun, fail, godot, godot_import, log
+from _common import GAME, ROOT, bun, fail, free_port, godot, godot_import, log
 
-PORT = 17791
-PROXY_PORT = PORT + 1
-LOBBY_PORT = 17795
+PORT = free_port()
+PROXY_PORT = free_port()
+LOBBY_PORT = free_port(tcp=True)
 TIMEOUT = 60
 options = dict(a[2:].split("=", 1) for a in sys.argv[1:] if a.startswith("--") and "=" in a)
 lag_proxy.start(PROXY_PORT, PORT, int(options.get("lag", 100)), int(options.get("jitter", 20)))

@@ -17,7 +17,6 @@ seed, role, lag = round trip ms, jitter ms, loss percent), expect (see `check_ex
 
 import json
 import os
-import socket
 import statistics
 import subprocess
 import sys
@@ -26,7 +25,7 @@ from pathlib import Path
 
 import desync
 import lag_proxy
-from _common import GAME, ROOT, fail, godot, godot_import, log
+from _common import GAME, ROOT, fail, free_port, godot, godot_import, log
 
 SCENARIOS = ROOT / "tools" / "scenarios"
 OUT = ROOT / "build" / "playtest"
@@ -35,12 +34,6 @@ STOP_TIMEOUT = 30
 TPS = 30.0
 # Jumps of the own player above this are teleports (join, respawn), not corrections.
 TELEPORT_M = 50.0
-
-
-def free_port():
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
 
 
 def read_events(path):

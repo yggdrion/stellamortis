@@ -111,7 +111,7 @@ func test_camps_mix_kinds_and_archers_stand_behind_bearers() -> void:
 
 func test_points_are_the_same_for_a_seed_and_laid_out_as_designed() -> void:
 	var a := Spawner.points(_realm, SEED)
-	var b := Spawner.points(_realm, SEED)
+	var b := Spawner._find_points(_realm, SEED)  # not the cache: found again
 	assert_int(a.size()).is_equal(b.size())
 	for i in a.size():
 		assert_vector(a[i].position).is_equal(b[i].position)

@@ -1,8 +1,10 @@
 name: Release
 
-# Every push to main: run the checks (lint, gdUnit4, headless network test), export each
-# platform on its own runner (macOS: universal, ad-hoc signed), keep the exports as workflow
-# artifacts for ARTIFACT_DAYS days, and publish them as a GitHub Release v<VERSION>.<patch>.
+# Every push to main (except one that only touches docs): run the checks in two parallel jobs
+# (tests: lint, lobby, gdUnit4; net: headless network test and smoke play-test), and beside
+# them export each platform on its own runner (macOS: universal, ad-hoc signed). The exports
+# are kept as workflow artifacts for ARTIFACT_DAYS days and published as a GitHub Release
+# v<VERSION>.<patch> once the checks and all exports are green.
 # Releases stay; artifacts expire. Every milestone is a minor version: the commit that finishes
 # a milestone raises VERSION's minor by one (in whatever order milestones finish). Every later push until the
 # next milestone is a patch: the patch is one above the highest existing v<VERSION>.* tag.
@@ -10,6 +12,10 @@ name: Release
 on:
   push:
     branches: [main]
+    # Docs-only pushes ship nothing new.
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
   workflow_dispatch:
 
 permissions:
@@ -27,7 +33,8 @@ env:
   ARTIFACT_DAYS: 1
 
 jobs:
-  check:
+  # Lint, lobby tests, gdUnit4 (tools/run_tests.py runs suites in parallel).
+  tests:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -43,11 +50,29 @@ jobs:
             .tools/venv
           key: tools-${{ runner.os }}-${{ hashFiles('.godot-version', 'tools/godot-*.sha512', 'tools/requirements.txt') }}
       - name: Check
-        run: python tools/check.py
+        run: python tools/check.py --tests
+
+  # Headless network test (ENet, WebRTC) and the smoke play-test.
+  net:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Cache tools
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .tools/godot
+            .tools/venv
+          key: tools-${{ runner.os }}-${{ hashFiles('.godot-version', 'tools/godot-*.sha512', 'tools/requirements.txt') }}
+      - name: Check
+        run: python tools/check.py --net
 
   export:
     name: export (${{ matrix.platform }})
-    needs: check
     strategy:
       # A failing platform must not hide whether the others export.
       fail-fast: false
@@ -90,9 +115,10 @@ jobs:
           retention-days: ${{ env.ARTIFACT_DAYS }}
           if-no-files-found: error
 
-  # Publishes only once all three exported, so a release never misses a platform.
+  # Publishes only once the checks passed and all three exported, so a release is never
+  # unchecked and never misses a platform.
   release:
-    needs: export
+    needs: [tests, net, export]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

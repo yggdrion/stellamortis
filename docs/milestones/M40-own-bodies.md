@@ -1,6 +1,6 @@
 # M40 Own bodies
 
-Status: Planned.
+Status: In progress: task 1 (spike) done 2026-11-18, verdict below; tasks 2 and 3 open.
 
 ## Goal
 
@@ -35,11 +35,24 @@ Done when: a side by side screenshot burst (`--frames`) of old and new body thro
 
 `scripts/client/character_model.gd`, `gear.gd`, `player_view.gd`, `enemy_view.gd`: load the new bodies, resolve roles, hide covered parts, looks by peer id as today. Remove `assets/quaternius/outfits/`, `assets/quaternius/characters/` and their rows. Screenshots of every look; the rubberband check (`--bot-plan=combo_walk` with `STELLAMORTIS_SNAP_LOG=1`) still clean; play-test items; milestone closed.
 
+### 4. Pick a body in the menu (Sonnet; added 2026-11-18 on the user's request)
+
+Four player bodies: male A, male B, female A, female B (two builds per sex from task 2's parameters, for example slim/average male and average/heavy female, plus head shape and default hair per type). The choice is saved in `Settings` (`body`, 0 to 3), picked in the main menu (a row of four previews in a `SubViewport` with the idle clip, turning slowly) and in `SettingsPanel`, sent to the server in `Net.hello` and told to every peer with the player's other join data (a protocol bump: `Net.PROTOCOL_VERSION`; not rolled back state, a reliable RPC and a snapshot at join like the name), and `Gear.ranger(peer_id)` picks the body from it instead of the peer id parity. Skin and hair colors stay by peer id for now. Tests: `Settings` round trip, hello carries the choice, `Gear.ranger` returns each of the four. Done when: four looks in screenshots, a joiner's choice shows on the host and the other clients.
+
 File level detail for tasks 2 and 3 is added after the spike.
+
+## Spike result (task 1, 2026-11-18)
+
+Verdict: the Blender path holds. Go on with task 2.
+
+- `tools/make_bodies.py` (Blender 5.3, `blender --background --python`, `--skin=rigid|auto`) imports `UAL1.glb`, deletes the mannequin and clips, builds one average male from faceted 8-sided tubes (one per part, one material slot per part: head, torso, upper/lower arm, hand, upper/lower leg, foot; 606 vertices, 696 faces, flat faces, baked face colors), skins it and exports `game/assets/bodies/male_average_{rigid,auto}.glb`. Only the armature round trip was a risk: after export and Godot import with the UAL1 bone map (`PATH:Rig/Skeleton3D`, copy `UAL1.glb.import`'s params into the body's `.import`) the skeleton has the same 53 bones, the same `GeneralSkeleton` path, global rest origins equal to 1e-6 m and rotations to 0.0007 rad. So the UAL1 and UAL2 clips play unchanged through `CharacterModel._borrow_animations` (a body with no `AnimationPlayer` takes that branch, as outfits do) and `_pin_root` applies as before; no change was needed in `CharacterModel` for the spike.
+- Checked in a scratch scene (old ranger, rigid, auto side by side, `animation.seek` through six steps): Sword_Regular_A/B/C, Sword_Attack, Roll, Walk, Sword_Block, Pistol_Aim_Neutral, Zombie_Walk_Fwd, Hit_Chest, Death01, Sprint, Sword_Idle. Nothing snaps or collapses, the sword sits in the hand through the swings, `MeshKit.material()` (flat shader) draws the skinned mesh with the baked colors. Not done: the rubberband check with `--bot-plan=combo_walk`, since nothing in the game loads a new body yet (task 3), and `Gear` is not hooked.
+- Skinning, judged on overhead swings (Sword_Regular_C) and the roll: rigid segments with 0.05 to 0.08 m blended rings at the joints (arm tubes weighted along `shoulder`, `upper_arm`, `forearm`, `hand`; legs along `thigh`, `shin`, `foot`; torso along hips and three spine bones) are clean at elbow, knee and wrist but the upper arm tube pulls away from the torso when the arm goes overhead (a visible gap at the shoulder), and the torso tube shows a hard step at the waist in the roll. `ARMATURE_AUTO` (Blender's automatic weights) keeps the shoulder joined and bends the roll smoothly but pinches the forearm into the torso when the arm crosses the body and gives stray weights at the hands. Decision for task 2: rigid weights as the base (predictable, the check "every bone has weights" is easy) with a wider shoulder blend (0.12 m) and the deltoid ring overlapping the torso by a hand's width, then smooth the weights one pass over each joint ring by script; keep `--skin=auto` as a fallback to compare.
+- What the spike left for task 2: the tube builder (`tube`, `chain_weights`) is the seed of the parameter set; the head is a bald faceted egg with a nose wedge (faces, hair and beards are not started); feet are boxes along the foot bone (heel does not reach behind the ankle); hands have no fingers or thumb (the finger bones have no weights: the `--check` mode must either weight them to the hand or accept them); vertex colors are baked face colors, not role indices; the scratch scene (a `SceneTree` script that plays a clip at six steps and saves a contact sheet) is worth rebuilding as `--gallery=bodies`. Body height is 1.76 m and the shoulders are narrow against the old mannequin: tune with the height and build parameters.
 
 ## Out of scope
 
-New animations (UAL stays). Faces that move. Beasts and animals (M67 and the realm milestones build theirs the same way, as rigid or simply rigged Blender-scripted models). Character customization in the menu.
+New animations (UAL stays). Faces that move. Beasts and animals (M67 and the realm milestones build theirs the same way, as rigid or simply rigged Blender-scripted models).
 
 ## Pitfalls
 

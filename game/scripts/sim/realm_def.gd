@@ -17,6 +17,10 @@ const GRAVITY_REACH := 300.0
 @export var biome := ""
 ## Where players arrive: a direction from the center.
 @export var arrival := Vector3.UP
+## The fixed point on the realm that north points to: a unit direction from the center. Not the
+## arrival (the image's pole is +Y, where players start, so a north taken from it is undefined
+## there). See Layout.north.
+@export var north_pole := Vector3.BACK
 ## The world flag (World.flags) set when the realm's boss falls.
 @export var boss_flag: StringName = &""
 ## Ground shape, meters: low rolling moor, broad hills, a few ridges where the mask is high.

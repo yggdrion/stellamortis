@@ -132,6 +132,26 @@ static func realm_at(point: Vector3) -> RealmDef:
 	return best
 
 
+## North at a unit direction from the realm's center: the tangent there along the great circle
+## toward `realm.north_pole`. Undefined at the pole and its antipode; there the projection of
+## Vector3.UP on the tangent plane stands in (and Vector3.RIGHT if that fails too).
+static func north(realm: RealmDef, direction: Vector3) -> Vector3:
+	var pole := realm.north_pole.normalized()
+	var tangent := pole - direction * direction.dot(pole)
+	if tangent.length_squared() < 0.000001:
+		tangent = Vector3.UP - direction * direction.dot(Vector3.UP)
+		if tangent.length_squared() < 0.000001:
+			tangent = Vector3.RIGHT - direction * direction.dot(Vector3.RIGHT)
+	return tangent.normalized()
+
+
+## Radians clockwise from `north` of the tangent `ahead` at `direction`: 0 north, PI / 2 east
+## (`north.cross(direction)`, the right-hand side the map draws), PI south, -PI / 2 west.
+static func bearing(direction: Vector3, north: Vector3, ahead: Vector3) -> float:
+	var east := north.cross(direction)
+	return atan2(ahead.dot(east), ahead.dot(north))
+
+
 ## Which place a point is in: a generated realm (its id), NO_PLACE in open space.
 static func place_at(point: Vector3) -> StringName:
 	var realm := realm_at(point)

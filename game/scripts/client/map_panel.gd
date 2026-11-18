@@ -1,7 +1,8 @@
 class_name MapPanel
 extends Control
 ## The map (M33), a debug tool: the realm the own player stands on, seen from above in an
-## azimuthal equidistant projection centered on the player and turned so the camera looks up.
+## azimuthal equidistant projection centered on the player with north up (Layout.north); only
+## the own arrow turns with the camera.
 ## The terrain is an equirectangular height image built once per realm and seed on worker
 ## threads and drawn by a shader (inverse projection per pixel); markers are drawn on top through
 ## the forward projection. Client only: everything shown is a pure function of the realm and the
@@ -44,7 +45,9 @@ var cleared := {}
 var _realm: RealmDef
 var _key := ""
 var _center := Vector3.UP
-var _forward := Vector3.FORWARD
+## North at the center (the projection's heading) and the camera's ground heading.
+var _north := Vector3.BACK
+var _look := Vector3.BACK
 var _spawns: Array[Spawner.SpawnPoint] = []
 ## Camps: [direction, member count, camp id]; roamers are camps of one.
 var _camps: Array = []
@@ -207,43 +210,49 @@ func _follow() -> void:
 		_key = key
 		_spawns = Spawner.points(_realm, world.world_seed)
 		_group_camps()
-		_request_image(key)
 	_center = (me.global_position - _realm.center).normalized()
+	_north = Layout.north(_realm, _center)
 	if camera != null:
 		var ahead := -camera.global_basis.z
 		var tangent := ahead - _center * ahead.dot(_center)
 		if tangent.length_squared() > 0.0001:
-			_forward = tangent.normalized()
-	_forward = (_forward - _center * _forward.dot(_center)).normalized()
+			_look = tangent.normalized()
 	var frame := _frame()
 	_view.position = frame.position
 	_view.size = frame.size
 	_shader.set_shader_parameter("center_dir", _center)
-	_shader.set_shader_parameter("forward_dir", _forward)
-	_shader.set_shader_parameter("right_dir", _forward.cross(_center))
+	_shader.set_shader_parameter("forward_dir", _north)
+	_shader.set_shader_parameter("right_dir", _north.cross(_center))
 	_shader.set_shader_parameter("zoom", _zoom())
 	_shader.set_shader_parameter("view_size", frame.size)
 	_shader.set_shader_parameter("realm_radius", _realm.radius)
 	_shader.set_shader_parameter("image_size", Vector2(IMAGE_SIZE))
-	var job: Job = _jobs.get(key)
-	if job != null and job.finished():
-		_textures[key] = ImageTexture.create_from_image(job.image())
-		_jobs.erase(key)
-	var texture: Texture2D = _textures.get(key)
+	var texture := texture_for(_realm, world.world_seed)
 	_shader.set_shader_parameter("ready", texture != null)
 	if texture != null:
 		_shader.set_shader_parameter("heights", texture)
 
 
-func _request_image(key: String) -> void:
-	if _textures.has(key) or _jobs.has(key):
-		return
-	var job := Job.new()
-	job.realm = _realm
-	job.world_seed = world.world_seed
-	job.size = IMAGE_SIZE
-	job.start()
-	_jobs[key] = job
+## The height texture of a realm under a seed; null while its image is still being built on
+## workers (the first call starts it). The big map and the minimap share one image per key.
+static func texture_for(realm: RealmDef, world_seed: int) -> Texture2D:
+	var key := "%s:%d" % [realm.id, world_seed]
+	var texture: Texture2D = _textures.get(key)
+	if texture != null:
+		return texture
+	var job: Job = _jobs.get(key)
+	if job == null:
+		job = Job.new()
+		job.realm = realm
+		job.world_seed = world_seed
+		job.size = IMAGE_SIZE
+		job.start()
+		_jobs[key] = job
+	if job.finished():
+		texture = ImageTexture.create_from_image(job.image())
+		_textures[key] = texture
+		_jobs.erase(key)
+	return texture
 
 
 func _group_camps() -> void:
@@ -263,7 +272,7 @@ func _group_camps() -> void:
 ## Where a world point is on screen.
 func _screen(point: Vector3) -> Vector2:
 	var direction := (point - _realm.center).normalized()
-	return _frame().get_center() + project(_center, _forward, direction, _zoom())
+	return _frame().get_center() + project(_center, _north, direction, _zoom())
 
 
 func _draw() -> void:
@@ -299,7 +308,7 @@ func _draw_camps(font: Font) -> void:
 	var meters := _zoom() / (PI * _realm.radius)
 	var color := Menus.PARCHMENT * Color(1, 1, 1, 0.8)
 	for camp: Array in _camps:
-		var p := _frame().get_center() + project(_center, _forward, camp[0], _zoom())
+		var p := _frame().get_center() + project(_center, _north, camp[0], _zoom())
 		if not _inside(p):
 			continue
 		var count: int = camp[1]
@@ -372,8 +381,13 @@ func _draw_players() -> void:
 		if not _inside(p):
 			continue
 		if player == me:
+			var turn := Layout.bearing(_center, _north, _look)
 			var tip := PackedVector2Array(
-				[p + Vector2(0, -9), p + Vector2(6, 7), p + Vector2(-6, 7)]
+				[
+					p + Vector2(0, -9).rotated(turn),
+					p + Vector2(6, 7).rotated(turn),
+					p + Vector2(-6, 7).rotated(turn)
+				]
 			)
 			draw_colored_polygon(tip, OWN)
 		else:
@@ -396,6 +410,8 @@ func _draw_rings() -> void:
 
 func _draw_legend(font: Font) -> void:
 	var at := _frame().position + Vector2(14, 22)
+	var top := Vector2(_frame().get_center().x - 6.0, _frame().position.y + 22.0)
+	draw_string(font, top, "N", 0, -1, 20, OWN)
 	draw_string(font, at, "%d m across" % roundi(minf(span, _full_span())), 0, -1, 16, OWN)
 	var rows := [[OWN, "you"], [FRIEND, "player"], [GATE, "gate"], [SITE, "boss site"]]
 	for id: StringName in KIND_COLORS:
@@ -428,7 +444,7 @@ func _draw_hover(font: Font) -> void:
 
 ## Meters along the ground from the own player to a screen point.
 func _distance_to(p: Vector2) -> float:
-	var direction := unproject(_center, _forward, p - _frame().get_center(), _zoom())
+	var direction := unproject(_center, _north, p - _frame().get_center(), _zoom())
 	return _center.angle_to(direction) * _realm.radius
 
 

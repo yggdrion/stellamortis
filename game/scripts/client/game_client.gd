@@ -12,6 +12,9 @@ signal entered
 ## The own inventory changed (the snapshot or a delta from the server).
 signal inventory_updated
 
+## Which input `_read_controls` reads (see input_scope).
+enum InputScope { NONE, WALK, FULL }
+
 ## Seconds without a word from the server before the HUD warns, and before giving up.
 const SILENT_WARN := 2.0
 const SILENT_LEAVE := 8.0
@@ -426,24 +429,40 @@ func interact() -> void:
 		net.pickup.rpc_id(1, _objects.focus_id)
 
 
+## Which input is read: NONE (mouse free, a menu or panel has it), WALK (the big map is open: move,
+## jump, sprint and roll, never attack, heavy or block) or FULL (mouse captured).
+static func input_scope(captured: bool, map_open: bool, other_open: bool) -> int:
+	if captured:
+		return InputScope.FULL
+	if map_open and not other_open:
+		return InputScope.WALK
+	return InputScope.NONE
+
+
 func _read_controls(controls: PlayerControls) -> void:
 	controls.yaw = _rig.yaw
 	controls.pitch = _rig.pitch
 	controls.weapon = _wanted_weapon
 	controls.move = Vector2.ZERO
 	controls.buttons = 0
-	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+	var scope := input_scope(
+		Input.mouse_mode == Input.MOUSE_MODE_CAPTURED,
+		_map.visible,
+		_pause.visible or _panel.visible
+	)
+	if scope == InputScope.NONE:
 		return
 	controls.move = Input.get_vector(&"move_left", &"move_right", &"move_back", &"move_forward")
 	if Input.is_action_pressed(&"jump"):
 		controls.buttons |= PlayerControls.Buttons.JUMP
 	var held := {
 		&"sprint": PlayerControls.Buttons.SPRINT,
-		&"attack": PlayerControls.Buttons.ATTACK,
-		&"heavy": PlayerControls.Buttons.HEAVY,
-		&"block": PlayerControls.Buttons.BLOCK,
 		&"roll": PlayerControls.Buttons.ROLL,
 	}
+	if scope == InputScope.FULL:
+		held[&"attack"] = PlayerControls.Buttons.ATTACK
+		held[&"heavy"] = PlayerControls.Buttons.HEAVY
+		held[&"block"] = PlayerControls.Buttons.BLOCK
 	for action: StringName in held:
 		if Input.is_action_pressed(action):
 			controls.buttons |= held[action]
@@ -687,7 +706,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_pause.open()
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event.is_action(&"map") and not event.is_echo() and me != null and map_start == "":
-		# Held: the mouse is free for hover and zoom while it is open (the player stands still).
+		# Held: the mouse is free for hover and zoom while it is open (walking goes on: input_scope).
 		_map.visible = event.is_pressed() and not _pause.visible
 		if _map.visible:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

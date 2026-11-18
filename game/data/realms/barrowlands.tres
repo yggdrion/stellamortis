@@ -11,4 +11,5 @@ gravity = 9.8
 seed_salt = 7919
 biome = "moor"
 arrival = Vector3(0, 1, 0)
+north_pole = Vector3(0, 0, 1)
 boss_flag = &"warden_fallen"

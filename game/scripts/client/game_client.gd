@@ -625,6 +625,10 @@ func _check_bot() -> void:
 		return
 	if _seen_moved.size() + 1 < bot_expect:
 		return
+	# A hosting bot's server goes with it: it stays until the others left, or they would lose
+	# the host before their own checks passed (the friend joins seconds later under load).
+	if hosting and _world.players.get_child_count() > 1:
+		return
 	print("%s: saw %d others move, ping %d ms" % [player_name, _seen_moved.size(), ping_ms])
 	await leave()
 	get_tree().quit(0)

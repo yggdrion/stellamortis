@@ -1,4 +1,4 @@
-# M46 Poise break and backstab
+# M49 Poise break and backstab
 
 Status: Planned.
 
@@ -8,7 +8,7 @@ Pressure pays off: an enemy whose poise breaks kneels and takes a critical hit. 
 
 ## Depends on
 
-M19 (poise, flinch), M44 (stagger per weapon type). M24.
+M19 (poise, flinch), M47 (stagger per weapon type). M24.
 
 ## Design
 

@@ -1,4 +1,4 @@
-# M43 Damage types and weaknesses
+# M46 Damage types and weaknesses
 
 Status: Planned.
 
@@ -8,12 +8,12 @@ Every hit has a type: slash, blunt, pierce, fire, frost, poison, spirit. Enemies
 
 ## Depends on
 
-M23 (items). M24 (the bot suite measures the balance change). Before M44, M47, M54 and M55, which all build on types.
+M23 (items). M24 (the bot suite measures the balance change). Before M47, M50, M57 and M58, which all build on types.
 
 ## Design
 
 - `Combat.DamageType` (enum; check the name shadows no native class). `AttackDef.damage` becomes a small set of (type, amount) parts; most attacks have one, a fire sword has two. Weapon items carry the parts; a player attack takes them from the worn weapon's `ItemDef`, the motion from the `AttackDef`.
-- `EnemyDef.resist`: a multiplier per type (0.5 resists, 1.5 weak, 0 immune). Player armor gets flat resistance per type from worn gear, through the `Stats` block when M54 lands; until then from `ItemDef` directly.
+- `EnemyDef.resist`: a multiplier per type (0.5 resists, 1.5 weak, 0 immune). Player armor gets flat resistance per type from worn gear, through the `Stats` block when M57 lands; until then from `ItemDef` directly.
 - Damage is computed in the one place hits land today (`Enemy.take_hit`, `SimPlayer` taking enemy swings and bolts). No new rolled back state: types are data, health is already synced.
 - View: `Hud._show_damage` and enemy hit numbers color by outcome (weak, normal, resisted, immune), a short "resists" or "weak" word on the first such hit per enemy kind, hit sounds per type (`Sounds`).
 - The Barrowlands kinds get resist tables that make sense (the dead: weak to blunt and spirit, resist pierce and poison; the Warden: resists slash).
@@ -28,7 +28,7 @@ File level detail is added when the milestone before it lands (`docs/milestones/
 
 ## Out of scope
 
-Status effects (M47). New weapons (M44). Elemental surfaces (burning ground, frozen water).
+Status effects (M50). New weapons (M47). Elemental surfaces (burning ground, frozen water).
 
 ## Pitfalls
 

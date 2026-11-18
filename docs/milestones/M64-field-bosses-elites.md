@@ -1,4 +1,4 @@
-# M61 Field bosses and elites
+# M64 Field bosses and elites
 
 Status: Planned.
 
@@ -8,13 +8,13 @@ The realm has names to fear: a few field bosses that roam or guard a place, and 
 
 ## Depends on
 
-M43, M47 (affixes use types and statuses), M48 (rare drops). M22's pool and spawner.
+M46, M50 (affixes use types and statuses), M51 (rare drops). M22's pool and spawner.
 
 ## Design
 
 - Elites: any kind can spawn as an elite by seed (a small share of camps hold one): more health, larger, a name, and one or two affixes from data (`data/affixes/`): burning (fire damage and buildup), frozen, venomous, shielded (a guard arc), swift, vampiric, enraged at low health, splitting into two normal ones on death (uses free pool slots).
 - An affix is a modifier on the `EnemyDef` values applied when the slot becomes the kind (`Enemy.become`), plus at most one rolled back flag; the look gets a tint, an aura and the name plate.
-- Field bosses: two or three per realm at seeded sites, each a new `EnemyDef` with its own attacks and a health bar like the Warden's smaller cousin; they respawn after a long world time; some walk a patrol at night (M62).
+- Field bosses: two or three per realm at seeded sites, each a new `EnemyDef` with its own attacks and a health bar like the Warden's smaller cousin; they respawn after a long world time; some walk a patrol at night (M65).
 - Rewards: guaranteed rare or better, runes, and each field boss's own legendary.
 
 ## Tasks

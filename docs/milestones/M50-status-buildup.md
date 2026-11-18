@@ -1,4 +1,4 @@
-# M47 Status buildup
+# M50 Status buildup
 
 Status: Planned.
 
@@ -8,7 +8,7 @@ Bleed, burn, frostbite and poison build up with each hit and trigger when the ba
 
 ## Depends on
 
-M43 (types cause the matching status). M24.
+M46 (types cause the matching status). M24.
 
 ## Design
 
@@ -28,7 +28,7 @@ File level detail is added when the milestone before it lands (`docs/milestones/
 
 ## Out of scope
 
-Cures as items (M50 adds them). Status on world objects. Madness, sleep and other exotic statuses.
+Cures as items (M53 adds them). Status on world objects. Madness, sleep and other exotic statuses.
 
 ## Pitfalls
 

@@ -1,4 +1,4 @@
-# M51 Emotes, pings and map pins
+# M54 Emotes, pings and map pins
 
 Status: Planned.
 

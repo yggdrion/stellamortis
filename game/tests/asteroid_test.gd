@@ -1,5 +1,5 @@
 extends GdUnitTestSuite
-## Walking around a small test sphere with its own gravity (the Skyshards of M59 are floating
+## Walking around a small test sphere with its own gravity (the Skyshards of M62 are floating
 ## rocks like it) and the jump pads between it and the ground, with the real SimPlayer on real
 ## collision: a sphere body, two zones in Layout and two pads, all added here and removed after.
 

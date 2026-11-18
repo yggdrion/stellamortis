@@ -1,4 +1,4 @@
-# M41 Sky, time and weather
+# M44 Sky, time and weather
 
 Status: Planned.
 
@@ -15,7 +15,7 @@ M36 (palette), M37 (the ground and scatter the light falls on). World time exist
 - Time of day is a pure function of world time: `Daylight.at(world_seconds) -> phase` with a day of `Tuning` length (starting value 30 minutes, night a third of it). The server sends `world_seconds` at join and every 10 s (a reliable RPC in `net/net.gd`; protocol bump); clients advance it locally between. It is not rolled back and never decides anything in the sim in this milestone.
 - Weather is a pure function too: `Weather.at(realm, world_seed, world_seconds) -> {kind, strength, wind}` from slow noise, so every peer sees the same sky without syncing more than the time. Kinds per realm are data (`RealmDef.weather`): the Barrowlands has clear, mist, drizzle, rain, gale.
 - `Sky` (`scripts/client/sky.gd`) owns the sun and moon lights, the sky shader's uniforms, fog and ambient light, and blends between palette entries per phase (`Palette` gains `sky_*`, `sun_*`, `fog_*` per phase). `Arena`'s environment setup moves into it.
-- Effects are view-only: rain and drizzle as `GPUParticles3D` around the camera along local gravity, mist as fog density and distance, gale as the wind strength M42 reads. Sounds: rain and wind loops on the Ambience bus (`Sounds.ambience`).
+- Effects are view-only: rain and drizzle as `GPUParticles3D` around the camera along local gravity, mist as fog density and distance, gale as the wind strength M45 reads. Sounds: rain and wind loops on the Ambience bus (`Sounds.ambience`).
 - Nights must stay playable: a floor on ambient light, and torches matter. A setting for night brightness is not added unless the play-test asks.
 - `--time=HOUR` and `--weather=KIND` boot flags pin both for screenshots.
 

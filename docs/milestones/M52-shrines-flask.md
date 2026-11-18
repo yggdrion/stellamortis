@@ -1,4 +1,4 @@
-# M49 Shrines and flask
+# M52 Shrines and flask
 
 Status: Planned.
 
@@ -15,7 +15,7 @@ M23 (world objects, saves, character file), M38 (the shrine's generated look). M
 - Shrine sites are a pure function of realm and seed (like `BossSite`): about eight per realm, spread by a minimum distance, on flat ground, with a cleared disc; the arrival has one lit from the start. Lit shrines are saved in the world file.
 - Resting (use key, a few seconds, interrupted by damage): flask refilled, health full, statuses cleared, respawn point set (per character, saved). Nearby cleared camps are not reset by resting.
 - Travel: from a lit shrine to any other lit one in the same realm (the map panel in travel mode); uses `TerrainChunks.ensure_around` like gates. Realm gates stay the way between realms.
-- Flask: a gear slot item with charges (3 at first; more through shrine upgrades found in crypts, M60). Drinking is an action with a wind-up that can be hit; charges are rolled back state on the player (one byte).
+- Flask: a gear slot item with charges (3 at first; more through shrine upgrades found in crypts, M63). Drinking is an action with a wind-up that can be hit; charges are rolled back state on the player (one byte).
 - Death: respawn at the last rested shrine instead of the arrival; the grave and body run stay.
 
 ## Tasks
@@ -28,7 +28,7 @@ File level detail is added when the milestone before it lands (`docs/milestones/
 
 ## Out of scope
 
-Leveling at shrines. Enemies respawning on rest. Player-built travel points (M64 could add them).
+Leveling at shrines. Enemies respawning on rest. Player-built travel points (M67 could add them).
 
 ## Pitfalls
 

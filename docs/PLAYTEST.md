@@ -216,7 +216,7 @@ Task 3 (inventory panel and hotbar, `Net.PROTOCOL_VERSION` 31; `--debug-bag` joi
 - [ ] Right click or shift click equips, unequips or uses; ctrl click splits half a stack.
 - [ ] Hover (or arrow to) a wearable bag item: the tooltip shows its stats, the worn item of that slot below and the differences in green (better) or red (worse). Read it for the swords, armor pieces and the two trinkets.
 - [ ] Junk: F stars an item kind, the star shows on every stack of it, Sort puts starred kinds last; the stars are still there after a restart (kept in the character file since task 4).
-- [ ] Hotbar: bag cells 0 to 7 at the bottom; keys 3 to 8 use cells 0 to 5 (a bandage heals 35 and is used up, wearable gear is worn). Keys 3 to 8 sit far from the left hand on WASD: say if it is awkward in a fight, or if the hotbar should be its own cells.
+- [ ] Hotbar: bag cells 0 to 7 at the bottom; keys 3 to 8 use cells 0 to 5 (a bandage heals 35 and is used up, wearable gear is worn). Keys 3 to 8 sit far from the left hand on WASD: say if it is awkward in a fight, or if the hotbar should be its own cells. Play-test 2026-11-18: 1 and 2 should show as the primary and secondary weapon in a bar (M42).
 - [ ] Sorting, dropping and picking up in a camp: is the panel quick enough to use between fights, and is anything missing (a "drop one", a mark all junk, storing into chests)?
 - [ ] The item glyphs (drawn shapes, no art yet) are readable and tell weapons from armor from materials; say if you want real icons.
 
@@ -302,7 +302,7 @@ Task 1 (bot brain and skills):
 - [ ] The arrival: the ring stones (10, a gap ahead and behind) read as worked standing stones, not blobs; you cannot walk through them and the walls match what you see.
 - [ ] The torches at the arrival and around the boss ring: flame glows, light flickers, the iron looks like iron; nothing floats or sinks.
 - [ ] The boss site: barrow mound, door jambs and lintel, torch posts; the dark doorway sits in the mound's face.
-- [ ] A gate (the test gate in a debug build, or after M57): the arch looks right around the veil; you can walk through the opening and not through the pillars.
+- [ ] A gate (the test gate in a debug build, or after M60): the arch looks right around the veil; you can walk through the opening and not through the pillars.
 - [ ] An elite's chest: it opens with the lid swinging up on its back edge (about 0.4 s), the glow and beam go out; it looks right from the front and the side.
 - [ ] Colors: stone, wood and iron are readable at night and not pinkish.
 - [ ] `python tools/godot.py -- --gallery` shows every prop at three levels; say which read badly at the far level.

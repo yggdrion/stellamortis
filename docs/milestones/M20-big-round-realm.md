@@ -86,7 +86,7 @@ Reuse: `Arena._surface` (triplanar world mapping works on a sphere), `Arena._add
 Steps:
 
 1. Near chunk meshes (from `Terrain.chunk_arrays`, with normals and a slope and height blend between grass, heather and rock materials) and the far shell.
-2. Scatter from the seed, per chunk, on the client only: pines, birches, boulders, standing stones, burial mounds. CC0 models that fit the grim look (search first; record them). Scatter is visual in M20; trees and rocks get collision and health in M55, so place them through one seeded function `Scatter.points(realm, chunk)` that M55 can reuse in the sim.
+2. Scatter from the seed, per chunk, on the client only: pines, birches, boulders, standing stones, burial mounds. CC0 models that fit the grim look (search first; record them). Scatter is visual in M20; trees and rocks get collision and health in M58, so place them through one seeded function `Scatter.points(realm, chunk)` that M58 can reuse in the sim.
 3. Fog, a cold night sky, the moon; view distance and scatter density per graphics preset.
 4. Frame time on Low and High stays within the M12 numbers in `docs/PLAN.md` §3.1 (measure, report).
 
@@ -94,7 +94,7 @@ Done when: screenshots from the arrival point, a hilltop and a valley; the user'
 
 ## Out of scope
 
-Enemies on the realm (M21). Resources (M55). Water. Caves. Biome borders (one biome per realm).
+Enemies on the realm (M21). Resources (M58). Water. Caves. Biome borders (one biome per realm).
 
 ## Pitfalls
 

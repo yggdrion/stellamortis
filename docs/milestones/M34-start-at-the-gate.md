@@ -12,12 +12,12 @@ M20 (realm, `Layout.arrival_point`, `_home_gate`), M21. Comes after M33 and befo
 
 ## Design
 
-- The arrival gate (`Layout.arrival_gate(realm)`, from `realm.arrival` and the world seed as `_home_gate` does today) is the start of every world: `Layout.spawn_point(peer_id)` is the ring around it on the ground (`arrival_point`). Respawns after death go there too, until M64's bed.
+- The arrival gate (`Layout.arrival_gate(realm)`, from `realm.arrival` and the world seed as `_home_gate` does today) is the start of every world: `Layout.spawn_point(peer_id)` is the ring around it on the ground (`arrival_point`). Respawns after death go there too, until M67's bed.
 - Terrain must exist under a spawn before the body is placed: the server calls `World.chunks.ensure_around` for the spawn point at join and at respawn, as portals do.
 - The keep's training dummies move next to the arrival gate, standing on the ground (`Gravity.up_at`). They stay enemy indices 0 and 1.
 - The gate's look: standing rune stones, two torches, the dark stone arch of the current portal. Same art direction as §3.2.
 - The old hand-built realm at the origin stays until M22 removes it; a gate next to the arrival leads there ("To the old barrow") and its "Home" gates lead back to the arrival.
-- Later briefs that put things "at the keep" move them next to the arrival gate: respec (M54), workbench and smithy (M55).
+- Later briefs that put things "at the keep" move them next to the arrival gate: respec (M57), workbench and smithy (M58).
 
 ## Tasks
 
@@ -44,7 +44,7 @@ Steps: rune stones and torches around the arrival, scatter (`Scatter.points`) ke
 
 ## Out of scope
 
-Saved spawn points and beds (M64). The next realms' gates (M22 opens the first).
+Saved spawn points and beds (M67). The next realms' gates (M22 opens the first).
 
 ## Pitfalls
 

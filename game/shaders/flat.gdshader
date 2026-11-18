@@ -4,7 +4,7 @@ shader_type spatial;
 // transparency (the render mode stays opaque). Flat normals come from the mesh (unshared vertices).
 // Vertex colors are authored as sRGB (palette values), the shader converts them.
 // The hooks below stay at zero until they are used: glow for the meaning roles (a model that glows
-// needs its own copy of the material), wind (M42). Burn away (deaths) is flat_burn.gdshader: a
+// needs its own copy of the material), wind (M45). Burn away (deaths) is flat_burn.gdshader: a
 // discard in this one cost 5 to 9 % GPU time on every model (M36 task 3, docs/PLAN.md section 8).
 
 uniform float glow = 0.0;

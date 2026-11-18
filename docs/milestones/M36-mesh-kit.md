@@ -8,14 +8,14 @@ The tools every later art milestone builds with: a mesh kit that makes flat-shad
 
 ## Depends on
 
-Nothing. First of the art block (M36 to M42); `docs/STYLE.md` is its specification.
+Nothing. First of the art block (M36 to M45); `docs/STYLE.md` is its specification.
 
 ## Design
 
 - `MeshKit` (`game/scripts/client/meshgen/mesh_kit.gd`, static): builds on `SurfaceTool`. Every helper emits unshared vertices (flat normals) with a vertex color and returns arrays, so it can run on a worker thread; `MeshKit.commit(parts) -> ArrayMesh` joins them on the main thread. Helpers: `lathe(profile, sides, wobble)`, `extrude(outline, depth, bevel)`, `box(size, bevel)`, `tube(path, radii, sides)` (trunks, limbs, horns), `blob(radius, detail, noise, flatten)` (displaced icosphere: rocks, leaf clumps), `cone_stack(layers)` (conifers), `blade(points, width)` (grass, fronds, sword blades), `chip(arrays, planes)` (cut corners off), `decimate_to(arrays, triangles)` is **not** built: each generator makes its three levels of detail by calling the helpers with fewer sides and parts.
 - Color: `MeshKit.paint(arrays, color, rng)` applies the style sheet's variation (per instance, per face, darkening toward a given `down`), so no generator does color math itself.
 - `Palette` (`game/scripts/client/palette.gd`, a `Resource`; `game/data/palettes/barrowlands.tres`): one `Color` and one roughness per role (`docs/STYLE.md` §3). `Palette.of(realm_id)` loads and caches; `palette.color(role)` asserts the role exists. The sim never loads a palette.
-- `shaders/flat.gdshader`: vertex color as albedo, roughness from the color's alpha, optional emission for the meaning roles, the wind hook left as uniforms at zero (M42); burn away is `shaders/flat_burn.gdshader`, `MeshKit.burn_material()` (split off in task 3: the discard cost GPU time on every model). One shared `ShaderMaterial` (`MeshKit.material()`).
+- `shaders/flat.gdshader`: vertex color as albedo, roughness from the color's alpha, optional emission for the meaning roles, the wind hook left as uniforms at zero (M45); burn away is `shaders/flat_burn.gdshader`, `MeshKit.burn_material()` (split off in task 3: the discard cost GPU time on every model). One shared `ShaderMaterial` (`MeshKit.material()`).
 - `Budgets` (`game/scripts/client/meshgen/budgets.gd`, `game/data/style/budgets.tres`): the table of `docs/STYLE.md` §5 as data, and the level of detail distances.
 - `Generators` (`game/scripts/client/meshgen/generators.gd`): the registry. `Generators.register(id, budget_kind, callable)`; `Generators.build(id, variant_seed, palette) -> Array[ArrayMesh]` (full, half, far); `Generators.ids()`. A generator is a static function `(rng: RandomNumberGenerator, palette: Palette, lod: int) -> Array` (mesh arrays).
 - Gallery: `--gallery[=ID]` in `scripts/boot/main.gd` (added to `DIRECT`; no server, no world). `game/scripts/client/gallery.gd` stands every registered kind (or the one named) on a flat ground in rows: variants left to right, levels of detail front to back, a 1.8 m figure for scale, dusk light from `Arena`'s environment. Works with `--screenshot`, `--look`, `--graphics`.

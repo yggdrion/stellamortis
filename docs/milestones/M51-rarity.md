@@ -1,4 +1,4 @@
-# M48 Rarity and rolled attributes
+# M51 Rarity and rolled attributes
 
 Status: Planned.
 
@@ -8,7 +8,7 @@ Loot has a rarity: common, uncommon, rare, epic, legendary. Rarer items roll mor
 
 ## Depends on
 
-M23 (items, loot, saves), M43 (attributes name damage types). Before M54 (perks and sets read the same attributes).
+M23 (items, loot, saves), M46 (attributes name damage types). Before M57 (perks and sets read the same attributes).
 
 ## Design
 
@@ -22,14 +22,14 @@ M23 (items, loot, saves), M43 (attributes name damage types). Before M54 (perks 
 ## Tasks
 
 1. **Instances and rolls (Opus).** `sim/inventory.gd`, `sim/items.gd`, `sim/item_def.gd`, new `sim/attribute_def.gd`, `net/looting.gd`, `sim/save_file.gd` users, `net/net.gd` RPCs; `tests/inventory_test.gd`, `tests/save_test.gd`, new `tests/rarity_test.gd`; `Net.PROTOCOL_VERSION`.
-2. **Effects of attributes (Opus).** One place sums worn attributes into what combat reads (becomes M54's `Stats` block); tests.
+2. **Effects of attributes (Opus).** One place sums worn attributes into what combat reads (becomes M57's `Stats` block); tests.
 3. **Content and views (Sonnet).** Attribute data, loot weights, legendaries for the Barrowlands, drop beam, tooltip, sounds; suite expectations; play-test items.
 
 File level detail is added when the milestone before it lands (`docs/milestones/README.md`).
 
 ## Out of scope
 
-Rerolling and upgrading (M56). Trading between players beyond dropping. Set bonuses (M54).
+Rerolling and upgrading (M59). Trading between players beyond dropping. Set bonuses (M57).
 
 ## Pitfalls
 

@@ -1,4 +1,4 @@
-# M44 Weapon types
+# M47 Weapon types
 
 Status: Planned.
 
@@ -8,14 +8,15 @@ Weapons differ by how they fight, not only by numbers: sword, axe, mace, spear, 
 
 ## Depends on
 
-M43 (types give each weapon its damage). M39 (gear generators draw the new weapons). M24.
+M46 (types give each weapon its damage). M39 (gear generators draw the new weapons). M24.
 
 ## Design
 
 - `WeaponType` data (`data/weapons/<type>.tres`): the light chain (a list of `AttackDef` ids, linked by `next` as enemy combos already are), the heavy, block strength, parry window, move speed while swinging, the UAL clips.
-  - Sword: balanced three-hit chain. Axe: two wide slow hits, high damage. Mace: blunt, short reach, high stagger. Spear: long thrusts in a narrow arc, keeps enemies away. Greatsword: two-handed, slow sweeps, no shield. Daggers: fast four-hit chain, short reach, bonus from behind (M46). Bow: faster than the crossbow, weaker, arcs more.
+  - Sword: balanced three-hit chain. Axe: two wide slow hits, high damage. Mace: blunt, short reach, high stagger. Spear: long thrusts in a narrow arc, keeps enemies away. Greatsword: two-handed, slow sweeps, no shield. Daggers: fast four-hit chain, short reach, bonus from behind (M49). Bow: faster than the crossbow, weaker, arcs more.
 - `SimPlayer` looks the chain up by the worn weapon's type instead of `Combat.PLAYER_ATTACKS`; `SimPlayer.weapon` (sword or crossbow today) becomes "melee or ranged slot", the type comes from the item id that is already rolled back.
 - Two-handed weapons empty the off hand; the inventory shows it.
+- Two weapon sets (play-test 2026-11-18): set 1 is main and off hand, set 2 takes any weapon (two-handed, bow, crossbow) instead of only the crossbow; keys 1 and 2 switch; M42's weapon bar shows both. `SimPlayer.ranged` becomes the second set's item.
 - Enemies can use the same types (`EnemyDef` names a weapon type or keeps its own attacks).
 
 ## Tasks
@@ -28,7 +29,7 @@ File level detail is added when the milestone before it lands (`docs/milestones/
 
 ## Out of scope
 
-Special moves and weapon skills (M45). Magic staves. Dual wielding two different weapons.
+Special moves and weapon skills (M48). Magic staves. Dual wielding two different weapons.
 
 ## Pitfalls
 

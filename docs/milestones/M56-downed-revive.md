@@ -1,4 +1,4 @@
-# M53 Downed and revive
+# M56 Downed and revive
 
 Status: Planned.
 
@@ -8,7 +8,7 @@ In a party a fallen player is not dead at once: they go down, can crawl, and an 
 
 ## Depends on
 
-M24 (bots measure what it does to boss difficulty). After M49 (flask) so revive health and flask rules fit.
+M24 (bots measure what it does to boss difficulty). After M52 (flask) so revive health and flask rules fit.
 
 ## Design
 

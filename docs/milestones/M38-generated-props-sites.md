@@ -37,7 +37,7 @@ Task 1 ids, files, budget rows (`data/style/budgets.tres`, no new rows) and size
 | `torch` | `torch.gd` | `prop_small` | 0.3 x 1.1 x 0.5 (plate at the origin, reaches out along +Z, like `Torch_Metal`) | `Arena._torch`; the flame is `torch_flame` (a second small kind, `ember` role, 0.14 x 0.3, drawn with its own copy of `MeshKit.material()` and `glow` set) |
 | `chest`, `chest_lid` | `chest.gd` | `prop_small` | 1.0 x 0.55 x 0.65 (body), lid the same width, hinge on its back lower edge at the origin | `ObjectsView.CHEST_MODEL` (`ChestLook`, scale `CHEST_SCALE` 1.25 goes into the nominal) |
 | `barrel`, `crate` | `barrel.gd`, `crate.gd` | `prop_small` | 0.7 x 0.9 x 0.7 and 0.8 x 0.8 x 0.8 | the site and arrival dressing of task 2 |
-| `anvil`, `cauldron`, `weapon_stand`, `brazier` | one file each | `prop_small` (`brazier` `prop_large`) | 0.5 x 0.8 x 0.9, 1.0 x 0.9 x 1.0, 1.2 x 1.4 x 0.5, 0.9 x 1.1 x 0.9 | M49 and M55 stations later; placed by task 2 where the site needs them |
+| `anvil`, `cauldron`, `weapon_stand`, `brazier` | one file each | `prop_small` (`brazier` `prop_large`) | 0.5 x 0.8 x 0.9, 1.0 x 0.9 x 1.0, 1.2 x 1.4 x 0.5, 0.9 x 1.1 x 0.9 | M52 and M58 stations later; placed by task 2 where the site needs them |
 | `banner` | `banner.gd` | `prop_small` | 0.9 x 2.2 x 0.1 (cloth as a bent sheet, hung from a bar) | heraldry from `cloth` and `cloth_dark` (no new palette roles: saturated roles are `ember`, `gate`, `gold` only) |
 | `grave_slab`, `grave_marker` | `grave.gd` | `prop_small` | 1.0 x 0.3 x 2.0 and 0.6 x 1.2 x 0.15 | `Graves` and the world objects of M23 (`ObjectsView`) |
 
@@ -49,7 +49,7 @@ Tasks 2 and 3 hook in at these places of `scripts/sim/arena.gd` (line numbers of
 
 ## Out of scope
 
-Building pieces for players (M64 builds them with the kit). Weapons and worn gear (M39). Crafting stations beyond the anvil and cauldron already placed (M55).
+Building pieces for players (M67 builds them with the kit). Weapons and worn gear (M39). Crafting stations beyond the anvil and cauldron already placed (M58).
 
 ## Pitfalls
 

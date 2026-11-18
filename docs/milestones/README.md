@@ -59,7 +59,7 @@ Out of scope    what not to build here
 Pitfalls        what has gone wrong before, or will
 ```
 
-M19 to M22 are written to file and function level; so are M24, M36 and M37. The other planned briefs (M38 to M69) fix goal, tasks, interfaces and done-when; their file level detail is added when the milestone before them lands, because it depends on that code. Whoever finishes a milestone details the next brief as its last task.
+M19 to M22 are written to file and function level; so are M24, M36 and M37. The other planned briefs (M38 to M72) fix goal, tasks, interfaces and done-when; their file level detail is added when the milestone before them lands, because it depends on that code. Whoever finishes a milestone details the next brief as its last task.
 
 ## Order
 
@@ -67,12 +67,12 @@ M15 is done. M16 (frame pacing) is required and independent: do it any time. M17
 
 Numbers follow the build order, except that built milestones keep their numbers. Built: M0 to M16, M19 to M24, M33 to M37. M25 to M32 are unused (the survival milestones first had them and were renumbered on 2026-11-17; `docs/PLAN.md` §6 has the mapping).
 
-Next, in order: M38 to M42 the generated look and polish (`docs/STYLE.md`); M43 to M53 combat depth, loot and party tools; M54 to M69 the survival world with its additions.
+Next, in order: M38 to M45 the generated look and polish (`docs/STYLE.md`); M46 to M56 combat depth, loot and party tools; M57 to M72 the survival world with its additions.
 
-M24 comes first and needs nothing. M36 and M37 are built. M38 and M39 need M36 and are independent of each other. M40's spike (task 1) can start after M36, the rest of M40 after M39. M41 needs M37; M42 needs M37 and M41.
+M24 comes first and needs nothing. M36 and M37 are built. M38 and M39 need M36 and are independent of each other. M40's spike (task 1) can start after M36, the rest of M40 after M39. M44 needs M37; M45 needs M37 and M44.
 
-M43 (damage types) opens the combat block and needs M23. M44 needs M43 and M39. M45 needs M44. M46 needs M44. M47 needs M43. M48 needs M23 and M43. M49 needs M38. M50 needs M43, M47, M48 and M49. M51 and M52 are independent of combat and can be built any time after M24; M52 needs M51. M53 needs M49. After a change to combat, enemies or netcode the M24 suite is run and its expectations are updated.
+M46 (damage types) opens the combat block and needs M23. M47 needs M46 and M39. M48 needs M47. M49 needs M47. M50 needs M46. M51 needs M23 and M46. M52 needs M38. M53 needs M46, M50, M51 and M52. M54 and M55 are independent of combat and can be built any time after M24; M55 needs M54. M56 needs M52. After a change to combat, enemies or netcode the M24 suite is run and its expectations are updated.
 
-M54 (levels, perks, sets) needs M23's items and M48's attributes. M55 needs M23 and M54. M56 needs M55 and M48. M57 to M59 (the realms) each need M55 and the realm before them; M57 needs M42's water. M60 needs M38, M48 and M49. M61 needs M43, M47 and M48. M62 needs M41 and M61. M63 needs M49. M64 needs M55. M65 needs M64 and M54. M66 needs M64 and M54; M67 needs M66; M68 needs M66 (M67 only for troughs). M69 needs M64, M61 and M62. M55 to M67 build their models with the kit of M36 and by the style sheet.
+M57 (levels, perks, sets) needs M23's items and M51's attributes. M58 needs M23 and M57. M59 needs M58 and M51. M60 to M62 (the realms) each need M58 and the realm before them; M60 needs M45's water. M63 needs M38, M51 and M52. M64 needs M46, M50 and M51. M65 needs M44 and M64. M66 needs M52. M67 needs M58. M68 needs M67 and M57. M69 needs M67 and M57; M70 needs M69; M71 needs M69 (M70 only for troughs). M72 needs M67, M64 and M65. M58 to M70 build their models with the kit of M36 and by the style sheet.
 
 Built chain, for the record: M19 (hit feel) was independent beside M20; M20, M21, M22 were a chain; M23 needed M22's world flags and M21's kinds.

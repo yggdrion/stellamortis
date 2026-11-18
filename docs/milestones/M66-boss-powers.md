@@ -1,4 +1,4 @@
-# M63 Boss powers
+# M66 Boss powers
 
 Status: Planned.
 
@@ -8,7 +8,7 @@ A fallen boss leaves a trophy. Set on the stones at the arrival, it offers its p
 
 ## Depends on
 
-M22 (bosses, world flags), M49 (shrines, where a power is chosen). Each realm milestone adds its boss's power.
+M22 (bosses, world flags), M52 (shrines, where a power is chosen). Each realm milestone adds its boss's power.
 
 ## Design
 
@@ -27,7 +27,7 @@ File level detail is added when the milestone before it lands (`docs/milestones/
 
 ## Out of scope
 
-Passive boss perks (the level cap rise is M54's). Powers shared with the party.
+Passive boss perks (the level cap rise is M57's). Powers shared with the party.
 
 ## Pitfalls
 

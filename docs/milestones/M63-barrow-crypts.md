@@ -1,4 +1,4 @@
-# M60 Barrow crypts
+# M63 Barrow crypts
 
 Status: Planned.
 
@@ -8,7 +8,7 @@ Some burial mounds have a door. Behind it lies a small generated crypt: a few da
 
 ## Depends on
 
-M38 (generated props and built stone), M48 (loot worth the trip), M49 (shrine upgrades as rewards). Each realm milestone can add its own kind of dungeon the same way.
+M38 (generated props and built stone), M51 (loot worth the trip), M52 (shrine upgrades as rewards). Each realm milestone can add its own kind of dungeon the same way.
 
 ## Design
 

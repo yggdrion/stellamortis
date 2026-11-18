@@ -1,4 +1,4 @@
-# M69 Base raids
+# M72 Base raids
 
 Status: Planned.
 
@@ -8,7 +8,7 @@ What the players build draws attention. After a boss falls, the dead of its real
 
 ## Depends on
 
-M64 (pieces with health), M61 (elites lead waves), M62 (raids prefer the night), M68 only for its place at the end.
+M67 (pieces with health), M64 (elites lead waves), M65 (raids prefer the night), M71 only for its place at the end.
 
 ## Design
 

@@ -1,4 +1,4 @@
-# M45 Moves and weapon skills
+# M48 Moves and weapon skills
 
 Status: Planned.
 
@@ -8,7 +8,7 @@ More to do with a weapon in hand: a jump attack, a charged heavy, a guard counte
 
 ## Depends on
 
-M44 (weapon types). M24.
+M47 (weapon types). M24.
 
 ## Design
 

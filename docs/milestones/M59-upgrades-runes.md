@@ -1,4 +1,4 @@
-# M56 Upgrades and runes
+# M59 Upgrades and runes
 
 Status: Planned.
 
@@ -8,7 +8,7 @@ Gear grows with the player: the smithy raises an item's level with materials, an
 
 ## Depends on
 
-M55 (materials, stations, recipes), M48 (item instances and attributes).
+M58 (materials, stations, recipes), M51 (item instances and attributes).
 
 ## Design
 

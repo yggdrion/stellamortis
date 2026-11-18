@@ -1,4 +1,4 @@
-# M59 Skyshards
+# M62 Skyshards
 
 Status: planned.
 
@@ -8,7 +8,7 @@ The fourth realm, behind the forge king's gate: a broken land hanging in the nig
 
 ## Depends on
 
-M58. File level detail is added by M58's last task.
+M61. File level detail is added by M61's last task.
 
 ## Design
 
@@ -25,7 +25,7 @@ M58. File level detail is added by M58's last task.
 2. **Look (Sonnet).** Shard meshes and materials, launch stones, sky.
 3. **Enemies (Opus for behaviors, Sonnet for defs and looks).**
 4. **Resources and tier 4 (Sonnet).**
-5. **The boss (Opus).** Then detail M64's brief and close the milestone.
+5. **The boss (Opus).** Then detail M67's brief and close the milestone.
 
 ## Out of scope
 

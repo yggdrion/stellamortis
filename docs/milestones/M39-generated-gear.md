@@ -32,7 +32,7 @@ File level detail is added when M36 lands (and M38, if it comes first).
 
 ## Out of scope
 
-Bodies, heads and hair (M40). New items, tiers or sets (M54, M55 add data; their gear then needs only parameters). Dropped items' world meshes beyond reusing the same generators.
+Bodies, heads and hair (M40). New items, tiers or sets (M57, M58 add data; their gear then needs only parameters). Dropped items' world meshes beyond reusing the same generators.
 
 ## Pitfalls
 

@@ -1,4 +1,4 @@
-# M42 Living world
+# M45 Living world
 
 Status: Planned.
 
@@ -8,14 +8,14 @@ The world moves and breathes: trees and grass sway in the wind, water lies in th
 
 ## Depends on
 
-M37 (scatter and ground cover), M41 (wind strength and direction, sky and light). M57 (Myrkfen) needs this milestone's water.
+M37 (scatter and ground cover), M44 (wind strength and direction, sky and light). M60 (Myrkfen) needs this milestone's water.
 
 ## Design
 
 - **Wind sway** in `shaders/flat.gdshader`'s vertex function (the hook M36 left): displacement grows with height above the instance's base and with a per-vertex sway weight stored by the generators (trunk 0, limbs low, crown and blades high), phased by world position so a gust travels. Strength and direction come from `Weather` as global shader uniforms. No CPU work per instance.
 - **Grass** bends away from players and enemies near the camera: positions of the nearest few bodies as a small uniform array.
 - **Water** (`shaders/water.gdshader`, `scripts/client/water_view.gd`): flat-shaded, slowly moving facets, dark with a pale rim where it meets the ground (depth fade), reflections from the sky color only. Where water stands is a pure function of the terrain (below a realm's `water_level`, data in `RealmDef`), so the sim can use it later; in this milestone it is look only and the Barrowlands gets a few tarns and bog pools.
-- **Ambient particles** per place and weather, pooled like `HitEffects`: embers at torches and the boss site, motes in old wood, low mist in hollows at dawn, leaves in a gale.
+- **Ambient particles** per place and weather, pooled like `HitEffects`: embers at torches and the boss site, motes in old wood, low mist in hollows at dawn, leaves in a gale. The play-test of 2026-11-18 asked for basic particles: build these first in task 3.
 - **Light pass:** rim light from the sky on faceted shapes, torch flicker and reach, shadow softness and SSAO strength chosen for flat shading (SSAO on facets can look dirty), fog color from the palette per phase, the glow threshold so only meaning colors bloom. Per `Graphics` preset; measured on the 1050 Ti.
 - **Footing:** dust or splash puffs under feet by ground role, and footstep sounds by ground role (`Sounds`), now that the ground knows its role.
 
@@ -25,11 +25,11 @@ M37 (scatter and ground cover), M41 (wind strength and direction, sky and light)
 2. **Water (Opus).** `RealmDef.water_level`, the pure "is water here" function with a test, the water mesh per chunk on workers, the shader. Opus because it touches terrain chunks and a function the sim will rely on.
 3. **Particles, light, footing, close (Sonnet).** The pools, the light pass per preset with before and after screenshots and frame times, footing effects, play-test items, milestone closed.
 
-File level detail is added when M41 lands.
+File level detail is added when M44 lands.
 
 ## Out of scope
 
-Swimming, wading speed and anything else water does to the sim (M57). Fire spreading, destructible scatter. Volumetric clouds. Footprints.
+Swimming, wading speed and anything else water does to the sim (M60). Fire spreading, destructible scatter. Volumetric clouds. Footprints.
 
 ## Pitfalls
 

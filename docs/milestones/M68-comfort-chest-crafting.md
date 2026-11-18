@@ -1,4 +1,4 @@
-# M65 Comfort and chest crafting
+# M68 Comfort and chest crafting
 
 Status: Planned.
 
@@ -8,12 +8,12 @@ A home is worth furnishing: resting among fire, bed and furniture gives a rested
 
 ## Depends on
 
-M64 (base building, pieces and stations), M54 (`Stats` for the buff).
+M67 (base building, pieces and stations), M57 (`Stats` for the buff).
 
 ## Design
 
 - Comfort: each furniture piece has a comfort kind and value; the best of each kind within range of a bed or fire counts. Sitting or sleeping there for a short time gives "rested": better stamina and health regain for a time that grows with comfort. Shown as a buff with a timer; saved with the character.
-- Sleeping through the night when everyone in the world lies in a bed (skips world time to dawn; M62's night can be slept away only at home).
+- Sleeping through the night when everyone in the world lies in a bed (skips world time to dawn; M65's night can be slept away only at home).
 - Chest crafting: a station sees the chests within a radius of itself; recipes count and take from them and the bag. Chests can be named and given an icon.
 - Quick stash: one key near chests moves every item whose kind is already in a chest into it; a lock mark keeps chosen bag cells out. Sorting buttons for chests like the bag's.
 
@@ -27,7 +27,7 @@ File level detail is added when the milestone before it lands (`docs/milestones/
 
 ## Out of scope
 
-Automation between chests (M68's hoppers and chutes). Decoration with no comfort value beyond what M64 has.
+Automation between chests (M71's hoppers and chutes). Decoration with no comfort value beyond what M67 has.
 
 ## Pitfalls
 

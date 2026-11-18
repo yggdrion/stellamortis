@@ -1,4 +1,4 @@
-# M52 Text chat
+# M55 Text chat
 
 Status: Planned.
 
@@ -8,7 +8,7 @@ A chat box for the party, with emoji. Enter opens it, messages fade after a whil
 
 ## Depends on
 
-M51 (shares the party message RPC path). Independent of combat.
+M54 (shares the party message RPC path). Independent of combat.
 
 ## Design
 

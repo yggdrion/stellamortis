@@ -1,4 +1,4 @@
-# M68 Mills and station queues
+# M71 Mills and station queues
 
 Status: planned.
 
@@ -8,17 +8,17 @@ A base works while its people are away. Smelters, kilns, mills and ovens take fu
 
 ## Depends on
 
-M64 (pieces with snap points), M66 (world time, the first queued stations), M55 (recipes, materials). M67 only for filling troughs. File level detail is added by M67's last task.
+M67 (pieces with snap points), M69 (world time, the first queued stations), M58 (recipes, materials). M70 only for filling troughs. File level detail is added by M70's last task.
 
 ## Design
 
 - No conveyors, pipes or electricity: everything is wood, stone, water, wind and fire, in keeping with §3.2.
-- Station queues: a processing station is a piece with an input slot (a queue of up to N items), a fuel slot, an output slot and a recipe it runs. `ProcessDef` (resource: station, input, output, fuel per item, world time per item, power needed). The station's state is (queue, fuel, output, `started_at`); its progress is computed from world time when anyone looks at it or its chunk loads, so stations far away cost nothing and catch up exactly. Stations: charcoal kiln (logs to charcoal), smelter (ore to bars), millstone (barley to flour), sawbench (logs to planks), oven (M66's meals, longer queue), tannery (hides to leather).
-- Power: water wheels (only on running water, M20 terrain with water or Myrkfen's channels; strength from the flow) and windmills (anywhere; strength from the realm's wind, data per realm: the Skyshards strongest, Myrkfen weakest). Wooden shafts and gears are M64 pieces with power snap points. The server keeps a power graph per connected network, rebuilt only when a piece in it changes: sources add power, machines draw it; a network short of power runs every machine on it slower in proportion.
+- Station queues: a processing station is a piece with an input slot (a queue of up to N items), a fuel slot, an output slot and a recipe it runs. `ProcessDef` (resource: station, input, output, fuel per item, world time per item, power needed). The station's state is (queue, fuel, output, `started_at`); its progress is computed from world time when anyone looks at it or its chunk loads, so stations far away cost nothing and catch up exactly. Stations: charcoal kiln (logs to charcoal), smelter (ore to bars), millstone (barley to flour), sawbench (logs to planks), oven (M69's meals, longer queue), tannery (hides to leather).
+- Power: water wheels (only on running water, M20 terrain with water or Myrkfen's channels; strength from the flow) and windmills (anywhere; strength from the realm's wind, data per realm: the Skyshards strongest, Myrkfen weakest). Wooden shafts and gears are M67 pieces with power snap points. The server keeps a power graph per connected network, rebuilt only when a piece in it changes: sources add power, machines draw it; a network short of power runs every machine on it slower in proportion.
 - Powered machines: the millstone, the sawbench and the bellows (a smelter next to a powered bellows runs faster and burns less fuel). Unpowered, the millstone and sawbench still work by hand (a player using them), slowly.
 - Hoppers: a hopper piece under a chest feeds the station below it; a chute under a station's output drops into a chest below. That is the only item transport: by gravity, straight down, so the local up of the realm matters (on the Skyshards a chute pours sideways if a rock's gravity says so).
-- Troughs from M67 fill from a hopper too, so animals feed themselves from a chest.
-- Every piece and its state is saved with the world. The budget of M64 counts these pieces too.
+- Troughs from M70 fill from a hopper too, so animals feed themselves from a chest.
+- Every piece and its state is saved with the world. The budget of M67 counts these pieces too.
 
 ## Tasks
 

@@ -1,4 +1,4 @@
-# M57 Myrkfen
+# M60 Myrkfen
 
 Status: planned.
 
@@ -8,13 +8,13 @@ The second realm, behind the Warden's gate: a drowned moor under low gravity. Lo
 
 ## Depends on
 
-M55 (gear tier 1, recipes, resource nodes). File level detail is added by M55's last task.
+M58 (gear tier 1, recipes, resource nodes). File level detail is added by M58's last task.
 
 ## Design
 
 - `RealmDef` `myrkfen`: gravity about 3.5 m/s² (jumps carry 3 times as far, bolts fly flat), its own seed salt, biome and arrival. Gate open while `warden_fallen`.
 - Biome: low ground under shallow black water (wading slows; deep pools are not swimmable yet: they are avoided by terrain shaping), reed, dead birches, hanging fog, pale lights. Water is a view plus a slow zone in the sim (`Terrain.height` below a water level).
-- Enemies: the leaping drowned (melee, long low-gravity leaps: uses M22's leap), the bog wight (ranged, lobbed spit that leaves a slowing pool for a few seconds), the wisp (floats toward a player and bursts; kill it at range or roll away). Camps mix them. The wisp is particles and a light around a small generated core (`docs/STYLE.md`); the drowned and the wight are M40 bodies with their own parameters and gear. The realm gets its own palette (`data/palettes/myrkfen.tres`), tree and cover generators (M37's kit) and M42's water.
+- Enemies: the leaping drowned (melee, long low-gravity leaps: uses M22's leap), the bog wight (ranged, lobbed spit that leaves a slowing pool for a few seconds), the wisp (floats toward a player and bursts; kill it at range or roll away). Camps mix them. The wisp is particles and a light around a small generated core (`docs/STYLE.md`); the drowned and the wight are M40 bodies with their own parameters and gear. The realm gets its own palette (`data/palettes/myrkfen.tres`), tree and cover generators (M37's kit) and M45's water.
 - Resources: resin (dead trees), bog iron (nodes in the water). Tier 2 recipes, two sets, perk tree tier 2 (unlocks with the level cap).
 - Boss: the drowned jotun, a giant (Warden scale or larger) at a boss site on an island. Hurls rocks on long arcs that leave no safe standing still, a wading sweep, and in phase 2 a wave that must be jumped (low gravity makes it a long jump). Sets `jotun_fallen`.
 
@@ -23,7 +23,7 @@ M55 (gear tier 1, recipes, resource nodes). File level detail is added by M55's 
 1. **Realm and biome (Sonnet).** `RealmDef`, terrain shaping parameters for the biome, water view and wading zone (the zone is sim: Opus reviews it), scatter, fog and light, ambience. Screenshots.
 2. **Enemy kinds (Opus for behaviors, Sonnet for defs and looks).** Lobbed shots that leave a ground area (enemy bolt slots plus a rolled back area slot), the wisp's burst, defs, attacks, looks, sounds, camp recipes. Tests for each behavior.
 3. **Resources and tier 2 (Sonnet).** Nodes, items, recipes, two sets with set perks, perk tree tier 2.
-4. **The drowned jotun (Opus).** Boss behavior, site, health scaling, tests like `encounter_test.gd` (each move, phase 2, the flag, the gate). Then detail M58's brief and close the milestone.
+4. **The drowned jotun (Opus).** Boss behavior, site, health scaling, tests like `encounter_test.gd` (each move, phase 2, the flag, the gate). Then detail M61's brief and close the milestone.
 
 ## Out of scope
 

@@ -1,4 +1,4 @@
-# M50 Throwables, bolt types and trinkets
+# M53 Throwables, bolt types and trinkets
 
 Status: Planned.
 
@@ -8,11 +8,11 @@ More tools on the belt: fire pots and frost flasks to throw, special bolts and a
 
 ## Depends on
 
-M43, M47 (types and statuses to apply and cure), M48 (trinkets use attributes), M49 (the belt beside the flask).
+M46, M50 (types and statuses to apply and cure), M51 (trinkets use attributes), M52 (the belt beside the flask).
 
 ## Design
 
-- Throwables: a hotbar item thrown along the aim arc with local gravity (the bolt slots' code path, a second small projectile kind), bursting in an area on impact: fire pot (burn, lingering flames for a few seconds as a server-side area), frost flask, poison jar, a noise stone that draws unaware enemies (M46).
+- Throwables: a hotbar item thrown along the aim arc with local gravity (the bolt slots' code path, a second small projectile kind), bursting in an area on impact: fire pot (burn, lingering flames for a few seconds as a server-side area), frost flask, poison jar, a noise stone that draws unaware enemies (M49).
 - Ammunition: bolts and arrows are items; plain ones are free, special ones (fire, frost, barbed for bleed, heavy for stagger) are crafted or found and chosen on the hotbar.
 - Cures: bandage (bleed), salve (burn), warm draught (frost), antidote (poison): a short use action.
 - Trinkets: two gear slots; each trinket is one strong passive (more stamina, a second wind once per rest, faster flask, damage after a parry). Found in chests and crypts, a few crafted.
@@ -27,7 +27,7 @@ File level detail is added when the milestone before it lands (`docs/milestones/
 
 ## Out of scope
 
-Traps. Bombs that break terrain or buildings. Potions that buff for minutes (meals are M66).
+Traps. Bombs that break terrain or buildings. Potions that buff for minutes (meals are M69).
 
 ## Pitfalls
 

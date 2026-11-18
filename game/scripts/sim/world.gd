@@ -170,8 +170,8 @@ func add_spawner() -> void:
 
 
 ## Server only: spawns a player on every peer.
-func spawn_player(peer_id: int, player_name: String, at: Vector3) -> void:
-	_spawner.spawn([peer_id, player_name, at])
+func spawn_player(peer_id: int, player_name: String, at: Vector3, body := -1) -> void:
+	_spawner.spawn([peer_id, player_name, at, body])
 
 
 func player(peer_id: int) -> SimPlayer:
@@ -183,6 +183,7 @@ func _spawn_player(data: Array) -> Node:
 	var player_name: String = data[1]
 	var body := SimPlayer.new()
 	body.player_name = player_name
+	body.body = data[3]
 	body.networked(peer_id, visual)
 	body.place(data[2], Vector3.BACK)
 	if visual:

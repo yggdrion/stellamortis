@@ -81,6 +81,8 @@ var enemy: Enemy
 ## The kind the model was built for, -1 before the first build.
 var _kind := -1
 var _model: CharacterModel
+## A training dummy is a static mesh, not a posed figure: set instead of _model for the dummy look.
+var _dummy: DummyModel
 var _arc: MeshInstance3D
 var _arc_material: StandardMaterial3D
 ## The bright edge around the area.
@@ -128,6 +130,10 @@ func _rebuild() -> void:
 		remove_child(_model)
 		_model.queue_free()
 		_model = null
+	if _dummy:
+		remove_child(_dummy)
+		_dummy.queue_free()
+		_dummy = null
 	if _well:
 		remove_child(_well)
 		_well.queue_free()
@@ -142,8 +148,12 @@ func _rebuild() -> void:
 	_hold = 0.0
 	if enemy.def.look == &"free":
 		return
-	_model = _make_model()
-	add_child(_model)
+	if enemy.def.look == &"dummy":
+		_dummy = DummyModel.new(enemy.index)
+		add_child(_dummy)
+	else:
+		_model = _make_model()
+		add_child(_model)
 	_bar.position.y = enemy.height + 0.5
 	if _boss():
 		_add_well()
@@ -359,10 +369,13 @@ func _process(delta: float) -> void:
 	if enemy.kind != _kind:
 		_rebuild()
 	visible = (
-		_model != null
+		(_model != null or _dummy != null)
 		and enemy.action != Enemy.Action.HIDDEN
 		and Arena.shows(enemy.global_position)
 	)
+	if _dummy != null:
+		_process_dummy()
+		return
 	if _model == null:
 		return
 	if _last_health >= 0.0 and enemy.health < _last_health:
@@ -393,6 +406,38 @@ func _process(delta: float) -> void:
 	_sounds()
 	if _well:
 		_show_well()
+
+
+## The dummy's frame: hit tint, sway, damage numbers and sounds as for a figure, no hit stop, no
+## clips; it tips over when it is downed and disappears once the body would burn.
+func _process_dummy() -> void:
+	var lost := _last_health - enemy.health
+	if _last_health >= 0.0 and lost > 0.0:
+		_hit_sounds(lost)
+		if enemy.alive():
+			_dummy.flash(Color(1, 1, 1, clampf(0.5 + HitEffects.weight(lost), 0.5, 1.0)), 0.12)
+		_pop_number(lost, enemy.parried and enemy.alive())
+		var away := (-enemy.facing).slide(Vector3.UP).normalized()
+		_dummy.sway(0.03 + 0.1 * clampf(HitEffects.weight(lost), 0.0, 1.0), away)
+		if visible:
+			HitEffects.burst(
+				self,
+				enemy.global_position + enemy.up * enemy.height * 0.6,
+				-enemy.facing + enemy.up * 0.4,
+				HitEffects.Kind.BLOOD
+			)
+	_last_health = enemy.health
+	if enemy.parried and not _was_parried:
+		_dummy.flash(Color(1, 0.9, 0.2, 0.7), 0.3)
+		_pop_text("PARRY", Color(1, 0.9, 0.3))
+		Sounds.play(self, &"parry")
+	_was_parried = enemy.parried
+	_bar_material.set_shader_parameter("fill", enemy.health / enemy.max_health)
+	_bar.visible = enemy.health < enemy.max_health and enemy.alive()
+	_pose()
+	var seconds := (enemy.action_time + NetworkTime.tick_factor) / Combat.TICKRATE
+	_dummy.visible = enemy.action != Enemy.Action.DOWN or seconds < LINGER
+	_sounds()
 
 
 ## A hit seen in the health: hold the pose a moment (view only, never sim time), punch the model
@@ -520,6 +565,9 @@ func _pose() -> void:
 			shape.global_position = enemy.leap_to + enemy.up * 0.1
 		else:
 			shape.position = Vector3(0, 0.15 if shape == _arc else 0.16, 0)
+	if _dummy != null:
+		_pose_dummy(def, time, windup)
+		return
 	match enemy.action:
 		Enemy.Action.WINDUP:
 			var progress := time / windup
@@ -560,6 +608,35 @@ func _pose() -> void:
 			_model.play_timed(_clips["down"], time / rise, enemy.def.rise_time, true)
 		_:
 			_idle_or_walk()
+
+
+## The dummy's pose: the same telegraph fan as a figure, its own tint, and the fall and rise.
+func _pose_dummy(def: AttackDef, time: float, windup: float) -> void:
+	var down := false
+	match enemy.action:
+		Enemy.Action.WINDUP:
+			var progress := time / windup
+			_dummy.glow(Color(TELEGRAPH, 0.1 + 0.3 * progress))
+			if def.melee():
+				_arc_material.albedo_color = Color(TELEGRAPH, 0.2 + 0.4 * progress)
+				_edge_material.albedo_color = Color(
+					TELEGRAPH.lightened(0.3), 0.75 + 0.25 * progress
+				)
+		Enemy.Action.STRIKE:
+			_dummy.glow(Color(1, 0.2, 0.1, 0.45))
+			if def.melee():
+				_arc_material.albedo_color = Color(1, 0.2, 0.1, 0.65)
+				_edge_material.albedo_color = Color(1, 0.35, 0.2, 1.0)
+		Enemy.Action.DOWN:
+			down = true
+			_dummy.fall(time / Combat.ticks(1.0))
+		Enemy.Action.RISE:
+			down = true
+			_dummy.fall(1.0 - time / Combat.ticks(enemy.def.rise_time))
+		_:
+			_dummy.glow(Color(0, 0, 0, 0))
+	if not down and _dummy.fallen:
+		_dummy.stand()
 
 
 ## The telegraph lies along the ground under the enemy, in its own frame: on a slope of a round

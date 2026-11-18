@@ -223,6 +223,7 @@ func test_prop_sizes() -> void:
 		"weapon_stand": WeaponStandKind.NOMINAL,
 		"brazier": BrazierKind.NOMINAL,
 		"banner": BannerKind.NOMINAL,
+		"training_dummy": TrainingDummyKind.NOMINAL,
 	}
 	for id: String in sized:
 		var nominal: Vector3 = sized[id]

@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_def")
-look = &"squire"
+look = &"dummy"
 behavior = 1
 health = 400.0
 turn_rate = 6.0

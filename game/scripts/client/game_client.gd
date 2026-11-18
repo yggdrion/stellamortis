@@ -262,7 +262,8 @@ func _say_hello() -> void:
 		Settings.junk = character["junk"]
 		if character["id"] != "":
 			Settings.player_id = character["id"]
-	net.hello.rpc_id(1, Net.PROTOCOL_VERSION, player_name, character, Settings.player_id)
+	var body := -1 if bot else Settings.body
+	net.hello.rpc_id(1, Net.PROTOCOL_VERSION, player_name, character, Settings.player_id, body)
 
 
 ## Writes the character file from the inventory the server last confirmed (and the junk list).

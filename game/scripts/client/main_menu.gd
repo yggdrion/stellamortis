@@ -42,6 +42,7 @@ func _ready() -> void:
 	_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_name.text_changed.connect(_on_name)
 	_main.add_child(Menus.row("Name", _name))
+	_main.add_child(BodyPicker.new())
 
 	_main.add_child(Menus.button("Play", _show_worlds.bind(true)))
 	_code = LineEdit.new()

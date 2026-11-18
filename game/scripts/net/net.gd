@@ -6,7 +6,12 @@ extends Node
 
 # Server side.
 signal hello_received(
-	peer_id: int, version: int, player_name: String, character: Dictionary, player_id: String
+	peer_id: int,
+	version: int,
+	player_name: String,
+	character: Dictionary,
+	player_id: String,
+	body: int
 )
 signal pinged(peer_id: int, sent_ms: int)
 signal world_ready_received(peer_id: int)
@@ -36,15 +41,18 @@ enum Op { MOVE, SPLIT, EQUIP, UNEQUIP, DROP, SORT, STORE_MATCHING, USE }
 
 ## Bump on any change to the RPCs here or to what netfox synchronizes (SimPlayer.STATE,
 ## PlayerControls) or to what both sides simulate (Layout, Gravity, Tuning).
-const PROTOCOL_VERSION := 33
+const PROTOCOL_VERSION := 34
 
 ## The first thing a client says. `character` is its character file (CharacterSave.to_net, empty
 ## for a new player) and `player_id` the ID graves know it by; the server trusts both but reads
-## them with clamping (Inventory.from_dict), so a broken file starts as the starting kit.
+## them with clamping (Inventory.from_dict), so a broken file starts as the starting kit. `body`
+## is the player body picked in the menu (0 to 3; -1 = by peer id, bots).
 @rpc("any_peer", "reliable")
-func hello(version: int, player_name: String, character: Dictionary, player_id: String) -> void:
+func hello(
+	version: int, player_name: String, character: Dictionary, player_id: String, body: int
+) -> void:
 	hello_received.emit(
-		multiplayer.get_remote_sender_id(), version, player_name, character, player_id
+		multiplayer.get_remote_sender_id(), version, player_name, character, player_id, body
 	)
 
 

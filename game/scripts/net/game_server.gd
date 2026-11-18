@@ -372,7 +372,7 @@ func _track_stats() -> void:
 
 
 func _on_hello(
-	id: int, version: int, player_name: String, character: Dictionary, player_id: String
+	id: int, version: int, player_name: String, character: Dictionary, player_id: String, pick: int
 ) -> void:
 	if version != Net.PROTOCOL_VERSION:
 		net.reject.rpc_id(id, "Game version %d, server runs %d" % [version, Net.PROTOCOL_VERSION])
@@ -416,7 +416,7 @@ func _on_hello(
 	if debug_bag:
 		inventory = _debug_inventory()
 	_inventories.add_peer(id, inventory, CharacterSave.clean_id(player_id))
-	_world.spawn_player(id, _names[id], at)
+	_world.spawn_player(id, _names[id], at, clampi(pick, -1, Gear.PLAYER_BODIES.size() - 1))
 	net.inventory_snapshot.rpc_id(id, _inventories.snapshot(id))
 	net.objects_snapshot.rpc_id(id, _looting.snapshot())
 	_heard[id] = Time.get_ticks_msec()

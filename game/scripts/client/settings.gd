@@ -11,6 +11,8 @@ const NAME_LENGTH := 16
 const FPS_CAPS: Array[int] = [0, 60, 120, 144, 165, 240]
 
 static var player_name := "player"
+## The player body picked in the menu (index into Gear.PLAYER_BODIES).
+static var body := 0
 ## Multiplier on Controls.MOUSE_SENSITIVITY.
 static var sensitivity := 1.0
 static var fullscreen := true
@@ -51,6 +53,7 @@ static func load_saved() -> void:
 	volume = clampf(float(config.get_value("audio", "volume", volume)), 0.0, 1.0)
 	shake = clampf(float(config.get_value("input", "shake", shake)), 0.0, 1.0)
 	player_id = CharacterSave.clean_id(str(config.get_value("player", "id", player_id)))
+	body = clampi(int(config.get_value("player", "body", body)), 0, 3)
 
 
 ## Makes the player ID on the first run (and saves it); the same one after.
@@ -73,6 +76,7 @@ static func save() -> void:
 	config.set_value("audio", "volume", volume)
 	config.set_value("input", "shake", shake)
 	config.set_value("player", "id", player_id)
+	config.set_value("player", "body", body)
 	config.save(Graphics.SETTINGS)
 
 

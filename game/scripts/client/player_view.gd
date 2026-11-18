@@ -46,7 +46,8 @@ func _init(of: SimPlayer, show_name: bool) -> void:
 				"sword": ["RightHand", Node3D.new()],
 				"shield": ["LeftLowerArm", Node3D.new()],
 				"crossbow": ["RightHand", Node3D.new()],
-			}
+			},
+			player.body
 		)
 	)
 	add_child(_model)

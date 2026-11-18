@@ -132,6 +132,7 @@ static func _builtins() -> void:
 	register("cauldron", "prop_small", CauldronKind.build)
 	register("weapon_stand", "prop_small", WeaponStandKind.build)
 	register("banner", "prop_small", BannerKind.build)
+	register("training_dummy", "prop_small", TrainingDummyKind.build)
 	for id in ["grave_slab", "grave_marker"]:
 		register(id, "prop_small", GraveKind.build.bind(id))
 	register("sword", "weapon_tool", SwordKind.build)

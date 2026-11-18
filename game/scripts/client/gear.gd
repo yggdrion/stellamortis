@@ -13,18 +13,18 @@ const SHIELD_LOOKS: Array[StringName] = [&"round_shield", &"kite_shield", &"towe
 ## Enemy eyes and shots.
 const EMBER := Color(1.0, 0.35, 0.1)
 const IRON := Color(0.16, 0.16, 0.17)
-## The player bodies by peer id (male A, female A, male B, female B), skin and hair colors.
-const PLAYER_BODIES: Array[StringName] = [&"male_a", &"female_a", &"male_b", &"female_b"]
+## The player bodies (male A, male B, female A, female B), skin and hair colors.
+const PLAYER_BODIES: Array[StringName] = [&"male_a", &"male_b", &"female_a", &"female_b"]
 const SKINS: Array[StringName] = [&"skin_a", &"skin_b", &"skin_c", &"skin_d"]
 const HAIRS: Array[StringName] = [&"hair_a", &"hair_b", &"hair_c", &"hair_d"]
 ## The berserker's skin under its war paint.
 const PAINT := Color(0.75, 0.5, 0.45)
 
 
-## A player: one of four bodies (male and female, A and B) by peer id, in the skin and hair
-## colors the next bits pick.
-static func ranger(peer_id: int, held: Dictionary) -> CharacterModel:
-	var body: String = PLAYER_BODIES[peer_id % 4]
+## A player: one of four bodies, the one picked (`pick` 0 to 3) or by peer id (-1: bots, tests),
+## in the skin and hair colors the next bits of the peer id pick.
+static func ranger(peer_id: int, held: Dictionary, pick := -1) -> CharacterModel:
+	var body: String = PLAYER_BODIES[pick if pick >= 0 else peer_id % 4]
 	var look := {
 		"skin": SKINS[(peer_id / 4) % SKINS.size()], "hair": HAIRS[(peer_id / 16) % HAIRS.size()]
 	}

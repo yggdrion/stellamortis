@@ -316,7 +316,7 @@ Task 1 (bot brain and skills):
 - [ ] Enemies: the dead's swords look rusted, the berserker's axes dark and worn, the shield bearer's tower shield and helm fit; the Warden's helm, horns, crown, pauldrons and cape look like the old ones or better.
 - [ ] No blade looks longer than the swing reaches (the sword and axe against what they hit).
 
-## M40 Own bodies (tasks 1 to 3; task 4 adds the menu pick)
+## M40 Own bodies (tasks 1 to 4)
 
 - [ ] Players: four looks by player (male A lean with short hair and beard, female A slim with long hair, male B broad with long hair and a full beard, female B with a bun) read as different people from the camera's distance; the faces are plain but not ugly.
 - [ ] Animations: swings, roll, block, walk, sprint, crossbow aim and hit/death play without a bad bend at shoulders, hips or wrists; the sword stays in the hand; no model snaps back after a combo (the rubberband check).
@@ -324,3 +324,5 @@ Task 1 (bot brain and skills):
 - [ ] Death: bodies burn away as before (the flat burn material, embers).
 - [ ] Hit flash and telegraph tints still show on the new bodies.
 - [ ] Body colors: skin and hair colors are readable at night.
+- [ ] Body pick: the main menu shows four turning previews (male A, male B, female A, female B) under the name; a click highlights one and the choice is still there after a restart; Solo and Host show it in game; a joiner on another machine shows as the body they picked on the host and on a third client; bots and an old settings file (no pick) start as male A.
+- [ ] Training dummies: the two ahead of the arrival read as dummies (post, straw sack, target on the chest, a shield), not people; a hit flashes and sways one and plays the thud; a kill tips it over, it vanishes after about 2 s and stands up again when it rises; the telegraph tint and the fan still show when it swings.

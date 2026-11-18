@@ -105,6 +105,9 @@ const SYNCED := ["transform", "velocity", "net_motion", "net_combat", "net_bolts
 
 var peer_id := 0
 var player_name := ""
+## The player body picked in the menu (0 to 3, -1 = by peer id). Set before the node enters the
+## tree on every peer (spawner data); not rolled back.
+var body := -1
 ## The owning player's input; null until networked() (tests call step directly).
 var controls: PlayerControls
 ## Turns toward -gravity over Tuning.up_turn_time.

@@ -313,7 +313,9 @@ def build(bpy, body_id: str, spec: dict, method: str, out_dir: str | None) -> di
 
     # ---- hair and beard: solid masses on the head bone (the nape and beard follow the neck) --
     hair = spec["hair"]
-    cap = [Vector((0, 0.006, top_z - 0.15)), Vector((0, 0.006, top_z + 0.01))]
+    # The cap sits back and high: a ring centered on the head would wrap the face (the old cap
+    # started at the eyes and reached past the forehead), so the front stays skin.
+    cap = [Vector((0, 0.03, top_z - 0.09)), Vector((0, 0.03, top_z + 0.01))]
     if hair in ("buzzed", "short", "long", "bun", "braid"):
         grow = 0.006 if hair == "buzzed" else 0.014
         tube("hair", cap,
@@ -334,9 +336,9 @@ def build(bpy, body_id: str, spec: dict, method: str, out_dir: str | None) -> di
     beard = spec["beard"]
     if beard != "none":
         length = {"short": 0.07, "full": 0.12, "long": 0.22}[beard]
-        tube("beard", [Vector((0, -0.06, face_z - 0.05)),
-                       Vector((0, -0.075, face_z - 0.05 - length))],
-             [(0, 0.065, 0.045, "hair"), (0.4, 0.07, 0.05, "hair"), (1, 0.035, 0.035, "hair")],
+        tube("beard", [Vector((0, -0.06, face_z - 0.075)),
+                       Vector((0, -0.075, face_z - 0.075 - length))],
+             [(0, 0.055, 0.045, "hair"), (0.4, 0.062, 0.05, "hair"), (1, 0.035, 0.035, "hair")],
              X, head_chain)  # fmt: skip
 
     # ---- arms and legs, per side -----------------------------------------------------------

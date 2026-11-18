@@ -1,6 +1,6 @@
 # M41 Play-test fixes
 
-Status: Planned.
+Status: Built (2026-11-18, v0.31.0), play-test pending.
 
 ## Goal
 

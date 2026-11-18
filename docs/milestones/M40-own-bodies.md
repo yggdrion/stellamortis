@@ -1,6 +1,6 @@
 # M40 Own bodies
 
-Status: In progress: tasks 1 (spike), 2 (bodies) and 3 (in the game) done 2026-11-18; task 4 (pick a body) open.
+Status: In progress: tasks 1 (spike), 2 (bodies) and 3 (in the game) done 2026-11-18; tasks 4 (pick a body) and 5 (clear training dummies) open.
 
 ## Goal
 
@@ -56,6 +56,10 @@ Four player bodies: male A, male B, female A, female B (two builds per sex from 
 - `Gear.ranger(peer_id)`: body `PLAYER_BODIES[peer_id % 4]` (male A, female A, male B, female B), skin `SKINS[(peer_id / 4) % 4]`, hair `HAIRS[(peer_id / 16) % 4]`; task 4 replaces the body pick with the saved choice. `squire(index)` male A or B, `dead(archer, held, index)` dead_female for archers, dead_male, every third swordsman dead_skull; `berserker` the bare body with a grey-red `PAINT` skin; `Gear.armored(held, scale, plate)` is the Warden and the elite (the `warden` body, belt, tunic and sleeve roles in the plate color; generated helm, horns, crown, pauldrons and cape on top).
 - Checked: screenshots of the start (squire), a camp (the dead lying, the player) and the boss site (`build/shots/`, not committed); `tests/character_model_test.gd` runs on `male_a`. Not covered: hiding body parts under armor and worn armor on peers (needs the worn item indices on the wire, a protocol bump; leave it to the milestone that shows armor: M48 or earlier on request); `GearKit.covers` is unused until then. Surfaces are named by the material names of the glTF only if Godot keeps them (not verified); a part that has no faces has no surface.
 
+
+### 5. Clear training dummies (Sonnet; added 2026-11-18 on the user's request)
+
+The two dummies ahead of the arrival (`Layout.DUMMIES`, enemy indices 0 and 1, `Gear.squire` today) look like men, so they read as enemies or NPCs. They become obvious training dummies: a generated prop kind (`training_dummy` in `meshgen/kinds/`, budget `prop_small`, built with `PropKit`: a wooden post on a foot, a straw-stuffed sack torso with a rope belt, a round sack head, a cross arm, an iron or wooden shield on one side and a painted target ring on the chest) instead of a body on the UAL rig. `EnemyView` picks it for `enemy.def.look == &"dummy"` (a static mesh: hit feedback by `flash`/a small sway tween in place of the clips, the same death/respawn rule as now); keep the squire look for the squires' other uses, if any. Tests: the kind passes `meshgen_test` (budget, palette, deterministic). Done when: a screenshot of a fresh start (`--seed=1234`) shows two dummies that cannot be mistaken for people, hitting one still flashes and plays its sound, and `docs/PLAYTEST.md` has the check.
 
 ## Spike result (task 1, 2026-11-18)
 
